@@ -3,10 +3,9 @@
 easy_infra is a docker container that simplifies Infrastructure as Code deployments.
 
 ## Quickstart
-### Ansible
-1. To run an ansible playbook run the container, volume mount the playbook, and provide the required arguments to get passed to `ansible-playbook`:
+In order to run a command in the container, pass the command at the end of your `docker run` command, for instance:
 ```
-docker run -v $(pwd)/key:/root/keys/key -v $(pwd):/root/ansible seiso/easy_infra:latest -u user -i 192.0.2.230 --private-key /root/keys/key /root/ansible/playbook.yml
+docker run -v $(pwd)/key:/root/keys/key -v $(pwd):/root/ansible seiso/easy_infra:latest ansible-playbook -u user -i 192.0.2.230 --private-key /root/keys/key /root/ansible/playbook.yml
 ```
 
 ## Contributing
