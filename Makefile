@@ -3,7 +3,8 @@ COMMIT_HASH       := $(shell git rev-parse HEAD)
 FROM_IMAGE         = alpine
 FROM_IMAGE_TAG     = 3
 IMAGE_NAME         = easy_infra
-PACKAGES           = ansible terraform
+APK_PACKAGES       = ansible terraform
+YARN_PACKAGES      = mermaid @mermaid-js/mermaid-cli
 UNAME_S           := $(shell uname -s)
 VERSION            = 0.2.0
 
@@ -24,9 +25,15 @@ build:
 
 .PHONY: update
 update:
-	@echo "Updating the package versions in the Dockerfile..."
-	@for package in $(PACKAGES); do \
+	@echo "Updating the apk package versions in the Dockerfile..."
+	@for package in $(APK_PACKAGES); do \
 		version=$$(docker run --rm $(FROM_IMAGE):$(FROM_IMAGE_TAG) /bin/ash -c "apk update &>/dev/null; apk add --no-cache $${package} &>/dev/null; echo \$$(apk search -x $${package} | sed 's/^$${package}-//g')"); \
+		./update.sh --package=$${package} --version=$${version}; \
+	done
+	@echo "Done!"
+	@echo "Updating the yarn package versions in the Dockerfile..."
+	@for package in $(YARN_PACKAGES); do\
+		version=$$(docker run --rm $(FROM_IMAGE):$(FROM_IMAGE_TAG) /bin/ash -c "apk update &>/dev/null; apk add --no-cache yarn jq &>/dev/null; yarn info $${package} --json | jq -r .data[\\\"dist-tags\\\"].latest"); \
 		./update.sh --package=$${package} --version=$${version}; \
 	done
 	@echo "Done!"
@@ -40,3 +47,4 @@ push_tag:
 awscli: awscli-to-freeze.txt
 	@python3 -c 'print("Updating the awscli.txt file...")'
 	@docker run --rm -v $$(pwd):/usr/src/app/ python:3.8 /bin/bash -c "pip3 install -r /usr/src/app/awscli-to-freeze.txt && pip3 freeze > /usr/src/app/awscli.txt"
+

@@ -68,7 +68,11 @@ if [[ -z "${PACKAGE}" || -z "${VERSION}" ]]; then
   help 64
 fi
 
+# Translate package name to uppercase because global variables
 PACKAGE=$(echo "${PACKAGE}" | tr '[:lower:]' '[:upper:]')
+
+# Remove yarn scope and convert `-`s to `_`s
+PACKAGE=$(echo "${PACKAGE}" | sed 's_@.*/__g' | sed 's/-/_/g' )
 
 sed -i '' "s/\(ARG ${PACKAGE}_VERSION=\"\).*/\1${VERSION}\"/" Dockerfile
 
