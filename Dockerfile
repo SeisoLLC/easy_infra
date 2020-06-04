@@ -13,13 +13,24 @@ LABEL VERSION=${VERSION}
 
 # apk adds
 ARG ANSIBLE_VERSION="2.9.9-r0"
-ARG TERRAFORM_VERSION="0.12.25-r0"
-RUN apk add --no-cache ansible=${ANSIBLE_VERSION} \
-                       terraform=${TERRAFORM_VERSION} && \
-    apk add --no-cache --update jq \
+RUN apk add --no-cache ansible=${ANSIBLE_VERSION} && \
+    apk add --no-cache --update bash \
+                                curl \
+                                git \
+                                jq \
+                                perl-utils \
                                 python3 \
                                 py3-pip \
                                 yarn
+
+# git installs
+ARG TERRAFORM_VERSION="0.12.26"
+ENV PATH="/root/.tfenv/bin:${PATH}"
+RUN git clone https://github.com/tfutils/tfenv.git ~/.tfenv && \
+    echo 'PATH=/root/.tfenv/bin:${PATH}' >> ~/.bashrc && \
+    source ~/.bashrc && \
+    tfenv install ${TERRAFORM_VERSION} && \
+    tfenv use ${TERRAFORM_VERSION}
 
 # pip installs
 COPY awscli.txt .
@@ -33,6 +44,11 @@ ARG MERMAID_CLI_VERSION="8.5.1-2"
 ENV PATH="/node_modules/.bin/:${PATH}"
 RUN yarn add mermaid@${MERMAID_VERSION} \
              @mermaid-js/mermaid-cli@${MERMAID_CLI_VERSION}
+
+# cleanup
+RUN apk del git && \
+    rm -rf /var/cache/apk/* \
+           /tmp/*
 
 COPY entrypoint.sh .
 ENTRYPOINT ["./entrypoint.sh"]
