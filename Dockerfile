@@ -29,7 +29,8 @@ ENV PATH="/root/.tfenv/bin:${PATH}"
 RUN git clone https://github.com/tfutils/tfenv.git ~/.tfenv && \
     echo 'PATH=/root/.tfenv/bin:${PATH}' >> ~/.bashrc && \
     source ~/.bashrc && \
-    tfenv install ${TERRAFORM_VERSION}
+    tfenv install ${TERRAFORM_VERSION} && \
+    tfenv use ${TERRAFORM_VERSION}
 
 # pip installs
 COPY awscli.txt .
