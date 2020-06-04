@@ -5,7 +5,7 @@ set -o pipefail
 
 if [ $# -eq 0 ]; then
   # Print select pakage versions then open an ash shell
-  ansible --version
+  ansible --version | head -1
   aws --version
   terraform version
 
