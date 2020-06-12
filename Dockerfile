@@ -39,7 +39,7 @@ RUN python3 -m pip install --upgrade pip && \
     pip3 install --user -r awscli.txt
 
 # yarn adds
-ARG MERMAID_VERSION="8.5.1"
+ARG MERMAID_VERSION="8.5.2"
 ARG MERMAID_CLI_VERSION="8.5.1-2"
 ENV PATH="/node_modules/.bin/:${PATH}"
 RUN yarn add mermaid@${MERMAID_VERSION} \
@@ -50,6 +50,6 @@ RUN apk del git && \
     rm -rf /var/cache/apk/* \
            /tmp/*
 
-COPY entrypoint.sh .
-ENTRYPOINT ["./entrypoint.sh"]
+COPY docker-entrypoint.sh .
+ENTRYPOINT ["docker-entrypoint.sh"]
 
