@@ -50,6 +50,6 @@ RUN apk del git && \
     rm -rf /var/cache/apk/* \
            /tmp/*
 
-COPY docker-entrypoint.sh .
+COPY docker-entrypoint.sh /usr/local/bin/
 ENTRYPOINT ["docker-entrypoint.sh"]
 
