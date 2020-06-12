@@ -9,9 +9,10 @@ if [ $# -eq 0 ]; then
   aws --version
   terraform version
 
-  /usr/bin/env ash
+  exec ash
 else
-  # Run the CMD
+  # Run the CMD. Consider `exec "$@"` if you only need one command at a time,
+  # as multiple commands are ugly with that approach
   eval "$@"
 fi
 

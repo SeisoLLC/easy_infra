@@ -6,7 +6,7 @@ IMAGE_NAME         = easy_infra
 APK_PACKAGES       = ansible
 YARN_PACKAGES      = mermaid @mermaid-js/mermaid-cli
 UNAME_S           := $(shell uname -s)
-VERSION            = 0.3.0
+VERSION            = 0.3.1
 
 
 ## Validation
