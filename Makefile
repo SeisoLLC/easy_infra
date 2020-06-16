@@ -1,12 +1,12 @@
 ## Initialization
 COMMIT_HASH       := $(shell git rev-parse HEAD)
-FROM_IMAGE         = alpine
-FROM_IMAGE_TAG     = 3
+FROM_IMAGE         = ubuntu
+FROM_IMAGE_TAG     = 20.04
 IMAGE_NAME         = easy_infra
-APK_PACKAGES       = ansible
+APT_PACKAGES       = ansible
 YARN_PACKAGES      = mermaid @mermaid-js/mermaid-cli
 UNAME_S           := $(shell uname -s)
-VERSION            = 0.3.1
+VERSION            = 0.3.2
 
 
 ## Validation
@@ -26,13 +26,13 @@ build:
 
 
 .PHONY: update
-update: update-apk update-awscli update-terraform update-yarn
+update: update-apt update-awscli update-terraform update-yarn
 
-.PHONY: update-apk
-update-apk:
-	@echo "Updating the apk package versions..."
-	@for package in $(APK_PACKAGES); do \
-		version=$$(docker run --rm easy_infra:latest "apk update &>/dev/null && apk search -x $${package} | sed 's/^$${package}-//g'"); \
+.PHONY: update-apt
+update-apt:
+	@echo "Updating the apt package versions..."
+	@for package in $(APT_PACKAGES); do \
+		version=$$(docker run --rm easy_infra:latest "apt-get update &>/dev/null && apt-cache policy $${package} | grep '^  Candidate:' | awk -F' ' '{print \$$NF}'"); \
 		./update.sh --package=$${package} --version=$${version}; \
 	done
 	@echo "Done!"
