@@ -30,6 +30,8 @@ RUN apt-get update && \
                                                unzip \
                                                yarn
 
+# No cleanup due to /etc/apt/apt.conf.d/docker-clean in ubuntu:20.04
+
 # git installs
 ARG TERRAFORM_VERSION="0.12.26"
 ENV PATH="/root/.tfenv/bin:${PATH}"
@@ -52,7 +54,13 @@ ENV PATH="/node_modules/.bin/:${PATH}"
 RUN yarn add mermaid@${MERMAID_VERSION} \
              @mermaid-js/mermaid-cli@${MERMAID_CLI_VERSION}
 
-# No cleanup due to /etc/apt/apt.conf.d/docker-clean in ubuntu:20.04
+# TODO: go gets
+ARG TFSEC_VERSION="TODO"
+
+# setup ENV environment variable
+WORKDIR /
+COPY functions .
+ENV ENV=/functions
 
 COPY docker-entrypoint.sh /usr/local/bin/
 ENTRYPOINT ["docker-entrypoint.sh"]

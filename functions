@@ -1,0 +1,8 @@
+terraform() {
+    # Use the built-in tfsec recursive scan feature
+    tfsec /
+
+    # Run the actual terraform command
+    command terraform "$@"
+}
+

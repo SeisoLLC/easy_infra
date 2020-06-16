@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-set -u # nounset
+set -o errexit
+set -o nounset
 set -o pipefail
 
 if [ $# -eq 0 ]; then
