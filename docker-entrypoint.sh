@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
-set -o errexit
+# Intentionally not setting errexit to allow list constructs[1] in the docker run
+# 1:  https://www.tldp.org/LDP/abs/html/list-cons.html
+
 set -o nounset
 set -o pipefail
 

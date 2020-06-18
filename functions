@@ -35,12 +35,13 @@ function terraform() {
 
     if [[ "${?}" != 0 ]]; then
       return ${exitCode}
-    else
+    elif [[ ! "${-}" =~ .*i.* ]]; then
+      # Only skip multiple tfsec runs when not interactive
       date +%s > /tfsec_complete
     fi
   fi
 
-  # Run the command per a PATH lookup, sans any easy_infra specific arguments
+  # Run the command per a PATH lookup, after any easy_infra specific arguments are removed
   command "${FUNCNAME[0]}" "$@"
 }
 
