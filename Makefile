@@ -1,13 +1,15 @@
 ## Initialization
+APT_PACKAGES       = ansible
 COMMIT_HASH       := $(shell git rev-parse HEAD)
 FROM_IMAGE         = ubuntu
 FROM_IMAGE_TAG     = 20.04
-IMAGE_NAME         = easy_infra
-APT_PACKAGES       = ansible
+# This must be treated as a list of 3-tuples
+FUNCTION_GENERATOR = "terraform" "tfsec" "recursive scan"
 GITHUB             = tfutils/tfenv liamg/tfsec
-YARN_PACKAGES      = mermaid @mermaid-js/mermaid-cli
+IMAGE_NAME         = easy_infra
 UNAME_S           := $(shell uname -s)
 VERSION            = 0.4.0
+YARN_PACKAGES      = mermaid @mermaid-js/mermaid-cli
 
 
 ## Validation
@@ -27,13 +29,35 @@ update_dockerfile_repo    = ./update.sh --repo=$(1) --version=$(2)
 
 
 ## Rules
+.PHONY: all
+all: update build
+
+.PHONY: update
+update: update-functions update-deps
+
+.PHONY: update-deps
+update-deps: update-apt update-awscli update-github update-terraform update-yarn
+
+
+.PHONY: update-functions
+update-functions:
+	@echo "Updating the functions script..."
+	@cat functions_static > functions
+	@chmod 0755 functions
+	@# This method works as long as FUNCTION_GENERATOR is treated like a list of 3-tuples
+	@# It was chosen because Make and bash don't natively support multidimensional arrays
+	@i=0; for element in $(FUNCTION_GENERATOR); do \
+		if (( i % 3 == 0 )) ; then \
+			cat functions_template >> functions; \
+		fi; \
+		docker run --rm -v $$(pwd):/tmp/ easy_infra:latest "sed -i '0,/%TODO%/s//$${element}/' /tmp/functions"; \
+		i=$$((i+1)); \
+	done
+	@echo "Done!"
+
 .PHONY: build
 build:
 	@DOCKER_BUILDKIT=1 docker build --rm -t $(IMAGE_NAME):latest -t $(IMAGE_NAME):$(VERSION) -t $(IMAGE_NAME):$(COMMIT_HASH) --build-arg "FROM_IMAGE=$(FROM_IMAGE)" --build-arg "FROM_IMAGE_TAG=$(FROM_IMAGE_TAG)" .
-
-
-.PHONY: update
-update: update-apt update-awscli update-github update-terraform update-yarn
 
 .PHONY: update-apt
 update-apt:
