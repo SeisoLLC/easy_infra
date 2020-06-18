@@ -5,15 +5,13 @@ set -o nounset
 set -o pipefail
 
 if [ $# -eq 0 ]; then
-  # Print select pakage versions then open an ash shell
+  # Print select package versions then open an bash shell
   ansible --version | head -1
-  aws --version
+  aws --version | awk -F' ' '{print $1}'
   terraform version
 
   exec bash
 else
-  # Run the CMD. Consider `exec "$@"` if you only need one command at a time,
-  # as multiple commands are ugly with that approach
-  eval "$@"
+  eval "BASH_ENV=${BASH_ENV} $*"
 fi
 

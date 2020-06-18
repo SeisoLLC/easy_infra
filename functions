@@ -1,8 +1,46 @@
-terraform() {
+# shellcheck disable=SC2034
+{
+  declare -r ERROR='\033[0;31m'
+  declare -r WARNING='\033[0;33m'
+  declare -r INFO='\033[0m'
+  declare -r DEFAULT='\033[0m'
+}
+
+function _quit() {
+  exit "${1:-0}"
+}
+
+function _feedback() {
+  color="${1:-DEFAULT}"
+  case "${1}" in
+    ERROR)
+      >&2 echo -e "${!color}${1}:  ${2}${DEFAULT}"
+      _quit 1
+      ;;
+    WARNING)
+      >&2 echo -e "${!color}${1}:  ${2}${DEFAULT}"
+      ;;
+    *)
+      echo -e "${!color}${1}:  ${2}${DEFAULT}"
+      ;;
+  esac
+}
+
+function terraform() {
+  if [[ "${1}" == "--skip-tfsec" ]]; then
+    _feedback WARNING "Skipping tfsec due to --skip-tfsec argument"
+    shift
+  elif [[ "${SKIP_TFSEC:-false}" == "true" ]]; then
+    _feedback WARNING "Skipping tfsec due to SKIP_TFSEC environment variable"
+  elif [[ -r /tfsec_complete ]]; then
+    _feedback INFO "Skipping tfsec because it was already run on $(date -d @$(cat /tfsec_complete))"
+  else
     # Use the built-in tfsec recursive scan feature
     tfsec /
+    date +%s > /tfsec_complete
+  fi
 
-    # Run the actual terraform command
-    command terraform "$@"
+  # Run the command per a PATH lookup, sans any easy_infra specific arguments
+  command ${FUNCNAME[0]} "$@"
 }
 

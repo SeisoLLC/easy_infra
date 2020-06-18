@@ -4,6 +4,7 @@ FROM_IMAGE         = ubuntu
 FROM_IMAGE_TAG     = 20.04
 IMAGE_NAME         = easy_infra
 APT_PACKAGES       = ansible
+GITHUB             = tfutils/tfenv liamg/tfsec
 YARN_PACKAGES      = mermaid @mermaid-js/mermaid-cli
 UNAME_S           := $(shell uname -s)
 VERSION            = 0.4.0
@@ -19,6 +20,12 @@ $(error COMMIT_HASH was not properly set)
 endif
 
 
+## Functions
+get_github_latest_version = $$(docker run --rm easy_infra:latest "curl -s https://api.github.com/repos/$(1)/releases/latest | jq -r '.tag_name'")
+update_dockerfile_package = ./update.sh --package=$(1) --version=$(2)
+update_dockerfile_repo    = ./update.sh --repo=$(1) --version=$(2)
+
+
 ## Rules
 .PHONY: build
 build:
@@ -26,14 +33,14 @@ build:
 
 
 .PHONY: update
-update: update-apt update-awscli update-terraform update-yarn
+update: update-apt update-awscli update-github update-terraform update-yarn
 
 .PHONY: update-apt
 update-apt:
 	@echo "Updating the apt package versions..."
 	@for package in $(APT_PACKAGES); do \
 		version=$$(docker run --rm easy_infra:latest "apt-get update &>/dev/null && apt-cache policy $${package} | grep '^  Candidate:' | awk -F' ' '{print \$$NF}'"); \
-		./update.sh --package=$${package} --version=$${version}; \
+		$(call update_dockerfile_package,$${package},$${version}); \
 	done
 	@echo "Done!"
 
@@ -43,11 +50,20 @@ update-awscli: awscli-to-freeze.txt
 	@docker run --rm -v $$(pwd):/usr/src/app/ python:3 /bin/bash -c "pip3 install -r /usr/src/app/awscli-to-freeze.txt &>/dev/null && pip3 freeze > /usr/src/app/awscli.txt"
 	@echo "Done!"
 
+.PHONY: update-github
+update-github:
+	@echo "Updating github repo tags..."
+	@for repo in $(GITHUB); do \
+		version=$(call get_github_latest_version,$${repo}); \
+		$(call update_dockerfile_repo,$${repo},$${version}); \
+	done
+	@echo "Done!"
+
 .PHONY: update-terraform
 update-terraform:
 	@echo "Updating the terraform version..."
 	@version=$$(docker run --rm easy_infra:latest "tfenv list-remote 2>/dev/null | egrep -v '(rc|beta)' | head -1"); \
-		./update.sh --package=terraform --version=$${version}
+		$(call update_dockerfile_package,terraform,$${version})
 	@echo "Done!"
 
 .PHONY: update-yarn
@@ -55,7 +71,7 @@ update-yarn:
 	@echo "Updating the yarn package versions..."
 	@for package in $(YARN_PACKAGES); do\
 		version=$$(docker run --rm easy_infra:latest "yarn info $${package} --json 2>/dev/null | jq -r .data[\\\"dist-tags\\\"].latest"); \
-		./update.sh --package=$${package} --version=$${version}; \
+		$(call update_dockerfile_package,$${package},$${version}); \
 	done
 	@echo "Done!"
 
