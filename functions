@@ -31,10 +31,10 @@ function terraform() {
     _feedback INFO "Skipping tfsec because it was already run on $(date -d @$(cat /tfsec_complete))"
   else
     # Use the built-in tfsec recursive scan feature
-    tfsec /
+    tfsec / || exitCode=$(_feedback ERROR "Failed tfsec recursive scan")
 
     if [[ "${?}" != 0 ]]; then
-      return $(_feedback ERROR "Failed tfsec recursive scan")
+      return "${exitCode}"
     else
       date +%s > /tfsec_complete
     fi
