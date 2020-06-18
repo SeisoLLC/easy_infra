@@ -34,7 +34,7 @@ function terraform() {
     tfsec / || exitCode=$(_feedback ERROR "Failed tfsec recursive scan")
 
     if [[ "${?}" != 0 ]]; then
-      return "${exitCode}"
+      return ${exitCode}
     else
       date +%s > /tfsec_complete
     fi
