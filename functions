@@ -1,27 +1,22 @@
-# shellcheck disable=SC2034
-{
-  declare -r ERROR='\033[0;31m'
-  declare -r WARNING='\033[0;33m'
-  declare -r INFO='\033[0m'
-  declare -r DEFAULT='\033[0m'
-}
-
-function _quit() {
-  exit "${1:-0}"
-}
+ERROR='\033[0;31m'
+WARNING='\033[0;33m'
+INFO='\033[0m'
+DEFAULT='\033[0m'
 
 function _feedback() {
   color="${1:-DEFAULT}"
   case "${1}" in
     ERROR)
       >&2 echo -e "${!color}${1}:  ${2}${DEFAULT}"
-      _quit 1
+      return 1
       ;;
     WARNING)
       >&2 echo -e "${!color}${1}:  ${2}${DEFAULT}"
+      return 0
       ;;
     *)
       echo -e "${!color}${1}:  ${2}${DEFAULT}"
+      return 0
       ;;
   esac
 }
@@ -37,10 +32,15 @@ function terraform() {
   else
     # Use the built-in tfsec recursive scan feature
     tfsec /
-    date +%s > /tfsec_complete
+
+    if [[ "${?}" != 0 ]]; then
+      return $(_feedback ERROR "Failed tfsec recursive scan")
+    else
+      date +%s > /tfsec_complete
+    fi
   fi
 
   # Run the command per a PATH lookup, sans any easy_infra specific arguments
-  command ${FUNCNAME[0]} "$@"
+  command "${FUNCNAME[0]}" "$@"
 }
 

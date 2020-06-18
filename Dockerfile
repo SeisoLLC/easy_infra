@@ -64,7 +64,9 @@ RUN yarn add mermaid@${MERMAID_VERSION} \
 # setup functions
 COPY functions /functions
 ENV BASH_ENV=/functions
+RUN echo 'source ${BASH_ENV}' >> ~/.bashrc
 
-COPY docker-entrypoint.sh /usr/local/bin/
+WORKDIR /usr/local/bin/
+COPY docker-entrypoint.sh .
 ENTRYPOINT ["docker-entrypoint.sh"]
 

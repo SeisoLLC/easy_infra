@@ -18,7 +18,7 @@ What actually happens is that a security scan of your terraform code will be run
 While it's not suggested, if you'd like to disable this behavior you have some options:
 1. Set the `SKIP_TFSEC` environment variable to `true`.  This is the preferred option because it is (1) global, and (2) allows you to run native `terraform` commands.
     ```bash
-    docker run --rm -e SKIP_TFSEC=true -w /root/tf_dir -v $(pwd)/tf_dir:/root/tf_dir seiso/easy_infra:latest "terraform init && terraform apply"
+    docker run --rm --env SKIP_TFSEC=true -w /root/tf_dir -v $(pwd)/tf_dir:/root/tf_dir seiso/easy_infra:latest "terraform init && terraform apply"
     ```
 1. Pass the `--skip-tfsec` argument to any `terraform` commands.  Note that this is specific to easy_infra, and must be the first argument after the `terraform` base command.  It is processed and removed from the `terraform` command before it is run.
     ```bash
