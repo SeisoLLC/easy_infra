@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
-set -u # nounset
-set -e # errexit
-set -E # errtrap
+set -o errtrace
+set -o nounset
+set -o errexit
 set -o pipefail
 
 function help() {
