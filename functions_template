@@ -1,21 +1,23 @@
-function %TODO%() {
-  security_tool="%TODO%"
-  security_tool_args="%TODO%"
-  action="%TODO%"
-  security_tool_upper=$(echo "${security_tool}" | tr '[:lower:]' '[:upper:]')
-  security_tool_argument="--skip-${security_tool}"
+function %FUNCTION_NAME%() {
+  security_tool_upper=$(echo "${%SECURITY_TOOL%}" | tr '[:lower:]' '[:upper:]')
+  security_tool_argument="--skip-${%SECURITY_TOOL%}"
   security_tool_env_var="SKIP_${security_tool_upper}"
 
+  # If the "skip" argument was provided, skip the security scan
   if [[ "${1}" == "${security_tool_argument}" ]]; then
-    _feedback WARNING "Skipping ${security_tool} due to ${security_tool_argument} argument"
+    _feedback WARNING "Skipping %SECURITY_TOOL% due to ${security_tool_argument} argument"
     shift
+  # If the "skip" environment variable was set to true, skip the security scan
   elif [[ "${!security_tool_env_var:-false}" == "true" ]]; then
-    _feedback WARNING "Skipping ${security_tool} due to the ${security_tool_env_var} environment variable value"
-  elif [[ -r "/${security_tool}_complete" ]]; then
-    _feedback INFO "Skipping ${security_tool} because it was already run on $(date -d @$(cat /${security_tool}_complete))"
+    _feedback WARNING "Skipping %SECURITY_TOOL% due to the ${security_tool_env_var} environment variable value"
+  # If the security scan was already run successfully in an non-interactive
+  # shell, don't run it again
+  elif [[ -r "/%SECURITY_TOOL%_complete" ]]; then
+    _feedback INFO "Skipping %SECURITY_TOOL% because it was already run on $(date -d @$(cat /%SECURITY_TOOL%_complete))"
+  # Otherwise, run the security scan
   else
-    ${security_tool} ${security_tool_args} &>/dev/null
-    process_security_tool_exit_status "${?}" "${security_tool}" "${action}"
+    %SECURITY_TOOL% %SECURITY_TOOL_ARGS% &>/dev/null
+    process_security_tool_exit_status "${?}" "%SECURITY_TOOL%" "%SECURITY_TOOL_ACTION%"
     return=${?}
     if [[ ${return:-1} != 0 ]]; then
       return ${return}
