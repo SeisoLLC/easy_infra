@@ -48,18 +48,18 @@ RUN git clone https://github.com/tfutils/tfenv.git ~/.tfenv && \
     tfenv install ${TERRAFORM_VERSION} && \
     tfenv use ${TERRAFORM_VERSION}
 
-# pip installs
-COPY awscli.txt .
-ENV PATH="/root/.local/bin:${PATH}"
-RUN python3 -m pip install --upgrade pip && \
-    pip install --user -r awscli.txt
-
 # yarn adds
 ARG MERMAID_VERSION="8.5.2"
 ARG MERMAID_CLI_VERSION="8.5.1-2"
 ENV PATH="/node_modules/.bin/:${PATH}"
 RUN yarn add mermaid@${MERMAID_VERSION} \
              @mermaid-js/mermaid-cli@${MERMAID_CLI_VERSION}
+
+# pip installs
+COPY awscli.txt .
+ENV PATH="/root/.local/bin:${PATH}"
+RUN python3 -m pip install --upgrade pip && \
+    pip install --user -r awscli.txt
 
 # setup functions
 COPY functions /functions
