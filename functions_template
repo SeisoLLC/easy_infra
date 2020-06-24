@@ -1,6 +1,6 @@
 function %FUNCTION_NAME%() {
-  security_tool_upper=$(echo "${%SECURITY_TOOL%}" | tr '[:lower:]' '[:upper:]')
-  security_tool_argument="--skip-${%SECURITY_TOOL%}"
+  security_tool_upper=$(echo "%SECURITY_TOOL%" | tr '[:lower:]' '[:upper:]')
+  security_tool_argument="--skip-%SECURITY_TOOL%"
   security_tool_env_var="SKIP_${security_tool_upper}"
 
   # If the "skip" argument was provided, skip the security scan
