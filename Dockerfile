@@ -29,21 +29,24 @@ RUN apt-get update && \
                                                python3-pip \
                                                unzip \
                                                yarn
+# No cleanup due to /etc/apt/apt.conf.d/docker-clean in ubuntu:20.04
+
+# binary downloads
+ARG TFSEC_VERSION="v0.21.0"
+RUN curl -L https://github.com/liamg/tfsec/releases/download/${TFSEC_VERSION}/tfsec-linux-amd64 -o /usr/local/bin/tfsec && \
+    chmod 0755 /usr/local/bin/tfsec
 
 # git installs
 ARG TERRAFORM_VERSION="0.12.26"
+ARG TFENV_VERSION="v2.0.0"
 ENV PATH="/root/.tfenv/bin:${PATH}"
 RUN git clone https://github.com/tfutils/tfenv.git ~/.tfenv && \
     echo 'PATH=/root/.tfenv/bin:${PATH}' >> ~/.bashrc && \
     . ~/.bashrc && \
+    cd ~/.tfenv && \
+    git checkout ${TFENV_VERSION} && \
     tfenv install ${TERRAFORM_VERSION} && \
     tfenv use ${TERRAFORM_VERSION}
-
-# pip installs
-COPY awscli.txt .
-ENV PATH="/root/.local/bin:${PATH}"
-RUN python3 -m pip install --upgrade pip && \
-    pip install --user -r awscli.txt
 
 # yarn adds
 ARG MERMAID_VERSION="8.5.2"
@@ -52,8 +55,18 @@ ENV PATH="/node_modules/.bin/:${PATH}"
 RUN yarn add mermaid@${MERMAID_VERSION} \
              @mermaid-js/mermaid-cli@${MERMAID_CLI_VERSION}
 
-# No cleanup due to /etc/apt/apt.conf.d/docker-clean in ubuntu:20.04
+# pip installs
+COPY awscli.txt .
+ENV PATH="/root/.local/bin:${PATH}"
+RUN python3 -m pip install --upgrade pip && \
+    pip install --user -r awscli.txt
 
-COPY docker-entrypoint.sh /usr/local/bin/
+# setup functions
+COPY functions /functions
+ENV BASH_ENV=/functions
+RUN echo 'source ${BASH_ENV}' >> ~/.bashrc
+
+WORKDIR /usr/local/bin/
+COPY docker-entrypoint.sh .
 ENTRYPOINT ["docker-entrypoint.sh"]
 
