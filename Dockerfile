@@ -32,12 +32,12 @@ RUN apt-get update && \
 # No cleanup due to /etc/apt/apt.conf.d/docker-clean in ubuntu:20.04
 
 # binary downloads
-ARG TFSEC_VERSION="v0.21.0"
+ARG TFSEC_VERSION="v0.23.2"
 RUN curl -L https://github.com/liamg/tfsec/releases/download/${TFSEC_VERSION}/tfsec-linux-amd64 -o /usr/local/bin/tfsec && \
     chmod 0755 /usr/local/bin/tfsec
 
 # git installs
-ARG TERRAFORM_VERSION="0.12.26"
+ARG TERRAFORM_VERSION="0.12.28"
 ARG TFENV_VERSION="v2.0.0"
 ENV PATH="/root/.tfenv/bin:${PATH}"
 RUN git clone https://github.com/tfutils/tfenv.git ~/.tfenv && \
@@ -50,7 +50,7 @@ RUN git clone https://github.com/tfutils/tfenv.git ~/.tfenv && \
 
 # yarn adds
 ARG MERMAID_VERSION="8.5.2"
-ARG MERMAID_CLI_VERSION="8.5.1-2"
+ARG MERMAID_CLI_VERSION="8.5.3"
 ENV PATH="/node_modules/.bin/:${PATH}"
 RUN yarn add mermaid@${MERMAID_VERSION} \
              @mermaid-js/mermaid-cli@${MERMAID_CLI_VERSION}
