@@ -10,6 +10,7 @@ if [ $# -eq 0 ]; then
   # Print select package versions then open an bash shell
   command ansible --version | head -1
   command aws --version | awk -F' ' '{print $1}'
+  command echo -n "azure-cli " && command az version | jq -r '.["azure-cli"]'
   command terraform version
 
   exec bash
