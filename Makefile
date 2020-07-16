@@ -1,5 +1,5 @@
 ## Initialization
-APT_PACKAGES       = ansible
+APT_PACKAGES       = ansible azure-cli
 COMMIT_HASH       := $(shell git rev-parse HEAD)
 FROM_IMAGE         = ubuntu
 FROM_IMAGE_TAG     = 20.04
@@ -8,7 +8,7 @@ FUNCTION_GENERATOR = "terraform" "tfsec" "\/" "recursive scan"
 GITHUB             = tfutils/tfenv liamg/tfsec
 IMAGE_NAME         = easy_infra
 UNAME_S           := $(shell uname -s)
-VERSION            = 0.4.1
+VERSION            = 0.4.2
 YARN_PACKAGES      = mermaid @mermaid-js/mermaid-cli
 
 
