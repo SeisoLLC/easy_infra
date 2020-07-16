@@ -1,5 +1,5 @@
 ## Initialization
-APT_PACKAGES       = ansible
+APT_PACKAGES       = ansible azure-cli
 COMMIT_HASH       := $(shell git rev-parse HEAD)
 FROM_IMAGE         = ubuntu
 FROM_IMAGE_TAG     = 20.04
