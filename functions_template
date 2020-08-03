@@ -16,10 +16,11 @@ function %FUNCTION_NAME%() {
     _feedback INFO "Skipping %SECURITY_TOOL% because it was already run on $(date -d @$(cat /%SECURITY_TOOL%_complete))"
   # Otherwise, run the security scan
   else
-    %SECURITY_TOOL% %SECURITY_TOOL_ARGS% &>/dev/null
+    %SECURITY_TOOL% %SECURITY_TOOL_ARGS% &>/%SECURITY_TOOL%_output
     process_security_tool_exit_status "${?}" "%SECURITY_TOOL%" "%SECURITY_TOOL_ACTION%"
     return=${?}
     if [[ ${return:-1} != 0 ]]; then
+      cat /%SECURITY_TOOL%_output
       return ${return}
     fi
   fi
