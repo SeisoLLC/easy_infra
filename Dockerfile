@@ -30,6 +30,7 @@ RUN apt-get update && \
     apt-get update && \
     apt-get -y install --no-install-recommends ansible=${ANSIBLE_VERSION} \
                                                azure-cli=${AZURE_CLI_VERSION} \
+                                               bsdmainutils \
                                                git \
                                                jq \
                                                nodejs \
