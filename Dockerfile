@@ -41,8 +41,12 @@ RUN apt-get update && \
 
 # binary downloads
 ARG TFSEC_VERSION="v0.24.1"
+ARG PACKER_VERSION="v1.6.1"
 RUN curl -L https://github.com/liamg/tfsec/releases/download/${TFSEC_VERSION}/tfsec-linux-amd64 -o /usr/local/bin/tfsec && \
-    chmod 0755 /usr/local/bin/tfsec
+    chmod 0755 /usr/local/bin/tfsec && \
+    curl -L https://releases.hashicorp.com/packer/${PACKER_VERSION#v}/packer_${PACKER_VERSION#v}_linux_amd64.zip -o /usr/local/bin/packer.zip && \
+    unzip /usr/local/bin/packer.zip -d /usr/local/bin/ && \
+    chmod 0755 /usr/local/bin/packer
 
 # git installs
 ARG TERRAFORM_VERSION="0.12.29"
