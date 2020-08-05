@@ -13,7 +13,7 @@ LABEL VERSION="${VERSION}"
 
 # apt-get installs
 ARG ANSIBLE_VERSION="2.9.6+dfsg-1"
-ARG AZURE_CLI_VERSION="2.9.1-1~focal"
+ARG AZURE_CLI_VERSION="2.10.0-1~focal"
 ENV DEBIAN_FRONTEND=noninteractive
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN apt-get update \
