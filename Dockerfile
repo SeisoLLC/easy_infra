@@ -81,6 +81,9 @@ COPY functions /functions
 ENV BASH_ENV=/functions
 RUN echo 'source ${BASH_ENV}' >> ~/.bashrc
 
+# Add aws autocomplete
+RUN echo 'complete -C /root/.local/bin/aws_completer aws' >> ~/.bashrc
+
 WORKDIR /usr/local/bin/
 COPY docker-entrypoint.sh .
 ENTRYPOINT ["docker-entrypoint.sh"]
