@@ -33,7 +33,9 @@ RUN apt-get update \
                                                azure-cli=${AZURE_CLI_VERSION} \
                                                bsdmainutils \
                                                git \
+                                               groff \
                                                jq \
+                                               less \
                                                nodejs \
                                                python3 \
                                                python3-pip \
