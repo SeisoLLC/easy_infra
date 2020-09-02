@@ -13,7 +13,7 @@ LABEL VERSION="${VERSION}"
 
 # apt-get installs
 ARG ANSIBLE_VERSION="2.9.6+dfsg-1"
-ARG AZURE_CLI_VERSION="2.11.0-1~focal"
+ARG AZURE_CLI_VERSION="2.11.1-1~focal"
 ENV DEBIAN_FRONTEND=noninteractive
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN apt-get update \
@@ -46,7 +46,7 @@ RUN apt-get update \
 
 # binary downloads
 ARG TFSEC_VERSION="v0.25.0"
-ARG PACKER_VERSION="v1.6.1"
+ARG PACKER_VERSION="v1.6.2"
 RUN curl -L https://github.com/liamg/tfsec/releases/download/${TFSEC_VERSION}/tfsec-linux-amd64 -o /usr/local/bin/tfsec \
  && chmod 0755 /usr/local/bin/tfsec \
  && curl -L https://releases.hashicorp.com/packer/${PACKER_VERSION#v}/packer_${PACKER_VERSION#v}_linux_amd64.zip -o /usr/local/bin/packer.zip \
