@@ -56,7 +56,7 @@ RUN curl -L https://github.com/liamg/tfsec/releases/download/${TFSEC_VERSION}/tf
  && chmod 0755 /usr/local/bin/packer
 
 # git installs
-ARG TERRAFORM_VERSION="0.13.1"
+ARG TERRAFORM_VERSION="0.13.2"
 ARG TFENV_VERSION="v2.0.0"
 ENV PATH="/root/.tfenv/bin:${PATH}"
 RUN git clone https://github.com/tfutils/tfenv.git ~/.tfenv \
@@ -68,8 +68,8 @@ RUN git clone https://github.com/tfutils/tfenv.git ~/.tfenv \
  && tfenv use ${TERRAFORM_VERSION}
 
 # yarn adds
-ARG MERMAID_VERSION="8.7.0"
-ARG MERMAID_CLI_VERSION="8.7.0"
+ARG MERMAID_VERSION="8.8.0"
+ARG MERMAID_CLI_VERSION="8.8.0"
 ENV PATH="/node_modules/.bin/:${PATH}"
 RUN yarn add mermaid@${MERMAID_VERSION} \
              @mermaid-js/mermaid-cli@${MERMAID_CLI_VERSION}
