@@ -3,12 +3,12 @@ APT_PACKAGES       = ansible azure-cli
 COMMIT_HASH       := $(shell git rev-parse HEAD)
 FROM_IMAGE         = ubuntu
 FROM_IMAGE_TAG     = 20.04
-# This must be treated as a list of 4-tuples and all /s are escaped
-FUNCTION_GENERATOR = "terraform" "tfsec" "\/" "recursive scan"
+# This must be treated as a list of 4-tuples and all /s must be escaped
+FUNCTION_GENERATOR = "terraform" "tfsec" "." "recursive scan"
 GITHUB             = tfutils/tfenv liamg/tfsec hashicorp/packer
 IMAGE_NAME         = easy_infra
 UNAME_S           := $(shell uname -s)
-VERSION            = 0.6.0
+VERSION            = 0.7.0
 YARN_PACKAGES      = mermaid @mermaid-js/mermaid-cli
 
 
