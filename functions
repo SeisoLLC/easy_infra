@@ -64,7 +64,7 @@ function terraform() {
     _feedback INFO "Skipping tfsec because it was already run on $(date -d @$(cat /tfsec_complete))"
   # Otherwise, run the security scan
   else
-    tfsec / &>/tfsec_output
+    tfsec . &>/tfsec_output
     process_security_tool_exit_status "${?}" "tfsec" "recursive scan"
     return=${?}
     if [[ ${return:-1} != 0 ]]; then
