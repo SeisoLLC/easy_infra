@@ -56,7 +56,7 @@ RUN curl -L https://github.com/liamg/tfsec/releases/download/${TFSEC_VERSION}/tf
  && chmod 0755 /usr/local/bin/packer
 
 # git installs
-ARG TERRAFORM_VERSION="0.14.0-alpha20201007"
+ARG TERRAFORM_VERSION="0.13.4"
 ARG TFENV_VERSION="v2.0.0"
 ENV PATH="/root/.tfenv/bin:${PATH}"
 RUN git clone https://github.com/tfutils/tfenv.git ~/.tfenv \

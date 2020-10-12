@@ -94,7 +94,7 @@ update-github:
 .PHONY: update-terraform
 update-terraform:
 	@echo "Updating the terraform version..."
-	@version=$$(docker run --rm easy_infra:latest "tfenv list-remote 2>/dev/null | egrep -v '(rc|beta)' | head -1"); \
+	@version=$$(docker run --rm easy_infra:latest "tfenv list-remote 2>/dev/null | egrep -v '(rc|alpha|beta)' | head -1"); \
 		$(call update_dockerfile_package,terraform,$${version})
 	@echo "Done!"
 
