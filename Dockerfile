@@ -90,7 +90,7 @@ RUN echo 'source ${BASH_ENV}' >> ~/.bashrc
 # Add aws autocomplete
 RUN echo 'complete -C /root/.local/bin/aws_completer aws' >> ~/.bashrc
 
-WORKDIR /usr/local/bin/
-COPY docker-entrypoint.sh .
-ENTRYPOINT ["docker-entrypoint.sh"]
+WORKDIR /iac
+COPY docker-entrypoint.sh /usr/local/bin/
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 

@@ -8,7 +8,7 @@ FUNCTION_GENERATOR = "terraform" "tfsec" "." "recursive scan"
 GITHUB             = tfutils/tfenv tfsec/tfsec hashicorp/packer
 IMAGE_NAME         = easy_infra
 UNAME_S           := $(shell uname -s)
-VERSION            = 0.7.1
+VERSION            = 1.0.0
 YARN_PACKAGES      = mermaid @mermaid-js/mermaid-cli
 
 
