@@ -5,10 +5,10 @@ FROM_IMAGE         = ubuntu
 FROM_IMAGE_TAG     = 20.04
 # This must be treated as a list of 4-tuples and all /s must be escaped
 FUNCTION_GENERATOR = "terraform" "tfsec" "." "recursive scan"
-GITHUB             = tfutils/tfenv liamg/tfsec hashicorp/packer
+GITHUB             = tfutils/tfenv tfsec/tfsec hashicorp/packer
 IMAGE_NAME         = easy_infra
 UNAME_S           := $(shell uname -s)
-VERSION            = 0.7.0
+VERSION            = 0.7.1
 YARN_PACKAGES      = mermaid @mermaid-js/mermaid-cli
 
 
@@ -94,7 +94,7 @@ update-github:
 .PHONY: update-terraform
 update-terraform:
 	@echo "Updating the terraform version..."
-	@version=$$(docker run --rm easy_infra:latest "tfenv list-remote 2>/dev/null | egrep -v '(rc|beta)' | head -1"); \
+	@version=$$(docker run --rm easy_infra:latest "tfenv list-remote 2>/dev/null | egrep -v '(rc|alpha|beta)' | head -1"); \
 		$(call update_dockerfile_package,terraform,$${version})
 	@echo "Done!"
 

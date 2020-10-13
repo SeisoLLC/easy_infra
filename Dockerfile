@@ -13,7 +13,7 @@ LABEL VERSION="${VERSION}"
 
 # apt-get installs
 ARG ANSIBLE_VERSION="2.9.6+dfsg-1"
-ARG AZURE_CLI_VERSION="2.11.1-1~focal"
+ARG AZURE_CLI_VERSION="2.12.1-1~focal"
 ENV DEBIAN_FRONTEND=noninteractive
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN apt-get update \
@@ -47,8 +47,8 @@ RUN apt-get update \
  && rm -rf /var/cache/apt/archives/*
 
 # binary downloads
-ARG TFSEC_VERSION="v0.25.0"
-ARG PACKER_VERSION="v1.6.2"
+ARG TFSEC_VERSION="v0.30.1"
+ARG PACKER_VERSION="v1.6.4"
 RUN curl -L https://github.com/liamg/tfsec/releases/download/${TFSEC_VERSION}/tfsec-linux-amd64 -o /usr/local/bin/tfsec \
  && chmod 0755 /usr/local/bin/tfsec \
  && curl -L https://releases.hashicorp.com/packer/${PACKER_VERSION#v}/packer_${PACKER_VERSION#v}_linux_amd64.zip -o /usr/local/bin/packer.zip \
@@ -56,7 +56,7 @@ RUN curl -L https://github.com/liamg/tfsec/releases/download/${TFSEC_VERSION}/tf
  && chmod 0755 /usr/local/bin/packer
 
 # git installs
-ARG TERRAFORM_VERSION="0.13.2"
+ARG TERRAFORM_VERSION="0.13.4"
 ARG TFENV_VERSION="v2.0.0"
 ENV PATH="/root/.tfenv/bin:${PATH}"
 RUN git clone https://github.com/tfutils/tfenv.git ~/.tfenv \
@@ -68,8 +68,8 @@ RUN git clone https://github.com/tfutils/tfenv.git ~/.tfenv \
  && tfenv use ${TERRAFORM_VERSION}
 
 # yarn adds
-ARG MERMAID_VERSION="8.8.0"
-ARG MERMAID_CLI_VERSION="8.8.0"
+ARG MERMAID_VERSION="8.8.2"
+ARG MERMAID_CLI_VERSION="8.8.1"
 ENV PATH="/node_modules/.bin/:${PATH}"
 RUN yarn add mermaid@${MERMAID_VERSION} \
              @mermaid-js/mermaid-cli@${MERMAID_CLI_VERSION}
