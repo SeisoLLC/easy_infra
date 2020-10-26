@@ -16,6 +16,6 @@ if [ $# -eq 0 ]; then
 
   exec bash
 else
-  BASH_ENV="${BASH_ENV}" eval "$@"
+  "$@"
 fi
 
