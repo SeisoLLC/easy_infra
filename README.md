@@ -3,7 +3,7 @@
 easy_infra is a docker container that simplifies and secures Infrastructure as Code deployments.
 
 ## Quickstart
-In order to run your code from within the container, volume mount your files into `/iac` and pass your command, such as `terrform validate`, as such:
+In order to run your code from within the container, volume mount your files into `/iac` and pass your command, such as `terraform validate`, as such:
 ```bash
 docker run -v $(pwd):/iac seiso/easy_infra terraform validate
 ```
