@@ -6,7 +6,7 @@
 set -o nounset
 set -o pipefail
 
-if [ $# -eq 0 ]; then
+if [ "$#" -eq 0 ]; then
   # Print select tool versions then open an bash shell
   echo -en "aws-cli\t\t" && command aws --version | awk -F' ' '{print $1}' | awk -F'/' '{print $2}'
   echo -en "azure-cli\t" && command az version | jq -r '.["azure-cli"]'
@@ -16,6 +16,10 @@ if [ $# -eq 0 ]; then
 
   exec bash
 else
-  BASH_ENV="${BASH_ENV}" eval "$@"
+  "$@" # `exec` calls `execve()` which takes a `pathname` which "must be either
+       # a binary executable, or a script starting with a line of the form". This
+       # approach ensures the functions set via BASH_ENV are correctly sourced.
+       # https://man7.org/linux/man-pages/man2/execve.2.html#DESCRIPTION
+       # https://git.savannah.gnu.org/cgit/bash.git/tree/builtins/exec.def
 fi
 
