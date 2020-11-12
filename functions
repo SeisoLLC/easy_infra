@@ -52,7 +52,7 @@ function process_security_tool_exit_status() {
 
 
 function terraform() {
-  # Skip all security tools for terraform
+  # Methods to skip all security tools for terraform
   if [[ "${1}" == "--disable-security" ]]; then
     _feedback WARNING "Skipping all security checks for terraform due to the --disable-security argument"
     shift
@@ -63,6 +63,7 @@ function terraform() {
     command "${FUNCNAME[0]}" "$@"
     return $?
   fi
+
 
   tfsec_upper=$(echo "tfsec" | tr '[:lower:]' '[:upper:]')
   tfsec_argument="--skip-tfsec"

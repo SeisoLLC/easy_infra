@@ -50,9 +50,11 @@ function process_security_tool_exit_status() {
   return ${exit_status}
 }
 
-{% for command in commands %}
+
+{# Loop through each provided command to be wrapped and make a single wrapper function for it -#}
+{% for command in commands -%}
 function {{ command }}() {
-  # Skip all security tools for {{ command }}
+  # Methods to skip all security tools for {{ command }}
   if [[ "${1}" == "--disable-security" ]]; then
     _feedback WARNING "Skipping all security checks for {{ command }} due to the --disable-security argument"
     shift
@@ -63,9 +65,12 @@ function {{ command }}() {
     command "${FUNCNAME[0]}" "$@"
     return $?
   fi
-{% for tool in commands[command] %}
+
+{# For each command being wrapped, loop through each security tool and make tool-specific skips via env var/argument -#}
+{%- for tool in commands[command] %}
   {{ tool }}_upper=$(echo "{{ tool }}" | tr '[:lower:]' '[:upper:]')
   {{ tool }}_argument="--skip-{{ tool }}"
+  {# In order for us to use ${variable} in bash directly around a jinja2 variable it needs to be escaped -#}
   {{ tool }}_env_var="SKIP_{{ '${' }}{{ tool }}_upper}"
 
   # If the "skip" argument was provided, skip the security scan
