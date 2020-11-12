@@ -40,7 +40,7 @@ update-deps: update-apt update-requirements update-awscli update-github update-t
 .PHONY: update-functions
 update-functions:
 	@echo "Updating the functions..."
-	@docker run --rm -v $$(pwd):/usr/src/app -w /usr/src/app python:3.9 /bin/bash -c "python3 -m pip install --upgrade pip && pip install --user -r requirements.txt &>/dev/null && ./update_bash_env.py --config-file easy_infra.yml --output functions --template-file functions.j2"
+	@docker run --rm -v $$(pwd):/usr/src/app -w /usr/src/app python:3.9 /bin/bash -c "python3 -m pip install --upgrade pip &>/dev/null && pip install --user -r requirements.txt &>/dev/null && ./update_bash_env.py --config-file easy_infra.yml --output functions --template-file functions.j2"
 	@echo "Done!"
 
 .PHONY: build
@@ -59,13 +59,13 @@ update-apt:
 .PHONY: update-requirements
 update-requirements: requirements-to-freeze.txt
 	@echo "Updating requirements.txt..."
-	@docker run --rm -v $$(pwd):/usr/src/app/ python:3.9 /bin/bash -c "python3 -m pip install --upgrade pip && pip3 install -r /usr/src/app/requirements-to-freeze.txt &>/dev/null && pip3 freeze > /usr/src/app/requirements.txt"
+	@docker run --rm -v $$(pwd):/usr/src/app/ python:3.9 /bin/bash -c "python3 -m pip install --upgrade pip &>/dev/null && pip3 install -r /usr/src/app/requirements-to-freeze.txt &>/dev/null && pip3 freeze > /usr/src/app/requirements.txt"
 	@echo "Done!"
 
 .PHONY: update-awscli
 update-awscli: awscli-to-freeze.txt
 	@echo "Updating the awscli.txt..."
-	@docker run --rm -v $$(pwd):/usr/src/app/ python:3 /bin/bash -c "python3 -m pip install --upgrade pip && pip3 install -r /usr/src/app/awscli-to-freeze.txt &>/dev/null && pip3 freeze > /usr/src/app/awscli.txt"
+	@docker run --rm -v $$(pwd):/usr/src/app/ python:3.9 /bin/bash -c "python3 -m pip install --upgrade pip &>/dev/null && pip3 install -r /usr/src/app/awscli-to-freeze.txt &>/dev/null && pip3 freeze > /usr/src/app/awscli.txt"
 	@echo "Done!"
 
 .PHONY: update-github
