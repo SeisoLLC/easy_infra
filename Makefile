@@ -31,10 +31,10 @@ update_dockerfile_repo    = ./update_components.sh --repo=$(1) --version=$(2)
 all: update build
 
 .PHONY: update
-update: update-deps update-functions
+update: update-dependencies update-functions
 
-.PHONY: update-deps
-update-deps: update-apt update-requirements update-awscli update-github update-terraform update-yarn
+.PHONY: update-dependencies
+update-dependencies: update-apt update-requirements update-awscli update-github update-terraform update-yarn
 
 
 .PHONY: update-functions
