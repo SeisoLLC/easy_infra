@@ -3,6 +3,7 @@
 Generate a file for use by BASH_ENV
 """
 
+import sys
 import json
 from pathlib import Path
 from logging import getLogger, basicConfig
@@ -53,6 +54,23 @@ def create_arg_parser() -> ArgumentParser:
         default=Path("functions.j2").absolute(),
         help="specify a jinja2 template",
     )
+
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument(
+        "--debug",
+        action="store_const",
+        dest="loglevel",
+        const="DEBUG",
+        help="enable debug level logging",
+    )
+    group.add_argument(
+        "--verbose",
+        action="store_const",
+        dest="loglevel",
+        const="INFO",
+        help="enable info level logging",
+    )
+
     return parser
 
 
@@ -75,25 +93,21 @@ def parse_file_config(*, config_file: Path) -> dict:
     try:
         with open(config_file) as yaml_data:
             config = safe_load(yaml_data)
-    except YAMLError as yml_err:
-        LOG.error("The config file %s was unable to be rendered", config_file)
-        raise RuntimeError from yml_err
-    except FileNotFoundError as fnf_err:
-        LOG.error("The config file %s was not found", config_file)
-        raise RuntimeError from fnf_err
-    except PermissionError as pe_err:
+    except (
+        YAMLError,
+        FileNotFoundError,
+        PermissionError,
+        IsADirectoryError,
+        OSError,
+    ) as err:
         LOG.error(
-            "Permission denied when attempting to read the config file %s", config_file
+            "The config file %s was unable to be loaded due to the following exception: %s",
+            config_file,
+            str(err),
         )
-        raise RuntimeError from pe_err
-    except IsADirectoryError as isdir_err:
-        LOG.error("The specified config file is a directory: %s", config_file)
-        raise RuntimeError from isdir_err
-    except OSError as os_err:
-        LOG.error(
-            "Unknown OS error when attempting to read the config file %s", config_file
-        )
-        raise RuntimeError from os_err
+        if LOG.getEffectiveLevel() <= 20:
+            raise err
+        sys.exit(1)
 
     return config
 
@@ -102,9 +116,11 @@ def main():
     """Generate the functions file"""
     try:
         args = get_args_config()
+        if args["loglevel"]:
+            getLogger().setLevel(args["loglevel"])
     except ValueError as err:
         LOG.error("Unable to create a valid configuration")
-        raise RuntimeError from err
+        raise err
 
     config = parse_file_config(config_file=args["config_file"])
     render(
