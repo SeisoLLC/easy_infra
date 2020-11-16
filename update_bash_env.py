@@ -105,6 +105,7 @@ def parse_file_config(*, config_file: Path) -> dict:
             config_file,
             str(err),
         )
+        # Raise if info or debug level logging
         if LOG.getEffectiveLevel() <= 20:
             raise err
         sys.exit(1)
