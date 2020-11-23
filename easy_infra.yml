@@ -1,0 +1,6 @@
+---
+commands:
+  terraform:
+    tfsec:
+      command: tfsec .
+      description: recursive scan

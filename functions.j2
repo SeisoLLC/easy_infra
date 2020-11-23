@@ -51,47 +51,52 @@ function process_security_tool_exit_status() {
 }
 
 
-function terraform() {
-  # Methods to skip all security tools for terraform
+{# Loop through each provided command to be wrapped and make a single wrapper function for it -#}
+{% for command in commands -%}
+function {{ command }}() {
+  # Methods to skip all security tools for {{ command }}
   if [[ "${1}" == "--disable-security" ]]; then
-    _feedback WARNING "Skipping all security checks for terraform due to the --disable-security argument"
+    _feedback WARNING "Skipping all security checks for {{ command }} due to the --disable-security argument"
     shift
     command "${FUNCNAME[0]}" "$@"
     return $?
   elif [[ "${DISABLE_SECURITY:-false}" == "true" ]]; then
-    _feedback WARNING "Skipping all security checks for terraform due to the DISABLE_SECURITY environment variable value"
+    _feedback WARNING "Skipping all security checks for {{ command }} due to the DISABLE_SECURITY environment variable value"
     command "${FUNCNAME[0]}" "$@"
     return $?
   fi
 
-
-  tfsec_upper=$(echo "tfsec" | tr '[:lower:]' '[:upper:]')
-  tfsec_argument="--skip-tfsec"
-  tfsec_env_var="SKIP_${tfsec_upper}"
+{# For each command being wrapped, loop through each security tool and make tool-specific skips via env var/argument -#}
+{%- for tool in commands[command] %}
+  {{ tool }}_upper=$(echo "{{ tool }}" | tr '[:lower:]' '[:upper:]')
+  {{ tool }}_argument="--skip-{{ tool }}"
+  {# In order for us to use ${variable} in bash directly around a jinja2 variable it needs to be escaped -#}
+  {{ tool }}_env_var="SKIP_{{ '${' }}{{ tool }}_upper}"
 
   # If the "skip" argument was provided, skip the security scan
-  if [[ "${1}" == "${tfsec_argument}" ]]; then
-    _feedback WARNING "Skipping tfsec due to ${tfsec_argument}"
+  if [[ "${1}" == "{{ '${' }}{{ tool }}_argument}" ]]; then
+    _feedback WARNING "Skipping {{ tool }} due to {{ '${' }}{{ tool }}_argument}"
     shift
   # If the "skip" environment variable was set to true, skip the security scan
-  elif [[ "${!tfsec_env_var:-false}" == "true" ]]; then
-    _feedback WARNING "Skipping tfsec due to the ${tfsec_env_var} environment variable value"
+  elif [[ "${!{{ tool }}_env_var:-false}" == "true" ]]; then
+    _feedback WARNING "Skipping {{ tool }} due to the {{ '${' }}{{ tool }}_env_var} environment variable value"
   # If the security scan was already run successfully in an non-interactive
   # shell, don't run it again
-  elif [[ -r "/tfsec_complete" ]]; then
-    _feedback INFO "Skipping tfsec because it was already run on $(date -d @$(cat /tfsec_complete))"
+  elif [[ -r "/{{ tool }}_complete" ]]; then
+    _feedback INFO "Skipping {{ tool }} because it was already run on $(date -d @$(cat /{{ tool }}_complete))"
   # Otherwise, run the security tool
   else
-    tfsec . &>/tfsec_output
-    process_security_tool_exit_status "${?}" "tfsec" "recursive scan"
+    {{ commands[command][tool].command }} &>/{{ tool }}_output
+    process_security_tool_exit_status "${?}" "{{ tool }}" "{{ commands[command][tool].description }}"
     return=${?}
     if [[ ${return:-1} != 0 ]]; then
-      cat /tfsec_output
+      cat /{{ tool }}_output
       return ${return}
     fi
   fi
-
+{% endfor %}
   # Run the command per a PATH lookup, after any easy_infra specific arguments are removed
   command "${FUNCNAME[0]}" "$@"
 }
 
+{% endfor -%}

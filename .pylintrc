@@ -1,0 +1,3 @@
+[MASTER]
+disable=bad-continuation,
+        line-too-long
