@@ -43,8 +43,9 @@ RUN apt-get update \
                                                yarn \
                                                # For mermaid-cli \
                                                gconf-service libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxss1 libxtst6 libappindicator1 libnss3 libasound2 libatk1.0-0 libc6 ca-certificates fonts-liberation lsb-release xdg-utils wget libxcb-dri3-0 libdrm2 libgbm1 \
- && apt-get clean \
- && rm -rf /var/cache/apt/archives/*
+ && apt-get clean autoclean \
+ && apt-get -y autoremove \
+ && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/*
 
 # binary downloads
 ARG TFSEC_VERSION="v0.30.1"
@@ -53,6 +54,7 @@ RUN curl -L https://github.com/liamg/tfsec/releases/download/${TFSEC_VERSION}/tf
  && chmod 0755 /usr/local/bin/tfsec \
  && curl -L https://releases.hashicorp.com/packer/${PACKER_VERSION#v}/packer_${PACKER_VERSION#v}_linux_amd64.zip -o /usr/local/bin/packer.zip \
  && unzip /usr/local/bin/packer.zip -d /usr/local/bin/ \
+ && rm -f /usr/local/bin/packer.zip \
  && chmod 0755 /usr/local/bin/packer
 
 # git installs
@@ -72,15 +74,16 @@ ARG MERMAID_VERSION="8.8.2"
 ARG MERMAID_CLI_VERSION="8.8.1"
 ENV PATH="/node_modules/.bin/:${PATH}"
 RUN yarn add mermaid@${MERMAID_VERSION} \
-             @mermaid-js/mermaid-cli@${MERMAID_CLI_VERSION}
+             @mermaid-js/mermaid-cli@${MERMAID_CLI_VERSION} \
+ && yarn cache clean
 # Mermaid-specific setup
 COPY puppeteer-config.json /usr/local/etc/puppeteer-config.json
 
 # pip installs
 COPY awscli.txt .
 ENV PATH="/root/.local/bin:${PATH}"
-RUN python3 -m pip install --upgrade pip \
- && pip install --user -r awscli.txt
+RUN python3 -m pip install --upgrade --no-cache-dir pip \
+ && pip install --user --no-cache-dir -r awscli.txt
 
 # setup functions
 COPY functions /functions
