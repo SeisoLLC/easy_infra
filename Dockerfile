@@ -41,8 +41,6 @@ RUN apt-get update \
                                                python3-pip \
                                                unzip \
                                                yarn \
-                                               # For mermaid-cli \
-                                               gconf-service libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxss1 libxtst6 libappindicator1 libnss3 libasound2 libatk1.0-0 libc6 ca-certificates fonts-liberation lsb-release xdg-utils wget libxcb-dri3-0 libdrm2 libgbm1 \
  && apt-get clean autoclean \
  && apt-get -y autoremove \
  && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/*
@@ -68,16 +66,6 @@ RUN git clone https://github.com/tfutils/tfenv.git ~/.tfenv \
  && git checkout ${TFENV_VERSION} \
  && tfenv install ${TERRAFORM_VERSION} \
  && tfenv use ${TERRAFORM_VERSION}
-
-# yarn adds
-ARG MERMAID_VERSION="8.8.2"
-ARG MERMAID_CLI_VERSION="8.8.1"
-ENV PATH="/node_modules/.bin/:${PATH}"
-RUN yarn add mermaid@${MERMAID_VERSION} \
-             @mermaid-js/mermaid-cli@${MERMAID_CLI_VERSION} \
- && yarn cache clean
-# Mermaid-specific setup
-COPY puppeteer-config.json /usr/local/etc/puppeteer-config.json
 
 # pip installs
 COPY awscli.txt .

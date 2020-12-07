@@ -25,12 +25,6 @@ While it's not suggested, if you'd like to disable this behavior you have some o
     docker run -v $(pwd):/iac seiso/easy_infra /bin/bash -c "terraform --skip-tfsec init && terraform --skip-tfsec validate && terraform --skip-tfsec apply"
     ```
 
-## Mermaid-cli
-As an interim workaround for `mermaid-cli` (aka `mmdc`), you can specify a puppeteer config which disables sandboxing, for instance:
-```bash
-docker run -v $(pwd):/iac seiso/easy_infra mmdc -p /usr/local/etc/puppeteer-config.json -i file.mmd
-```
-
 ## Contributing
 1. [Fork the repository](https://github.com/SeisoLLC/easy_infra/fork)
 1. Create a feature branch via `git checkout -b feature/description`
