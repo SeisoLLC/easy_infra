@@ -7,7 +7,6 @@ GITHUB             = tfutils/tfenv tfsec/tfsec hashicorp/packer
 IMAGE_NAME         = easy_infra
 UNAME_S           := $(shell uname -s)
 VERSION            = 0.7.1
-YARN_PACKAGES      = mermaid @mermaid-js/mermaid-cli
 
 
 ## Validation
@@ -34,7 +33,7 @@ all: update build
 update: update-dependencies update-functions
 
 .PHONY: update-dependencies
-update-dependencies: update-apt update-requirements update-awscli update-github update-terraform update-yarn
+update-dependencies: update-apt update-requirements update-awscli update-github update-terraform
 
 
 .PHONY: update-functions
@@ -82,15 +81,6 @@ update-terraform:
 	@echo "Updating the terraform version..."
 	@version=$$(docker run --rm easy_infra:latest /bin/bash -c "tfenv list-remote 2>/dev/null | egrep -v '(rc|alpha|beta)' | head -1"); \
 		$(call update_dockerfile_package,terraform,$${version})
-	@echo "Done!"
-
-.PHONY: update-yarn
-update-yarn:
-	@echo "Updating the yarn package versions..."
-	@for package in $(YARN_PACKAGES); do\
-		version=$$(docker run --rm easy_infra:latest /bin/bash -c "yarn info $${package} --json 2>/dev/null | jq -r .data[\\\"dist-tags\\\"].latest"); \
-		$(call update_dockerfile_package,$${package},$${version}); \
-	done
 	@echo "Done!"
 
 
