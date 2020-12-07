@@ -29,22 +29,22 @@ function _feedback() {
 }
 
 
-function process_security_tool_exit_status() {
+function process_tool_exit_status() {
   # Store the provided exit status to return it at the end
   exit_status="${1}"
-  security_tool="${2}"
+  tool="${2}"
   action="${3}"
 
   if [[ "${exit_status}" != 0 ]]; then
-    _feedback ERROR "Failed ${security_tool} ${action}"
+    _feedback ERROR "Failed ${tool} ${action}"
   else
-    _feedback INFO "Passed ${security_tool} ${action}"
+    _feedback INFO "Passed ${tool} ${action}"
   fi
 
   # If the shell is not interactive ("i" is not in the $- variable), skip
   # multiple runs of the provided security tool by timestamping the touch file
   if [[ ! "${-}" =~ .*i.* ]]; then
-    date +%s > "/${security_tool}_complete"
+    date +%s > "/${tool}_complete"
   fi
 
   return ${exit_status}
@@ -52,6 +52,26 @@ function process_security_tool_exit_status() {
 
 
 function terraform() {
+  ## Validate the input prior to running security tooling
+  # Intentionally overwrite /terraform_output so later we only cat the
+  # output of the command which failed
+  command terraform init &>/terraform_output
+  process_tool_exit_status "${?}" "terraform" "initialization"
+  return=${?}
+  if [[ ${return:-1} != 0 ]]; then
+    cat /terraform_output
+    return ${return}
+  fi
+  # Intentionally overwrite /terraform_output so later we only cat the
+  # output of the command which failed
+  command terraform validate &>/terraform_output
+  process_tool_exit_status "${?}" "terraform" "validation"
+  return=${?}
+  if [[ ${return:-1} != 0 ]]; then
+    cat /terraform_output
+    return ${return}
+  fi
+
   # Methods to skip all security tools for terraform
   if [[ "${1}" == "--disable-security" ]]; then
     _feedback WARNING "Skipping all security checks for terraform due to the --disable-security argument"
@@ -83,7 +103,7 @@ function terraform() {
   # Otherwise, run the security tool
   else
     tfsec . &>/tfsec_output
-    process_security_tool_exit_status "${?}" "tfsec" "recursive scan"
+    process_tool_exit_status "${?}" "tfsec" "recursive scan"
     return=${?}
     if [[ ${return:-1} != 0 ]]; then
       cat /tfsec_output

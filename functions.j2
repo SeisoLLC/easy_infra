@@ -29,22 +29,22 @@ function _feedback() {
 }
 
 
-function process_security_tool_exit_status() {
+function process_tool_exit_status() {
   # Store the provided exit status to return it at the end
   exit_status="${1}"
-  security_tool="${2}"
+  tool="${2}"
   action="${3}"
 
   if [[ "${exit_status}" != 0 ]]; then
-    _feedback ERROR "Failed ${security_tool} ${action}"
+    _feedback ERROR "Failed ${tool} ${action}"
   else
-    _feedback INFO "Passed ${security_tool} ${action}"
+    _feedback INFO "Passed ${tool} ${action}"
   fi
 
   # If the shell is not interactive ("i" is not in the $- variable), skip
   # multiple runs of the provided security tool by timestamping the touch file
   if [[ ! "${-}" =~ .*i.* ]]; then
-    date +%s > "/${security_tool}_complete"
+    date +%s > "/${tool}_complete"
   fi
 
   return ${exit_status}
@@ -54,6 +54,19 @@ function process_security_tool_exit_status() {
 {# Loop through each provided command to be wrapped and make a single wrapper function for it -#}
 {% for command in commands -%}
 function {{ command }}() {
+  ## Validate the input prior to running security tooling
+  {%- for validation in commands[command]["validation"] %}
+  # Intentionally overwrite /{{ command }}_output so later we only cat the
+  # output of the command which failed
+  command {{ validation.command }} &>/{{ command }}_output
+  process_tool_exit_status "${?}" "{{ command }}" "{{ validation.description }}"
+  return=${?}
+  if [[ ${return:-1} != 0 ]]; then
+    cat /{{ command }}_output
+    return ${return}
+  fi
+  {%- endfor %}
+
   # Methods to skip all security tools for {{ command }}
   if [[ "${1}" == "--disable-security" ]]; then
     _feedback WARNING "Skipping all security checks for {{ command }} due to the --disable-security argument"
@@ -67,7 +80,7 @@ function {{ command }}() {
   fi
 
 {# For each command being wrapped, loop through each security tool and make tool-specific skips via env var/argument -#}
-{%- for tool in commands[command] %}
+{%- for tool in commands[command]["security"] %}
   {{ tool }}_upper=$(echo "{{ tool }}" | tr '[:lower:]' '[:upper:]')
   {{ tool }}_argument="--skip-{{ tool }}"
   {# In order for us to use ${variable} in bash directly around a jinja2 variable it needs to be escaped -#}
@@ -86,8 +99,8 @@ function {{ command }}() {
     _feedback INFO "Skipping {{ tool }} because it was already run on $(date -d @$(cat /{{ tool }}_complete))"
   # Otherwise, run the security tool
   else
-    {{ commands[command][tool].command }} &>/{{ tool }}_output
-    process_security_tool_exit_status "${?}" "{{ tool }}" "{{ commands[command][tool].description }}"
+    {{ commands[command]["security"][tool].command }} &>/{{ tool }}_output
+    process_tool_exit_status "${?}" "{{ tool }}" "{{ commands[command]["security"][tool].description }}"
     return=${?}
     if [[ ${return:-1} != 0 ]]; then
       cat /{{ tool }}_output
