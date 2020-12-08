@@ -53,34 +53,6 @@ function process_command_exit_status() {
 
 
 function terraform() {
-  ## Validate the input prior to running security tooling
-  # If the initialization was already run successfully in an non-interactive
-  # shell, don't run it again
-  if [[ -r "/terraform_init_complete" ]]; then
-    _feedback INFO "Skipping `terraform init` because it was already run on $(date -d @"$(cat /terraform_init_complete)")"
-  else
-    command terraform init &>/terraform_init_output
-    process_command_exit_status "${?}" "terraform init" "initialization"
-    return=${?}
-    if [[ ${return:-1} != 0 ]]; then
-      cat /terraform_init_output
-      return "${return}"
-    fi
-  fi
-  # If the initialization was already run successfully in an non-interactive
-  # shell, don't run it again
-  if [[ -r "/terraform_validate_complete" ]]; then
-    _feedback INFO "Skipping `terraform validate` because it was already run on $(date -d @"$(cat /terraform_validate_complete)")"
-  else
-    command terraform validate &>/terraform_validate_output
-    process_command_exit_status "${?}" "terraform validate" "validation"
-    return=${?}
-    if [[ ${return:-1} != 0 ]]; then
-      cat /terraform_validate_output
-      return "${return}"
-    fi
-  fi
-
   # Methods to skip **all** security tools for terraform
   DISABLE_SECURITY="${DISABLE_SECURITY:-false}"
 
@@ -93,6 +65,34 @@ function terraform() {
     _feedback WARNING "Skipping all security checks for terraform due to the DISABLE_SECURITY environment variable value"
     command "${FUNCNAME[0]}" "$@"
     return $?
+  else
+    ## Validate the input prior to running security tooling
+    # If the initialization was already run successfully in an non-interactive
+    # shell, don't run it again
+    if [[ -r "/terraform_init_complete" ]]; then
+      _feedback INFO "Skipping `terraform init` because it was already run on $(date -d @"$(cat /terraform_init_complete)")"
+    else
+      command terraform init &>/terraform_init_output
+      process_command_exit_status "${?}" "terraform init" "initialization"
+      return=${?}
+      if [[ ${return:-1} != 0 ]]; then
+        cat /terraform_init_output
+        return "${return}"
+      fi
+    fi
+    # If the initialization was already run successfully in an non-interactive
+    # shell, don't run it again
+    if [[ -r "/terraform_validate_complete" ]]; then
+      _feedback INFO "Skipping `terraform validate` because it was already run on $(date -d @"$(cat /terraform_validate_complete)")"
+    else
+      command terraform validate &>/terraform_validate_output
+      process_command_exit_status "${?}" "terraform validate" "validation"
+      return=${?}
+      if [[ ${return:-1} != 0 ]]; then
+        cat /terraform_validate_output
+        return "${return}"
+      fi
+    fi
   fi
 
 

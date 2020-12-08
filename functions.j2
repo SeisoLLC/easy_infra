@@ -56,23 +56,6 @@ function process_command_exit_status() {
 {# Loop through each provided command to be wrapped and make a single wrapper function for it -#}
 {% for command in commands -%}
 function {{ command }}() {
-  ## Validate the input prior to running security tooling
-  {%- for validation in commands[command]["validation"] %}
-  # If the initialization was already run successfully in an non-interactive
-  # shell, don't run it again
-  if [[ -r "/{{ validation.command | replace(" ", "_") }}_complete" ]]; then
-    _feedback INFO "Skipping `{{ validation.command }}` because it was already run on $(date -d @"$(cat /{{ validation.command | replace(" ", "_") }}_complete)")"
-  else
-    command {{ validation.command }} &>/{{ validation.command | replace(" ", "_") }}_output
-    process_command_exit_status "${?}" "{{ validation.command }}" "{{ validation.description }}"
-    return=${?}
-    if [[ ${return:-1} != 0 ]]; then
-      cat /{{ validation.command | replace(" ", "_") }}_output
-      return "${return}"
-    fi
-  fi
-  {%- endfor %}
-
   # Methods to skip **all** security tools for {{ command }}
   DISABLE_SECURITY="${DISABLE_SECURITY:-false}"
 
@@ -85,6 +68,23 @@ function {{ command }}() {
     _feedback WARNING "Skipping all security checks for {{ command }} due to the DISABLE_SECURITY environment variable value"
     command "${FUNCNAME[0]}" "$@"
     return $?
+  else
+    ## Validate the input prior to running security tooling
+    {%- for validation in commands[command]["validation"] %}
+    # If the initialization was already run successfully in an non-interactive
+    # shell, don't run it again
+    if [[ -r "/{{ validation.command | replace(" ", "_") }}_complete" ]]; then
+      _feedback INFO "Skipping `{{ validation.command }}` because it was already run on $(date -d @"$(cat /{{ validation.command | replace(" ", "_") }}_complete)")"
+    else
+      command {{ validation.command }} &>/{{ validation.command | replace(" ", "_") }}_output
+      process_command_exit_status "${?}" "{{ validation.command }}" "{{ validation.description }}"
+      return=${?}
+      if [[ ${return:-1} != 0 ]]; then
+        cat /{{ validation.command | replace(" ", "_") }}_output
+        return "${return}"
+      fi
+    fi
+    {%- endfor %}
   fi
 
 {# For each command being wrapped, loop through each security tool and make tool-specific skips via env var/argument -#}
