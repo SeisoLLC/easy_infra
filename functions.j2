@@ -94,8 +94,6 @@ function {{ command }}() {
   {{ tool }}_env_var="SKIP_{{ '${' }}{{ tool }}_upper}"
 
   ## Methods to skip {{ tool }}
-  {{ tool }}_env_var="{{ '${' }}{{ tool }}_env_var:-false}"
-
   # If the "skip" argument was provided, skip the security scan
   if [[ "${1}" == "{{ '${' }}{{ tool }}_argument}" ]]; then
     _feedback WARNING "Skipping {{ tool }} due to {{ '${' }}{{ tool }}_argument}"

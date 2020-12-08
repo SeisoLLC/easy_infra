@@ -99,8 +99,6 @@ function terraform() {
   tfsec_env_var="SKIP_${tfsec_upper}"
 
   ## Methods to skip tfsec
-  tfsec_env_var="${tfsec_env_var:-false}"
-
   # If the "skip" argument was provided, skip the security scan
   if [[ "${1}" == "${tfsec_argument}" ]]; then
     _feedback WARNING "Skipping tfsec due to ${tfsec_argument}"
