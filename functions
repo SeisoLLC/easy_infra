@@ -48,7 +48,7 @@ function process_command_exit_status() {
     date +%s > "/${command// /_}_complete"
   fi
 
-  return ${exit_status}
+  return "${exit_status}"
 }
 
 
@@ -57,27 +57,29 @@ function terraform() {
   # If the initialization was already run successfully in an non-interactive
   # shell, don't run it again
   if [[ -r "/terraform_init_complete" ]]; then
-    _feedback INFO "Skipping `terraform init` because it was already run on $(date -d @$(cat /terraform_init_complete))"
+    _feedback INFO "Skipping `terraform init` because it was already run on $(date -d @"$(cat /terraform_init_complete)")"
   else
     command terraform init &>/terraform_init_output
     process_command_exit_status "${?}" "terraform init" "initialization"
     return=${?}
     if [[ ${return:-1} != 0 ]]; then
       cat /terraform_init_output
-      return ${return}
+      return "${return}"
     fi
+  fi
   # If the initialization was already run successfully in an non-interactive
   # shell, don't run it again
   if [[ -r "/terraform_validate_complete" ]]; then
-    _feedback INFO "Skipping `terraform validate` because it was already run on $(date -d @$(cat /terraform_validate_complete))"
+    _feedback INFO "Skipping `terraform validate` because it was already run on $(date -d @"$(cat /terraform_validate_complete)")"
   else
     command terraform validate &>/terraform_validate_output
     process_command_exit_status "${?}" "terraform validate" "validation"
     return=${?}
     if [[ ${return:-1} != 0 ]]; then
       cat /terraform_validate_output
-      return ${return}
+      return "${return}"
     fi
+  fi
 
   # Methods to skip **all** security tools for terraform
   DISABLE_SECURITY="${DISABLE_SECURITY:-false}"
@@ -109,7 +111,7 @@ function terraform() {
   # If the security scan was already run successfully in an non-interactive
   # shell, don't run it again
   elif [[ -r "/tfsec_complete" ]]; then
-    _feedback INFO "Skipping tfsec because it was already run on $(date -d @$(cat /tfsec_complete))"
+    _feedback INFO "Skipping tfsec because it was already run on $(date -d @"$(cat /tfsec_complete)")"
   # Otherwise, run the security tool
   else
     tfsec . &>/tfsec_output

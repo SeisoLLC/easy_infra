@@ -49,7 +49,7 @@ function process_command_exit_status() {
     date +%s > "/${command// /_}_complete"
   fi
 
-  return ${exit_status}
+  return "${exit_status}"
 }
 
 
@@ -61,15 +61,16 @@ function {{ command }}() {
   # If the initialization was already run successfully in an non-interactive
   # shell, don't run it again
   if [[ -r "/{{ validation.command | replace(" ", "_") }}_complete" ]]; then
-    _feedback INFO "Skipping `{{ validation.command }}` because it was already run on $(date -d @$(cat /{{ validation.command | replace(" ", "_") }}_complete))"
+    _feedback INFO "Skipping `{{ validation.command }}` because it was already run on $(date -d @"$(cat /{{ validation.command | replace(" ", "_") }}_complete)")"
   else
     command {{ validation.command }} &>/{{ validation.command | replace(" ", "_") }}_output
     process_command_exit_status "${?}" "{{ validation.command }}" "{{ validation.description }}"
     return=${?}
     if [[ ${return:-1} != 0 ]]; then
       cat /{{ validation.command | replace(" ", "_") }}_output
-      return ${return}
+      return "${return}"
     fi
+  fi
   {%- endfor %}
 
   # Methods to skip **all** security tools for {{ command }}
@@ -104,7 +105,7 @@ function {{ command }}() {
   # If the security scan was already run successfully in an non-interactive
   # shell, don't run it again
   elif [[ -r "/{{ tool }}_complete" ]]; then
-    _feedback INFO "Skipping {{ tool }} because it was already run on $(date -d @$(cat /{{ tool }}_complete))"
+    _feedback INFO "Skipping {{ tool }} because it was already run on $(date -d @"$(cat /{{ tool }}_complete)")"
   # Otherwise, run the security tool
   else
     {{ commands[command]["security"][tool].command }} &>/{{ tool }}_output
