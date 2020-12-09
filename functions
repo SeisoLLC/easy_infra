@@ -70,7 +70,7 @@ function terraform() {
     # If the initialization was already run successfully in an non-interactive
     # shell, don't run it again
     if [[ -r "/terraform_init_complete" ]]; then
-      _feedback INFO "Skipping `terraform init` because it was already run on $(date -d @"$(cat /terraform_init_complete)")"
+      _feedback INFO "Skipping \`terraform init\` because it was already run on $(date -d @"$(cat /terraform_init_complete)")"
     else
       command terraform init &>/terraform_init_output
       process_command_exit_status "${?}" "terraform init" "initialization"
@@ -83,7 +83,7 @@ function terraform() {
     # If the initialization was already run successfully in an non-interactive
     # shell, don't run it again
     if [[ -r "/terraform_validate_complete" ]]; then
-      _feedback INFO "Skipping `terraform validate` because it was already run on $(date -d @"$(cat /terraform_validate_complete)")"
+      _feedback INFO "Skipping \`terraform validate\` because it was already run on $(date -d @"$(cat /terraform_validate_complete)")"
     else
       command terraform validate &>/terraform_validate_output
       process_command_exit_status "${?}" "terraform validate" "validation"
