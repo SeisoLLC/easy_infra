@@ -74,7 +74,7 @@ function {{ command }}() {
     # If the initialization was already run successfully in an non-interactive
     # shell, don't run it again
     if [[ -r "/{{ validation.command | replace(" ", "_") }}_complete" ]]; then
-      _feedback INFO "Skipping \`{{ validation.command }}\` because it was already run on $(date -d @"$(cat /{{ validation.command | replace(" ", "_") }}_complete)")"
+      _feedback INFO "Skipping `{{ validation.command }}` because it was already run on $(date -d @"$(cat /{{ validation.command | replace(" ", "_") }}_complete)")"
     else
       command {{ validation.command }} &>/{{ validation.command | replace(" ", "_") }}_output
       process_command_exit_status "${?}" "{{ validation.command }}" "{{ validation.description }}"
@@ -87,6 +87,7 @@ function {{ command }}() {
     {%- endfor %}
   fi
 
+  ## Setup the per-tool security integrations
 {# For each command being wrapped, loop through each security tool and make tool-specific skips via env var/argument -#}
   {%- for tool in commands[command]["security"] %}
   {{ tool }}_upper=$(echo "{{ tool }}" | tr '[:lower:]' '[:upper:]')

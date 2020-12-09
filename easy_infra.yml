@@ -10,3 +10,6 @@ commands:
       tfsec:
         command: tfsec .
         description: recursive scan
+      checkov:
+        command: checkov -d . --no-guide
+        description: checkov directory scan
