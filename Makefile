@@ -35,6 +35,10 @@ update: update-dependencies
 .PHONY: update-dependencies
 update-dependencies: update-apt update-ci update-awscli update-checkov update-github update-terraform
 
+.PHONY: lint
+lint:
+	@echo "TODO: add linting"
+
 
 .PHONY: generate-functions
 generate-functions:
