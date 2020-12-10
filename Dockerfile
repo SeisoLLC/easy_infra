@@ -41,6 +41,7 @@ RUN apt-get update \
                                                python3-pip \
                                                unzip \
                                                yarn \
+                                               time \
  && apt-get clean autoclean \
  && apt-get -y autoremove \
  && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/*
