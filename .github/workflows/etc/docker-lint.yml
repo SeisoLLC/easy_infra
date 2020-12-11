@@ -1,0 +1,22 @@
+---
+line_rules:
+  FROM:
+    paramSyntaxRegex: /.+/
+    rules:
+      - label: "is_latest_tag"
+        regex: /latest/
+        level: "info"
+        message: "Base image uses 'latest' tag"
+        description: "Using the 'latest' tag may cause unpredictable builds."
+        reference_url:
+          - "https://docs.docker.com/engine/reference/builder/"
+          - "#from"
+      - label: "no_tag"
+        regex: /[:]/
+        level: "warn"
+        inverse_rule: true
+        message: "Base image uses no tag"
+        description: "Using no tag may cause unpredictable builds."
+        reference_url:
+          - "https://docs.docker.com/engine/reference/builder/"
+          - "#from"
