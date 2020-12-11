@@ -69,7 +69,8 @@ RUN git clone https://github.com/tfutils/tfenv.git ~/.tfenv \
  && tfenv install ${TERRAFORM_VERSION} \
  && tfenv use ${TERRAFORM_VERSION} \
  && rm -rf ~/.tfenv/.git \
- && mkdir -p ~/.terraform.d/plugin-cache
+ && mkdir -p ~/.terraform.d/plugin-cache \
+ && command terraform -install-autocomplete
 
 # pip installs
 COPY awscli.txt .
