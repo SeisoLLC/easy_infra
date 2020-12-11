@@ -59,7 +59,7 @@ RUN curl -L https://github.com/liamg/tfsec/releases/download/${TFSEC_VERSION}/tf
 # git installs
 ARG TERRAFORM_VERSION="0.13.4"
 ARG TFENV_VERSION="v2.0.0"
-COPY .terraformrc .
+COPY .terraformrc /root/
 ENV PATH="/root/.tfenv/bin:${PATH}"
 RUN git clone https://github.com/tfutils/tfenv.git ~/.tfenv \
  && echo 'PATH=/root/.tfenv/bin:${PATH}' >> ~/.bashrc \
@@ -69,7 +69,7 @@ RUN git clone https://github.com/tfutils/tfenv.git ~/.tfenv \
  && tfenv install ${TERRAFORM_VERSION} \
  && tfenv use ${TERRAFORM_VERSION} \
  && rm -rf ~/.tfenv/.git \
- && mkdir ~/.terraform.d/plugin-cache
+ && mkdir -p ~/.terraform.d/plugin-cache
 
 # pip installs
 COPY awscli.txt .
