@@ -5,15 +5,10 @@ FROM_IMAGE         = ubuntu
 FROM_IMAGE_TAG     = 20.04
 GITHUB             = tfutils/tfenv tfsec/tfsec hashicorp/packer
 IMAGE_NAME         = easy_infra
-UNAME_S           := $(shell uname -s)
 VERSION            = 0.7.1-dirty
 
 
 ## Validation
-ifneq ($(UNAME_S),Darwin)
-$(error This project currently only supports Darwin)
-endif
-
 ifndef COMMIT_HASH
 $(error COMMIT_HASH was not properly set)
 endif
