@@ -1,6 +1,7 @@
 ---
 commands:
   terraform:
+    version_argument: "version"
     validation:
       - command: terraform init
         description: "initialization"
