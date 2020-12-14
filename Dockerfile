@@ -63,10 +63,10 @@ RUN git clone https://github.com/tfutils/tfenv.git ~/.tfenv \
  && . ~/.bashrc \
  && cd ~/.tfenv \
  && git checkout ${TFENV_VERSION} \
+ && mkdir -p ~/.terraform.d/plugin-cache \
  && tfenv install ${TERRAFORM_VERSION} \
  && tfenv use ${TERRAFORM_VERSION} \
  && rm -rf ~/.tfenv/.git \
- && mkdir -p ~/.terraform.d/plugin-cache \
  && command terraform -install-autocomplete
 
 # pip installs
