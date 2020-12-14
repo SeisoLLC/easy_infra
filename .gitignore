@@ -1,8 +1,12 @@
 # functions is a generated file, don't check it in
 functions
 
-# Created by https://www.toptal.com/developers/gitignore/api/macos,vim,python
-# Edit at https://www.toptal.com/developers/gitignore?templates=macos,vim,python
+# Ignore .terraform.d, including the plugin cache
+.terraform.d
+
+
+# Created by https://www.toptal.com/developers/gitignore/api/vim,macos,python,terraform
+# Edit at https://www.toptal.com/developers/gitignore?templates=vim,macos,python,terraform
 
 ### macOS ###
 # General
@@ -173,6 +177,36 @@ dmypy.json
 # profiling data
 .prof
 
+### Terraform ###
+# Local .terraform directories
+**/.terraform/*
+
+# .tfstate files
+*.tfstate
+*.tfstate.*
+
+# Crash log files
+crash.log
+
+# Ignore any .tfvars files that are generated automatically for each Terraform run. Most
+# .tfvars files are managed as part of configuration and so should be included in
+# version control.
+#
+# example.tfvars
+
+# Ignore override files as they are usually used to override resources locally and so
+# are not checked in
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Include override files you do wish to add to version control using negated pattern
+# !example_override.tf
+
+# Include tfplan files to ignore the plan output of command: terraform plan -out=tfplan
+# example: *tfplan*
+
 ### Vim ###
 # Swap
 [._]*.s[a-v][a-z]
@@ -194,4 +228,4 @@ tags
 # Persistent undo
 [._]*.un~
 
-# End of https://www.toptal.com/developers/gitignore/api/macos,vim,python
+# End of https://www.toptal.com/developers/gitignore/api/vim,macos,python,terraform
