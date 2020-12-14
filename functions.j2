@@ -87,6 +87,7 @@ function {{ command }}() {
     {%- endfor %}
   fi
 
+  ## Setup the per-tool security integrations
 {# For each command being wrapped, loop through each security tool and make tool-specific skips via env var/argument -#}
   {%- for tool in commands[command]["security"] %}
   {{ tool }}_upper=$(echo "{{ tool }}" | tr '[:lower:]' '[:upper:]')

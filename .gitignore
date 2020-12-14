@@ -1,5 +1,9 @@
+# functions is a generated file, don't check it in
+functions
+
 # Ignore .terraform.d, including the plugin cache
 .terraform.d
+
 
 # Created by https://www.toptal.com/developers/gitignore/api/vim,macos,python,terraform
 # Edit at https://www.toptal.com/developers/gitignore?templates=vim,macos,python,terraform

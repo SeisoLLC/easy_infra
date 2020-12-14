@@ -30,20 +30,20 @@ update_dockerfile_repo    = ./update_components.sh --repo=$(1) --version=$(2)
 all: update build
 
 .PHONY: update
-update: update-dependencies update-functions
+update: update-dependencies
 
 .PHONY: update-dependencies
-update-dependencies: update-apt update-requirements update-awscli update-github update-terraform
+update-dependencies: update-apt update-ci update-awscli update-checkov update-github update-terraform
 
 
-.PHONY: update-functions
-update-functions:
-	@echo "Updating the functions..."
-	@docker run --rm -v $$(pwd):/usr/src/app -w /usr/src/app python:3.9 /bin/bash -c "python3 -m pip install --upgrade pip &>/dev/null && pip install --user -r requirements.txt &>/dev/null && ./update_bash_env.py --config-file easy_infra.yml --output functions --template-file functions.j2"
+.PHONY: generate-functions
+generate-functions:
+	@echo "Generating the functions..."
+	@docker run --rm -v $$(pwd):/usr/src/app -w /usr/src/app python:3.9 /bin/bash -c "python3 -m pip install --upgrade pip &>/dev/null && pip install --user -r ci.txt &>/dev/null && ./update_bash_env.py --config-file easy_infra.yml --output functions --template-file functions.j2"
 	@echo "Done!"
 
 .PHONY: build
-build:
+build: generate-functions
 	@DOCKER_BUILDKIT=1 docker build --rm -t $(IMAGE_NAME):latest -t $(IMAGE_NAME):$(VERSION) -t $(IMAGE_NAME):$(COMMIT_HASH) --build-arg "FROM_IMAGE=$(FROM_IMAGE)" --build-arg "FROM_IMAGE_TAG=$(FROM_IMAGE_TAG)" .
 
 .PHONY: update-apt
@@ -55,16 +55,22 @@ update-apt:
 	done
 	@echo "Done!"
 
-.PHONY: update-requirements
-update-requirements: requirements-to-freeze.txt
-	@echo "Updating requirements.txt..."
-	@docker run --rm -v $$(pwd):/usr/src/app/ python:3.9 /bin/bash -c "python3 -m pip install --upgrade pip &>/dev/null && pip3 install -r /usr/src/app/requirements-to-freeze.txt &>/dev/null && pip3 freeze > /usr/src/app/requirements.txt"
+.PHONY: update-ci
+update-ci: ci-to-freeze.txt
+	@echo "Updating ci.txt..."
+	@docker run --rm -v $$(pwd):/usr/src/app/ python:3.9 /bin/bash -c "python3 -m pip install --upgrade pip &>/dev/null && pip3 install -r /usr/src/app/ci-to-freeze.txt &>/dev/null && pip3 freeze > /usr/src/app/ci.txt"
 	@echo "Done!"
 
 .PHONY: update-awscli
 update-awscli: awscli-to-freeze.txt
-	@echo "Updating the awscli.txt..."
+	@echo "Updating awscli.txt..."
 	@docker run --rm -v $$(pwd):/usr/src/app/ python:3.9 /bin/bash -c "python3 -m pip install --upgrade pip &>/dev/null && pip3 install -r /usr/src/app/awscli-to-freeze.txt &>/dev/null && pip3 freeze > /usr/src/app/awscli.txt"
+	@echo "Done!"
+
+.PHONY: update-checkov
+update-checkov: checkov-to-freeze.txt
+	@echo "Updating checkov.txt..."
+	@docker run --rm -v $$(pwd):/usr/src/app/ python:3.9 /bin/bash -c "python3 -m pip install --upgrade pip &>/dev/null && pip3 install -r /usr/src/app/checkov-to-freeze.txt &>/dev/null && pip3 freeze > /usr/src/app/checkov.txt"
 	@echo "Done!"
 
 .PHONY: update-github
