@@ -32,7 +32,7 @@ update-dependencies: update-apt update-ci update-awscli update-checkov update-gi
 
 .PHONY: lint
 lint:
-	@docker run -it --rm -v $$(pwd):/root/ projectatomic/dockerfile-lint dockerfile_lint -f /root/Dockerfile -r /root/oci_annotations.yml
+	@docker run -it --rm -v $$(pwd):/root/ projectatomic/dockerfile-lint dockerfile_lint -f /root/Dockerfile -r /root/.github/workflows/etc/oci_annotations.yml
 
 
 .PHONY: generate-functions
