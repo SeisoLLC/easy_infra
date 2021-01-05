@@ -4,7 +4,7 @@ profile:
   description: "Require Seiso's minimum OCI annotations"
 line_rules:
   LABEL:
-    paramSyntaxRegex: /.+/
+    paramSyntaxRegex: /org\.opencontainers\.image\..+/
     defined_namevals:
       org.opencontainers.image.authors:
         valueRegex: /.+/
