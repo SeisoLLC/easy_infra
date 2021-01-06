@@ -70,7 +70,7 @@ RUN git clone https://github.com/tfutils/tfenv.git ~/.tfenv \
  && command terraform -install-autocomplete
 
 # pip installs
-COPY awscli.txt checkov.txt .
+COPY awscli.txt checkov.txt ./
 ENV PATH="/root/.local/bin:${PATH}"
 RUN python3 -m pip install --upgrade --no-cache-dir pip \
  && pip install --user --no-cache-dir -r awscli.txt \
