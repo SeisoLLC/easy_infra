@@ -4,12 +4,19 @@ ARG FROM_IMAGE_TAG=20.04
 FROM "${FROM_IMAGE}":"${FROM_IMAGE_TAG}"
 
 ARG VERSION
+ARG COMMIT_HASH
 
-LABEL MAINTAINER="Seiso"
-LABEL AUTHOR="Jon Zeolla"
-LABEL COPYRIGHT="(c) 2020 Seiso, LLC"
-LABEL LICENSE="BSD-3-Clause"
-LABEL VERSION="${VERSION}"
+# OCI annotations per
+# https://github.com/opencontainers/image-spec/blob/bd4f8fcb0979a663d8b97a1d4d9b030b3d2ca1fa/annotations.md
+LABEL org.opencontainers.image.authors="Jon Zeolla"
+LABEL org.opencontainers.image.licenses="BSD-3-Clause"
+LABEL org.opencontainers.image.vendor="Seiso"
+LABEL org.opencontainers.image.version="${VERSION}"
+LABEL org.opencontainers.image.title="easy_infra"
+LABEL org.opencontainers.image.description="This is a docker container that simplifies and secures Infrastructure as Code deployments"
+LABEL org.opencontainers.image.url="https://seisollc.com"
+LABEL org.opencontainers.image.source="https://github.com/SeisoLLC/easy_infra"
+LABEL org.opencontainers.image.revision="${COMMIT_HASH}"
 
 # apt-get installs
 ARG ANSIBLE_VERSION="2.9.6+dfsg-1"

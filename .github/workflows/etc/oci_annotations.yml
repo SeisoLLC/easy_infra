@@ -1,0 +1,80 @@
+---
+profile:
+  name: "Require OCI Annotations"
+  description: "Require Seiso's minimum OCI annotations"
+line_rules:
+  LABEL:
+    paramSyntaxRegex: /org\.opencontainers\.image\..+/
+    defined_namevals:
+      org.opencontainers.image.authors:
+        valueRegex: /.+/
+        message: "Label 'org.opencontainers.image.authors' is missing or has an invalid format"
+        level: "error"
+        required: true
+        inverse_rule: true
+        reference_url:
+          - "https://github.com/opencontainers/image-spec/blob/bd4f8fcb0979a663d8b97a1d4d9b030b3d2ca1fa/annotations.md"
+      org.opencontainers.image.licenses:
+        valueRegex: /.+/
+        message: "Label 'org.opencontainers.image.licenses' is missing or has an invalid format"
+        level: "error"
+        required: true
+        inverse_rule: true
+        reference_url:
+          - "https://github.com/opencontainers/image-spec/blob/bd4f8fcb0979a663d8b97a1d4d9b030b3d2ca1fa/annotations.md"
+      org.opencontainers.image.vendor:
+        valueRegex: /^Seiso$/
+        message: "Label 'org.opencontainers.image.vendor' is missing or has an invalid invalid"
+        level: "error"
+        required: true
+        inverse_rule: true
+        reference_url:
+          - "https://github.com/opencontainers/image-spec/blob/bd4f8fcb0979a663d8b97a1d4d9b030b3d2ca1fa/annotations.md"
+      org.opencontainers.image.version:
+        valueRegex: /(.+\..+\..+|\$\{VERSION\}|\$VERSION)/
+        message: "Label 'org.opencontainers.image.version' is missing or has an invalid format"
+        level: "error"
+        required: true
+        inverse_rule: true
+        reference_url:
+          - "https://github.com/opencontainers/image-spec/blob/bd4f8fcb0979a663d8b97a1d4d9b030b3d2ca1fa/annotations.md"
+      org.opencontainers.image.title:
+        valueRegex: /.+/
+        message: "Label 'org.opencontainers.image.title' is missing or has an invalid format"
+        level: "error"
+        required: true
+        inverse_rule: true
+        reference_url:
+          - "https://github.com/opencontainers/image-spec/blob/bd4f8fcb0979a663d8b97a1d4d9b030b3d2ca1fa/annotations.md"
+      org.opencontainers.image.description:
+        valueRegex: /.+/
+        message: "Label 'org.opencontainers.image.description' is missing or has an invalid format"
+        level: "error"
+        required: true
+        inverse_rule: true
+        reference_url:
+          - "https://github.com/opencontainers/image-spec/blob/bd4f8fcb0979a663d8b97a1d4d9b030b3d2ca1fa/annotations.md"
+      org.opencontainers.image.url:
+        valueRegex: /https:\/\/seisollc.com.*/
+        message: "Label 'org.opencontainers.image.url' is missing or has an invalid format"
+        level: "error"
+        required: true
+        inverse_rule: true
+        reference_url:
+          - "https://github.com/opencontainers/image-spec/blob/bd4f8fcb0979a663d8b97a1d4d9b030b3d2ca1fa/annotations.md"
+      org.opencontainers.image.source:
+        valueRegex: /https:\/\/github.com\/SeisoLLC\/.+/
+        message: "Label 'org.opencontainers.image.source' is missing or has an invalid format"
+        level: "error"
+        required: true
+        inverse_rule: true
+        reference_url:
+          - "https://github.com/opencontainers/image-spec/blob/bd4f8fcb0979a663d8b97a1d4d9b030b3d2ca1fa/annotations.md"
+      org.opencontainers.image.revision:
+        valueRegex: /([0-9a-f]{5,40}|\$\{COMMIT_HASH\}|\$COMMIT_HASH)/
+        message: "Label 'org.opencontainers.image.revision' is missing or has an invalid format"
+        level: "error"
+        required: true
+        inverse_rule: true
+        reference_url:
+          - "https://github.com/opencontainers/image-spec/blob/bd4f8fcb0979a663d8b97a1d4d9b030b3d2ca1fa/annotations.md"

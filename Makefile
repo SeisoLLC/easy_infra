@@ -5,15 +5,10 @@ FROM_IMAGE         = ubuntu
 FROM_IMAGE_TAG     = 20.04
 GITHUB             = tfutils/tfenv tfsec/tfsec hashicorp/packer
 IMAGE_NAME         = easy_infra
-UNAME_S           := $(shell uname -s)
-VERSION            = 0.7.1
+VERSION            = 0.7.1-dirty
 
 
 ## Validation
-ifneq ($(UNAME_S),Darwin)
-$(error This project currently only supports Darwin)
-endif
-
 ifndef COMMIT_HASH
 $(error COMMIT_HASH was not properly set)
 endif
@@ -35,6 +30,10 @@ update: update-dependencies
 .PHONY: update-dependencies
 update-dependencies: update-apt update-ci update-awscli update-checkov update-github update-terraform
 
+.PHONY: lint
+lint:
+	@docker run --rm -v $$(pwd):/root/ projectatomic/dockerfile-lint dockerfile_lint -f /root/Dockerfile -r /root/.github/workflows/etc/oci_annotations.yml
+
 
 .PHONY: generate-functions
 generate-functions:
@@ -44,7 +43,7 @@ generate-functions:
 
 .PHONY: build
 build: generate-functions
-	@DOCKER_BUILDKIT=1 docker build --rm -t $(IMAGE_NAME):latest -t $(IMAGE_NAME):$(VERSION) -t $(IMAGE_NAME):$(COMMIT_HASH) --build-arg "FROM_IMAGE=$(FROM_IMAGE)" --build-arg "FROM_IMAGE_TAG=$(FROM_IMAGE_TAG)" .
+	@DOCKER_BUILDKIT=1 docker build --rm -t $(IMAGE_NAME):latest -t $(IMAGE_NAME):$(VERSION) -t $(IMAGE_NAME):$(COMMIT_HASH) --build-arg "FROM_IMAGE=$(FROM_IMAGE)" --build-arg "FROM_IMAGE_TAG=$(FROM_IMAGE_TAG)" --build-arg "VERSION=$(VERSION)" --build-arg "COMMIT_HASH=$(COMMIT_HASH)" .
 
 .PHONY: update-apt
 update-apt:
