@@ -92,12 +92,13 @@ function {{ command }}() {
   fi
 
   ## Setup the per-tool security integrations
-{# For each command being wrapped, loop through each security tool and make tool-specific skips via env var/argument -#}
+{#- For each command being wrapped, loop through each security tool and make tool-specific skips via env var/argument #}
   {%- for tool in commands[command]["security"] %}
   {{ tool }}_upper=$(echo "{{ tool }}" | tr '[:lower:]' '[:upper:]')
   {{ tool }}_argument="--skip-{{ tool }}"
   {# In order for us to use ${variable} in bash directly around a jinja2 variable it needs to be escaped -#}
   {{ tool }}_env_var="SKIP_{{ '${' }}{{ tool }}_upper}"
+  declare "SKIP_{{ '${' }}{{ tool }}_upper}={{ '${' }}!{{ tool }}_env_var:-false}"
 
   ## Methods to skip {{ tool }}
   # If the "skip" argument was provided, skip the security scan
