@@ -1,13 +1,11 @@
 ARG FROM_IMAGE=ubuntu
 ARG FROM_IMAGE_TAG=20.04
 
-FROM "${FROM_IMAGE}":"${FROM_IMAGE_TAG}"
+FROM "${FROM_IMAGE}":"${FROM_IMAGE_TAG}" as base
 
 ARG VERSION
 ARG COMMIT_HASH
 
-# OCI annotations per
-# https://github.com/opencontainers/image-spec/blob/bd4f8fcb0979a663d8b97a1d4d9b030b3d2ca1fa/annotations.md
 LABEL org.opencontainers.image.authors="Jon Zeolla"
 LABEL org.opencontainers.image.licenses="BSD-3-Clause"
 LABEL org.opencontainers.image.vendor="Seiso"
@@ -20,23 +18,13 @@ LABEL org.opencontainers.image.revision="${COMMIT_HASH}"
 
 # apt-get installs
 ARG ANSIBLE_VERSION="2.9.6+dfsg-1"
-ARG AZURE_CLI_VERSION="2.12.1-1~focal"
 ENV DEBIAN_FRONTEND=noninteractive
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN apt-get update \
- && apt-get -y install --no-install-recommends ca-certificates \
-                                               curl \
-                                               apt-transport-https \
-                                               lsb-release \
-                                               sudo \
-                                               gnupg \
- && curl -sL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/microsoft.gpg > /dev/null \
- && AZ_REPO=$(lsb_release -cs) \
- && echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ $AZ_REPO main" | sudo tee /etc/apt/sources.list.d/azure-cli.list \
- && apt-get update \
  && apt-get -y install --no-install-recommends ansible=${ANSIBLE_VERSION} \
-                                               azure-cli=${AZURE_CLI_VERSION} \
                                                bsdmainutils \
+                                               ca-certificates \
+                                               curl \
                                                git \
                                                groff \
                                                jq \
@@ -44,6 +32,7 @@ RUN apt-get update \
                                                nodejs \
                                                python3 \
                                                python3-pip \
+                                               sudo \
                                                time \
                                                unzip \
  && apt-get clean autoclean \
@@ -77,10 +66,9 @@ RUN git clone https://github.com/tfutils/tfenv.git ~/.tfenv \
  && command terraform -install-autocomplete
 
 # pip installs
-COPY awscli.txt checkov.txt ./
+COPY checkov.txt ./
 ENV PATH="/root/.local/bin:${PATH}"
 RUN python3 -m pip install --upgrade --no-cache-dir pip \
- && pip install --user --no-cache-dir -r awscli.txt \
  && pip install --user --no-cache-dir -r checkov.txt
 
 # setup functions
@@ -88,10 +76,48 @@ COPY functions /functions
 ENV BASH_ENV=/functions
 RUN echo 'source ${BASH_ENV}' >> ~/.bashrc
 
-# Add aws autocomplete
-RUN echo 'complete -C /root/.local/bin/aws_completer aws' >> ~/.bashrc
-
 WORKDIR /iac
 COPY docker-entrypoint.sh /usr/local/bin/
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 
+FROM base as az
+ARG AZURE_CLI_VERSION="2.12.1-1~focal"
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+RUN apt-get update \
+ #####
+ # Per Microsoft recommendation at https://docs.microsoft.com/en-us/cli/azure/install-azure-cli-linux?pivots=apt
+ && sudo apt remove azure-cli -y \
+ && sudo apt autoremove -y \
+ #####
+ && apt-get -y install --no-install-recommends ca-certificates \
+                                               curl \
+                                               apt-transport-https \
+                                               lsb-release \
+                                               gnupg \
+ && curl -sL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/microsoft.gpg > /dev/null \
+ && AZ_REPO=$(lsb_release -cs) \
+ && echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ $AZ_REPO main" | sudo tee /etc/apt/sources.list.d/azure-cli.list \
+ && apt-get update \
+ && apt-get -y install --no-install-recommends azure-cli=${AZURE_CLI_VERSION} \
+ && apt-get clean autoclean \
+ && apt-get -y autoremove \
+ && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/*
+
+FROM base as aws
+# pip installs
+COPY awscli.txt ./
+RUN python3 -m pip install --upgrade --no-cache-dir pip \
+ && pip install --user --no-cache-dir -r awscli.txt
+
+# Add aws autocomplete
+RUN echo 'complete -C /root/.local/bin/aws_completer aws' >> ~/.bashrc
+
+from base as final
+
+# AWS
+COPY --from=aws /root/.local /root/.local
+
+# Azure
+COPY --from=az /opt/az /opt/az
+COPY --from=az /usr/bin/az /usr/bin/az
+COPY --from=az /etc/apt/sources.list.d/azure-cli.list /etc/apt/sources.list.d/azure-cli.list

@@ -22,7 +22,7 @@ update_dockerfile_repo    = ./update_components.sh --repo=$(1) --version=$(2)
 
 ## Rules
 .PHONY: all
-all: update build
+all: build build-slim
 
 .PHONY: update
 update: update-dependencies
@@ -34,16 +34,38 @@ update-dependencies: update-apt update-ci update-awscli update-checkov update-gi
 lint:
 	@docker run --rm -v $$(pwd):/root/ projectatomic/dockerfile-lint dockerfile_lint -f /root/Dockerfile -r /root/.github/workflows/etc/oci_annotations.yml
 
-
 .PHONY: generate-functions
 generate-functions:
 	@echo "Generating the functions..."
 	@docker run --rm -v $$(pwd):/usr/src/app -w /usr/src/app python:3.9 /bin/bash -c "python3 -m pip install --upgrade pip &>/dev/null && pip install --user -r ci.txt &>/dev/null && ./update_bash_env.py --config-file easy_infra.yml --output functions --template-file functions.j2"
 	@echo "Done!"
 
+.PHONY: build-all
+build-all: build build-minimal build-az build-aws
+
+.PHONY: build-minimal
+build-minimal: generate-functions
+	@echo "Building the minimal image..."
+	@DOCKER_BUILDKIT=1 docker build --target base --rm -t $(IMAGE_NAME):latest-minimal -t $(IMAGE_NAME):$(VERSION)-minimal -t $(IMAGE_NAME):$(COMMIT_HASH)-minimal --build-arg "FROM_IMAGE=$(FROM_IMAGE)" --build-arg "FROM_IMAGE_TAG=$(FROM_IMAGE_TAG)" --build-arg "VERSION=$(VERSION)-minimal" --build-arg "COMMIT_HASH=$(COMMIT_HASH)" .
+	@echo "Done!"
+
 .PHONY: build
 build: generate-functions
-	@DOCKER_BUILDKIT=1 docker build --rm -t $(IMAGE_NAME):latest -t $(IMAGE_NAME):$(VERSION) -t $(IMAGE_NAME):$(COMMIT_HASH) --build-arg "FROM_IMAGE=$(FROM_IMAGE)" --build-arg "FROM_IMAGE_TAG=$(FROM_IMAGE_TAG)" --build-arg "VERSION=$(VERSION)" --build-arg "COMMIT_HASH=$(COMMIT_HASH)" .
+	@echo "Building the complete image..."
+	@DOCKER_BUILDKIT=1 docker build --target final --rm -t $(IMAGE_NAME):latest -t $(IMAGE_NAME):$(VERSION) -t $(IMAGE_NAME):$(COMMIT_HASH) --build-arg "FROM_IMAGE=$(FROM_IMAGE)" --build-arg "FROM_IMAGE_TAG=$(FROM_IMAGE_TAG)" --build-arg "VERSION=$(VERSION)" --build-arg "COMMIT_HASH=$(COMMIT_HASH)" .
+	@echo "Done!"
+
+.PHONY: build-az
+build-az: generate-functions
+	@echo "Building the az image..."
+	@DOCKER_BUILDKIT=1 docker build --target az --rm -t $(IMAGE_NAME):latest-az -t $(IMAGE_NAME):$(VERSION)-az -t $(IMAGE_NAME):$(COMMIT_HASH)-az --build-arg "FROM_IMAGE=$(FROM_IMAGE)" --build-arg "FROM_IMAGE_TAG=$(FROM_IMAGE_TAG)" --build-arg "VERSION=$(VERSION)-az" --build-arg "COMMIT_HASH=$(COMMIT_HASH)" .
+	@echo "Done!"
+
+.PHONY: build-aws
+build-aws: generate-functions
+	@echo "Building the aws image..."
+	@DOCKER_BUILDKIT=1 docker build --target aws --rm -t $(IMAGE_NAME):latest-aws -t $(IMAGE_NAME):$(VERSION)-aws -t $(IMAGE_NAME):$(COMMIT_HASH)-aws --build-arg "FROM_IMAGE=$(FROM_IMAGE)" --build-arg "FROM_IMAGE_TAG=$(FROM_IMAGE_TAG)" --build-arg "VERSION=$(VERSION)-aws" --build-arg "COMMIT_HASH=$(COMMIT_HASH)" .
+	@echo "Done!"
 
 .PHONY: update-apt
 update-apt:
@@ -87,7 +109,6 @@ update-terraform:
 	@version=$$(docker run --rm easy_infra:latest /bin/bash -c "tfenv list-remote 2>/dev/null | egrep -v '(rc|alpha|beta)' | head -1"); \
 		$(call update_dockerfile_package,terraform,$${version})
 	@echo "Done!"
-
 
 .PHONY: push_tag
 push_tag:
