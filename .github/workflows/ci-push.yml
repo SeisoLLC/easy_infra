@@ -1,5 +1,5 @@
 ---
-name: "CI for commits to the main branch"
+name: "CI for commits"
 on:
   push:
     branches:

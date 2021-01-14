@@ -1,5 +1,5 @@
 ---
-name: "CI for PRs against the main branch"
+name: "CI for PRs"
 on:
   pull_request:
     branches:
