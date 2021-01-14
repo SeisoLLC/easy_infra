@@ -7,14 +7,14 @@ on:
 jobs:
   lint:
     name: Lint
-    runs-on: ubuntu-latest
+    runs-on: Ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
       - name: Run linting
         run: make lint
   build:
     name: Build the Docker image
-    runs-on: ubuntu-latest
+    runs-on: Ubuntu-20.04
     needs:
       - lint
     steps:
@@ -23,7 +23,7 @@ jobs:
         run: make build-ci
   push:
     name: Push to Docker Hub
-    runs-on: ubuntu-latest
+    runs-on: Ubuntu-20.04
     needs:
       - build
     steps:

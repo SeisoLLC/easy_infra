@@ -7,7 +7,7 @@ on:
 jobs:
   release:
     name: Create a release
-    runs-on: ubuntu-latest
+    runs-on: Ubuntu-20.04
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
