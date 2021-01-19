@@ -1,0 +1,23 @@
+---
+name: "Release"
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+jobs:
+  release:
+    name: Create a release
+    runs-on: Ubuntu-20.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Create the release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
