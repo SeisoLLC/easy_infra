@@ -9,7 +9,8 @@ jobs:
     name: Lint
     runs-on: Ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout the PR
+        uses: actions/checkout@v2
         with:
           ref: ${{ github.event.pull_request.head.sha }}
       - name: Run linting
@@ -18,8 +19,24 @@ jobs:
     name: Build the Docker image
     runs-on: Ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout the PR
+        uses: actions/checkout@v2
         with:
           ref: ${{ github.event.pull_request.head.sha }}
+      - id: cache-docker
+        uses: actions/cache@v2
+        with:
+          path: ~/cache
+          key: ${{ runner.os }}-cache
       - name: Build the Docker images
-        run: make build-ci
+        run: |
+          if [[ -f ~/cache/docker.tar ]]; then
+            echo "Loading ~/cache/docker.tar..."
+            docker load --input ~/cache/docker.tar
+          fi && \
+          make build-ci
+      - name: Update docker cache
+        run: |
+          mkdir -p ~/cache && \
+          images=($(docker image ls seiso/easy_infra --format "{{.Tag}}" | awk '{print "seiso/easy_infra:" $0}'))
+          docker save "${images[*]}" -o ~/cache/docker.tar || true
