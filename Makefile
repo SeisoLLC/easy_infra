@@ -79,7 +79,9 @@ build-ci: generate-functions
 
 .PHONY: push
 push:
-	@docker push --all-tags $(REMOTE_IMAGE_NAME)
+	@docker version
+	@docker image push --help
+	@docker image push --all-tags $(REMOTE_IMAGE_NAME)
 
 .PHONY: update-apt
 update-apt:
