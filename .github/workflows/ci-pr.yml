@@ -38,5 +38,5 @@ jobs:
       - name: Update docker cache
         run: |
           mkdir -p ~/cache && \
-          images=($(docker image ls seiso/easy_infra --format "{{.Tag}}" | awk '{print "seiso/easy_infra:" $0}'))
+          images=($(docker image ls seiso/easy_infra --format "{{.Tag}}" | awk '{print "seiso/easy_infra:" $0}')) && \
           docker save ${images[*]} -o ~/cache/docker.tar || true
