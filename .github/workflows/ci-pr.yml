@@ -24,5 +24,4 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
       - name: Build the Docker images
-        run: |
-          make build-ci
+        run: make build-ci

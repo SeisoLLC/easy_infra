@@ -20,8 +20,7 @@ jobs:
       - name: Checkout the code
         uses: actions/checkout@v2
       - name: Build the Docker images
-        run: |
-          make build-ci
+        run: make build-ci
   push:
     name: Push to Docker Hub
     runs-on: Ubuntu-20.04
@@ -36,5 +35,4 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Push the images to Docker Hub
-        run: |
-          make push
+        run: make push
