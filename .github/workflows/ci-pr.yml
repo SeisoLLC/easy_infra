@@ -27,7 +27,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ~/cache
-          key: ${{ runner.os }}-cache
+          key: ${{ runner.os }}-cache-${GITHUB_SHA}
       - name: Build the Docker images
         run: |
           if [[ -f ~/cache/docker.tar ]]; then
