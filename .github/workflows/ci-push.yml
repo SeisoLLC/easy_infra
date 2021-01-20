@@ -16,8 +16,6 @@ jobs:
   build:
     name: Build the Docker image
     runs-on: Ubuntu-20.04
-    needs:
-      - lint
     steps:
       - name: Checkout the code
         uses: actions/checkout@v2
