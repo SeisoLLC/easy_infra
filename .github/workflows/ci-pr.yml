@@ -9,7 +9,8 @@ jobs:
     name: Lint
     runs-on: Ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout the PR
+        uses: actions/checkout@v2
         with:
           ref: ${{ github.event.pull_request.head.sha }}
       - name: Run linting
@@ -18,7 +19,8 @@ jobs:
     name: Build the Docker image
     runs-on: Ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout the PR
+        uses: actions/checkout@v2
         with:
           ref: ${{ github.event.pull_request.head.sha }}
       - name: Build the Docker images

@@ -9,7 +9,7 @@ jobs:
     name: Create a release
     runs-on: Ubuntu-20.04
     steps:
-      - name: Checkout code
+      - name: Checkout the code
         uses: actions/checkout@v2
       - name: Create the release
         id: create_release
