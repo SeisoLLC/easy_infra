@@ -35,7 +35,7 @@ jobs:
         run: |
           mkdir -p ~/cache && \
           images=($(docker image ls seiso/easy_infra --format "{{.Tag}}" | awk '{print "seiso/easy_infra:" $0}'))
-          docker save "${images[*]}" -o ~/cache/docker.tar || true
+          docker save ${images[*]} -o ~/cache/docker.tar || true
   push:
     name: Push to Docker Hub
     runs-on: Ubuntu-20.04
