@@ -12,7 +12,7 @@ jobs:
       - name: Checkout the code
         uses: actions/checkout@v2
       - name: Install dependencies
-        run: pip3 install -r ci.txt
+        run: pip3 install -r ci.txt && echo "/home/runner/.local/bin" >> "${GITHUB_PATH}"
       - name: Run linting
         run: invoke lint
   build:
@@ -22,7 +22,7 @@ jobs:
       - name: Checkout the code
         uses: actions/checkout@v2
       - name: Install dependencies
-        run: pip3 install -r ci.txt
+        run: pip3 install -r ci.txt && echo "/home/runner/.local/bin" >> "${GITHUB_PATH}"
       - name: Build the Docker images
         run: invoke build
       - name: Login to Docker Hub
