@@ -198,15 +198,21 @@ def lint(c):  # pylint: disable=unused-argument
     """Lint easy_infra"""
     image = "projectatomic/dockerfile-lint"
     working_dir = "/root/"
-    volumes = {CWD: {"bind": working_dir, "mode": "rw"}}
+    volumes = {CWD: {"bind": working_dir, "mode": "ro"}}
     CLIENT.images.pull(repository=image)
-    CLIENT.containers.run(
+    # Don't remove the container immediately because we need to inspect it
+    container = CLIENT.containers.run(
         image=image,
         volumes=volumes,
         working_dir=working_dir,
-        auto_remove=True,
+        detach=True,
         command="dockerfile_lint -f /root/Dockerfile -r /root/.github/workflows/etc/oci_annotations.yml",
     )
+    response = container.wait(condition="not-running")
+    LOG.info(container.logs().decode("utf-8").strip().replace('\n', '  '))
+    container.remove()
+    if response["StatusCode"] != 0:
+        sys.exit(response["StatusCode"])
 
 
 @task
