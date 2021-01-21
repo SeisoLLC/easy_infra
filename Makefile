@@ -7,6 +7,7 @@ GITHUB             = tfutils/tfenv tfsec/tfsec hashicorp/packer
 LOCAL_IMAGE_NAME   = easy_infra
 REMOTE_IMAGE_NAME  = seiso/easy_infra
 VERSION            = 0.7.1-dirty
+SHELL              = bash
 
 
 ## Validation
@@ -79,7 +80,9 @@ build-ci: generate-functions
 
 .PHONY: push
 push:
-	@docker push --all-tags $(REMOTE_IMAGE_NAME)
+	@for image in $$(docker image ls seiso/easy_infra --format "{{.Tag}}" | awk '{print "seiso/easy_infra:" $$0}'); do \
+		docker image push $${image}; \
+	done
 
 .PHONY: update-apt
 update-apt:
