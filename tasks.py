@@ -132,6 +132,25 @@ COMMIT_HASH = REPO.head.object.hexsha
 # Docker
 CLIENT = docker.from_env()
 IMAGE = "seiso/easy_infra"
+TARGETS = {
+    "minimal": {},
+    "aws": {},
+    "az": {},
+    "final": {},
+}
+for target in TARGETS:
+    if target == "final":
+        TARGETS[target]["tags"] = [
+            IMAGE + ":" + COMMIT_HASH,
+            IMAGE + ":" + VERSION,
+            IMAGE + ":latest",
+        ]
+    else:
+        TARGETS[target]["tags"] = [
+            IMAGE + ":" + COMMIT_HASH + "-" + target,
+            IMAGE + ":" + VERSION + "-" + target,
+            IMAGE + ":" + "latest" + "-" + target,
+        ]
 
 # easy_infra
 APT_PACKAGES = {"ansible", "azure-cli"}
@@ -198,35 +217,26 @@ def build(c):  # pylint: disable=unused-argument
     buildargs = {"VERSION": VERSION, "COMMIT_HASH": COMMIT_HASH}
     for thing in CONFIG["commands"]:
         if "version" in CONFIG["commands"][thing]:
-            # Normalize for the Dockerfile
-            arg = thing.upper().replace('-', '_') + "_VERSION"
+            # Normalize the build args
+            arg = thing.upper().replace("-", "_") + "_VERSION"
             buildargs[arg] = CONFIG["commands"][thing]["version"]
 
-    targets = ["minimal", "aws", "az", "final"]
-    for target in targets:
-        if target == "final":
-            tags = [IMAGE + ":" + COMMIT_HASH, IMAGE + ":" + VERSION, IMAGE + ":latest"]
-        else:
-            tags = [
-                IMAGE + ":" + COMMIT_HASH + "-" + target,
-                IMAGE + ":" + VERSION + "-" + target,
-                IMAGE + ":" + "latest" + "-" + target,
-            ]
-
-        for tag in tags:
+    # pylint: disable=redefined-outer-name
+    for target in TARGETS:
+        for tag in TARGETS[target]["tags"]:
             LOG.info("Building %s...", tag)
             CLIENT.images.build(
                 path=str(CWD), target=target, rm=True, tag=tag, buildargs=buildargs
             )
-            LOG.info("Built %s", tag)
 
 
-###########################################################
-# Pending https://github.com/docker/docker-py/issues/2722 #
-###########################################################
-# @task
-# def publish(c):  # pylint: disable=unused-argument
-#     """Publish easy_infra"""
-#     for image in CLIENT.images.list(name=IMAGE):
-#         for tag in image.tags:
-#             CLIENT.images.push(repository=tag)
+@task
+def publish(c):  # pylint: disable=unused-argument
+    """Publish easy_infra"""
+    # pylint: disable=redefined-outer-name
+    for target in TARGETS:
+        for tag in TARGETS[target]["tags"]:
+            repository = tag
+            LOG.info("Pushing %s to docker hub...", repository)
+            CLIENT.images.push(repository=repository)
+    LOG.info("Done publishing easy_infra Docker images")
