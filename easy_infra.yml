@@ -1,16 +1,28 @@
 ---
 commands:
+  ansible:
+    version: 2.9.6+dfsg-1
+  azure-cli:
+    version: 2.12.1-1~focal
+  packer:
+    version: 1.6.4
   terraform:
-    version_argument: "version"
-    validation:
-      - command: terraform init
-        description: "initialization"
-      - command: terraform validate
-        description: "validation"
     security:
-      tfsec:
-        command: tfsec .
-        description: recursive scan
       checkov:
         command: checkov -d . --no-guide
         description: checkov directory scan
+      tfsec:
+        command: tfsec .
+        description: recursive scan
+    validation:
+      - command: terraform init
+        description: initialization
+      - command: terraform validate
+        description: validation
+    version: 0.13.4
+    version_argument: version
+  tfenv:
+    version: v2.0.0
+  tfsec:
+    version: v0.30.1
+version: 0.7.1-dirty
