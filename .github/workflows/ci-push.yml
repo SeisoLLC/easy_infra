@@ -16,7 +16,7 @@ jobs:
       - name: Run linting
         run: invoke lint
   build:
-    name: Build and push the Docker image
+    name: Build and push the Docker images
     runs-on: Ubuntu-20.04
     steps:
       - name: Checkout the code
