@@ -1,5 +1,6 @@
 certifi==2020.12.5
 chardet==4.0.0
+docker==4.4.1
 gitdb==4.0.5
 GitPython==3.1.12
 idna==2.10
@@ -8,5 +9,7 @@ Jinja2==2.11.2
 MarkupSafe==1.1.1
 PyYAML==5.4.1
 requests==2.25.1
+six==1.15.0
 smmap==3.0.4
 urllib3==1.26.2
+websocket-client==0.57.0
