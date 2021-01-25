@@ -1,7 +1,7 @@
 ARG FROM_IMAGE=ubuntu
 ARG FROM_IMAGE_TAG=20.04
 
-FROM "${FROM_IMAGE}":"${FROM_IMAGE_TAG}" as base
+FROM "${FROM_IMAGE}":"${FROM_IMAGE_TAG}" as minimal
 
 ARG VERSION
 ARG COMMIT_HASH
@@ -17,7 +17,7 @@ LABEL org.opencontainers.image.source="https://github.com/SeisoLLC/easy_infra"
 LABEL org.opencontainers.image.revision="${COMMIT_HASH}"
 
 # apt-get installs
-ARG ANSIBLE_VERSION="2.9.6+dfsg-1"
+ARG ANSIBLE_VERSION
 ENV DEBIAN_FRONTEND=noninteractive
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN apt-get update \
@@ -40,18 +40,18 @@ RUN apt-get update \
  && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/*
 
 # binary downloads
-ARG TFSEC_VERSION="v0.30.1"
-ARG PACKER_VERSION="v1.6.4"
+ARG TFSEC_VERSION
+ARG PACKER_VERSION
 RUN curl -L https://github.com/liamg/tfsec/releases/download/${TFSEC_VERSION}/tfsec-linux-amd64 -o /usr/local/bin/tfsec \
  && chmod 0755 /usr/local/bin/tfsec \
- && curl -L https://releases.hashicorp.com/packer/${PACKER_VERSION#v}/packer_${PACKER_VERSION#v}_linux_amd64.zip -o /usr/local/bin/packer.zip \
+ && curl -L https://releases.hashicorp.com/packer/${PACKER_VERSION}/packer_${PACKER_VERSION}_linux_amd64.zip -o /usr/local/bin/packer.zip \
  && unzip /usr/local/bin/packer.zip -d /usr/local/bin/ \
  && rm -f /usr/local/bin/packer.zip \
  && chmod 0755 /usr/local/bin/packer
 
 # git installs
-ARG TERRAFORM_VERSION="0.13.4"
-ARG TFENV_VERSION="v2.0.0"
+ARG TERRAFORM_VERSION
+ARG TFENV_VERSION
 COPY .terraformrc /root/
 ENV PATH="/root/.tfenv/bin:${PATH}"
 RUN git clone https://github.com/tfutils/tfenv.git ~/.tfenv \
@@ -80,8 +80,8 @@ WORKDIR /iac
 COPY docker-entrypoint.sh /usr/local/bin/
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 
-FROM base as az
-ARG AZURE_CLI_VERSION="2.12.1-1~focal"
+FROM minimal as az
+ARG AZURE_CLI_VERSION
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN apt-get update \
  #####
@@ -103,7 +103,7 @@ RUN apt-get update \
  && apt-get -y autoremove \
  && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/*
 
-FROM base as aws
+FROM minimal as aws
 # pip installs
 COPY awscli.txt ./
 RUN python3 -m pip install --upgrade --no-cache-dir pip \
@@ -112,10 +112,12 @@ RUN python3 -m pip install --upgrade --no-cache-dir pip \
 # Add aws autocomplete
 RUN echo 'complete -C /root/.local/bin/aws_completer aws' >> ~/.bashrc
 
-from base as final
+from minimal as final
 
 # AWS
 COPY --from=aws /root/.local /root/.local
+COPY --from=aws /root/.bashrc /root/.bashrc
+
 
 # Azure
 COPY --from=az /opt/az /opt/az

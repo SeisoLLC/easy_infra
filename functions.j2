@@ -55,6 +55,7 @@ function process_command_exit_status() {
 
 {# Loop through each provided command to be wrapped and make a single wrapper function for it -#}
 {% for command in commands -%}
+{%- if commands[command]["security"] is defined -%}
 function {{ command }}() {
   # Methods to skip **all** security tools for {{ command }}
   DISABLE_SECURITY="${DISABLE_SECURITY:-false}"
@@ -128,4 +129,5 @@ function {{ command }}() {
   command "${FUNCNAME[0]}" "$@"
 }
 
-{% endfor -%}
+{% endif -%}
+{%- endfor -%}
