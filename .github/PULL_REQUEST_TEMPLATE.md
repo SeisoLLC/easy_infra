@@ -5,6 +5,5 @@
 Thank you for submitting a contribution to `easy_infra`!
 
 In order to streamline the review of your contribution we ask that you review and comply with the below requirements:
- - [ ] Ensure that `make build` completes successfully
  - [ ] Rebase your branch against the latest commit of the target branch, which likely should be `master`
  - [ ] If there is an issue associated with your Pull Request, align your PR title with [this documentation](https://help.github.com/en/articles/closing-issues-using-keywords)
