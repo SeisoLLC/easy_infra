@@ -120,4 +120,5 @@ COPY --from=aws /root/.local /root/.local
 # Azure
 COPY --from=az /opt/az /opt/az
 COPY --from=az /usr/bin/az /usr/bin/az
+COPY --from=az /etc/apt/trusted.gpg.d/microsoft.gpg /etc/apt/trusted.gpg.d/microsoft.gpg
 COPY --from=az /etc/apt/sources.list.d/azure-cli.list /etc/apt/sources.list.d/azure-cli.list

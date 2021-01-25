@@ -4,8 +4,10 @@ COMMIT_HASH       := $(shell git rev-parse HEAD)
 FROM_IMAGE         = ubuntu
 FROM_IMAGE_TAG     = 20.04
 GITHUB             = tfutils/tfenv tfsec/tfsec hashicorp/packer
-IMAGE_NAME         = easy_infra
+LOCAL_IMAGE_NAME   = easy_infra
+REMOTE_IMAGE_NAME  = seiso/easy_infra
 VERSION            = 0.7.1-dirty
+SHELL              = bash
 
 
 ## Validation
@@ -15,14 +17,14 @@ endif
 
 
 ## Functions
-get_github_latest_version = $$(docker run --rm easy_infra:latest /bin/bash -c "curl -s https://api.github.com/repos/$(1)/releases/latest | jq -r '.tag_name'")
+get_github_latest_version = $$(docker run --rm alpine:3.13 /bin/ash -c "apk add curl jq &>/dev/null && curl -s https://api.github.com/repos/$(1)/releases/latest | jq -r '.tag_name'")
 update_dockerfile_package = ./update_components.sh --package=$(1) --version=$(2)
 update_dockerfile_repo    = ./update_components.sh --repo=$(1) --version=$(2)
 
 
 ## Rules
 .PHONY: all
-all: build build-slim
+all: build-all
 
 .PHONY: update
 update: update-dependencies
@@ -46,32 +48,47 @@ build-all: build build-minimal build-az build-aws
 .PHONY: build-minimal
 build-minimal: generate-functions
 	@echo "Building the minimal image..."
-	@DOCKER_BUILDKIT=1 docker build --target base --rm -t $(IMAGE_NAME):latest-minimal -t $(IMAGE_NAME):$(VERSION)-minimal -t $(IMAGE_NAME):$(COMMIT_HASH)-minimal --build-arg "FROM_IMAGE=$(FROM_IMAGE)" --build-arg "FROM_IMAGE_TAG=$(FROM_IMAGE_TAG)" --build-arg "VERSION=$(VERSION)-minimal" --build-arg "COMMIT_HASH=$(COMMIT_HASH)" .
+	@DOCKER_BUILDKIT=1 docker build --target base --rm -t $(LOCAL_IMAGE_NAME):latest-minimal -t $(LOCAL_IMAGE_NAME):$(VERSION)-minimal -t $(LOCAL_IMAGE_NAME):$(COMMIT_HASH)-minimal --build-arg "FROM_IMAGE=$(FROM_IMAGE)" --build-arg "FROM_IMAGE_TAG=$(FROM_IMAGE_TAG)" --build-arg "VERSION=$(VERSION)-minimal" --build-arg "COMMIT_HASH=$(COMMIT_HASH)" .
 	@echo "Done!"
 
 .PHONY: build
 build: generate-functions
 	@echo "Building the complete image..."
-	@DOCKER_BUILDKIT=1 docker build --target final --rm -t $(IMAGE_NAME):latest -t $(IMAGE_NAME):$(VERSION) -t $(IMAGE_NAME):$(COMMIT_HASH) --build-arg "FROM_IMAGE=$(FROM_IMAGE)" --build-arg "FROM_IMAGE_TAG=$(FROM_IMAGE_TAG)" --build-arg "VERSION=$(VERSION)" --build-arg "COMMIT_HASH=$(COMMIT_HASH)" .
+	@DOCKER_BUILDKIT=1 docker build --target final --rm -t $(LOCAL_IMAGE_NAME):latest -t $(LOCAL_IMAGE_NAME):$(VERSION) -t $(LOCAL_IMAGE_NAME):$(COMMIT_HASH) --build-arg "FROM_IMAGE=$(FROM_IMAGE)" --build-arg "FROM_IMAGE_TAG=$(FROM_IMAGE_TAG)" --build-arg "VERSION=$(VERSION)" --build-arg "COMMIT_HASH=$(COMMIT_HASH)" .
 	@echo "Done!"
 
 .PHONY: build-az
 build-az: generate-functions
 	@echo "Building the az image..."
-	@DOCKER_BUILDKIT=1 docker build --target az --rm -t $(IMAGE_NAME):latest-az -t $(IMAGE_NAME):$(VERSION)-az -t $(IMAGE_NAME):$(COMMIT_HASH)-az --build-arg "FROM_IMAGE=$(FROM_IMAGE)" --build-arg "FROM_IMAGE_TAG=$(FROM_IMAGE_TAG)" --build-arg "VERSION=$(VERSION)-az" --build-arg "COMMIT_HASH=$(COMMIT_HASH)" .
+	@DOCKER_BUILDKIT=1 docker build --target az --rm -t $(LOCAL_IMAGE_NAME):latest-az -t $(LOCAL_IMAGE_NAME):$(VERSION)-az -t $(LOCAL_IMAGE_NAME):$(COMMIT_HASH)-az --build-arg "FROM_IMAGE=$(FROM_IMAGE)" --build-arg "FROM_IMAGE_TAG=$(FROM_IMAGE_TAG)" --build-arg "VERSION=$(VERSION)-az" --build-arg "COMMIT_HASH=$(COMMIT_HASH)" .
 	@echo "Done!"
 
 .PHONY: build-aws
 build-aws: generate-functions
 	@echo "Building the aws image..."
-	@DOCKER_BUILDKIT=1 docker build --target aws --rm -t $(IMAGE_NAME):latest-aws -t $(IMAGE_NAME):$(VERSION)-aws -t $(IMAGE_NAME):$(COMMIT_HASH)-aws --build-arg "FROM_IMAGE=$(FROM_IMAGE)" --build-arg "FROM_IMAGE_TAG=$(FROM_IMAGE_TAG)" --build-arg "VERSION=$(VERSION)-aws" --build-arg "COMMIT_HASH=$(COMMIT_HASH)" .
+	@DOCKER_BUILDKIT=1 docker build --target aws --rm -t $(LOCAL_IMAGE_NAME):latest-aws -t $(LOCAL_IMAGE_NAME):$(VERSION)-aws -t $(LOCAL_IMAGE_NAME):$(COMMIT_HASH)-aws --build-arg "FROM_IMAGE=$(FROM_IMAGE)" --build-arg "FROM_IMAGE_TAG=$(FROM_IMAGE_TAG)" --build-arg "VERSION=$(VERSION)-aws" --build-arg "COMMIT_HASH=$(COMMIT_HASH)" .
 	@echo "Done!"
+
+.PHONY: build-ci
+build-ci: generate-functions
+	@echo "Building all of the images for CI..."
+	@DOCKER_BUILDKIT=1 docker build --target base --rm -t $(REMOTE_IMAGE_NAME):latest-minimal -t $(REMOTE_IMAGE_NAME):$(VERSION)-minimal -t $(REMOTE_IMAGE_NAME):$(COMMIT_HASH)-minimal --build-arg "FROM_IMAGE=$(FROM_IMAGE)" --build-arg "FROM_IMAGE_TAG=$(FROM_IMAGE_TAG)" --build-arg "VERSION=$(VERSION)-minimal" --build-arg "COMMIT_HASH=$(COMMIT_HASH)" --build-arg BUILDKIT_INLINE_CACHE=1 .
+	@DOCKER_BUILDKIT=1 docker build --target aws --rm -t $(REMOTE_IMAGE_NAME):latest-aws -t $(REMOTE_IMAGE_NAME):$(VERSION)-aws -t $(REMOTE_IMAGE_NAME):$(COMMIT_HASH)-aws --build-arg "FROM_IMAGE=$(FROM_IMAGE)" --build-arg "FROM_IMAGE_TAG=$(FROM_IMAGE_TAG)" --build-arg "VERSION=$(VERSION)-aws" --build-arg "COMMIT_HASH=$(COMMIT_HASH)" --build-arg BUILDKIT_INLINE_CACHE=1 .
+	@DOCKER_BUILDKIT=1 docker build --target az --rm -t $(REMOTE_IMAGE_NAME):latest-az -t $(REMOTE_IMAGE_NAME):$(VERSION)-az -t $(REMOTE_IMAGE_NAME):$(COMMIT_HASH)-az --build-arg "FROM_IMAGE=$(FROM_IMAGE)" --build-arg "FROM_IMAGE_TAG=$(FROM_IMAGE_TAG)" --build-arg "VERSION=$(VERSION)-az" --build-arg "COMMIT_HASH=$(COMMIT_HASH)" --build-arg BUILDKIT_INLINE_CACHE=1 .
+	@DOCKER_BUILDKIT=1 docker build --target final --rm -t $(REMOTE_IMAGE_NAME):latest -t $(REMOTE_IMAGE_NAME):$(VERSION) -t $(REMOTE_IMAGE_NAME):$(COMMIT_HASH) --build-arg "FROM_IMAGE=$(FROM_IMAGE)" --build-arg "FROM_IMAGE_TAG=$(FROM_IMAGE_TAG)" --build-arg "VERSION=$(VERSION)" --build-arg "COMMIT_HASH=$(COMMIT_HASH)" --build-arg BUILDKIT_INLINE_CACHE=1 .
+	@echo "Done!"
+
+.PHONY: push
+push:
+	@for image in $$(docker image ls seiso/easy_infra --format "{{.Tag}}" | awk '{print "seiso/easy_infra:" $$0}'); do \
+		docker image push $${image}; \
+	done
 
 .PHONY: update-apt
 update-apt:
 	@echo "Updating the apt package versions..."
 	@for package in $(APT_PACKAGES); do \
-		version=$$(docker run --rm easy_infra:latest /bin/bash -c "apt-get update &>/dev/null && apt-cache policy $${package} | grep '^  Candidate:' | awk -F' ' '{print \$$NF}'"); \
+		version=$$(docker run --rm $(REMOTE_IMAGE_NAME):latest-az /bin/bash -c "apt-get update &>/dev/null && apt-cache policy $${package} | grep '^  Candidate:' | awk -F' ' '{print \$$NF}'"); \
 		$(call update_dockerfile_package,$${package},$${version}); \
 	done
 	@echo "Done!"
@@ -106,12 +123,12 @@ update-github:
 .PHONY: update-terraform
 update-terraform:
 	@echo "Updating the terraform version..."
-	@version=$$(docker run --rm easy_infra:latest /bin/bash -c "tfenv list-remote 2>/dev/null | egrep -v '(rc|alpha|beta)' | head -1"); \
+	@version=$$(docker run --rm $(REMOTE_IMAGE_NAME):latest-minimal /bin/bash -c "tfenv list-remote 2>/dev/null | egrep -v '(rc|alpha|beta)' | head -1"); \
 		$(call update_dockerfile_package,terraform,$${version})
 	@echo "Done!"
 
-.PHONY: push_tag
-push_tag:
+.PHONY: release
+release:
 	@git tag v$(VERSION)
 	@git push origin v$(VERSION)
 

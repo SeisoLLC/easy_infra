@@ -1,0 +1,27 @@
+---
+name: "CI for PRs"
+on:
+  pull_request:
+    branches:
+      - master
+jobs:
+  lint:
+    name: Lint
+    runs-on: Ubuntu-20.04
+    steps:
+      - name: Checkout the PR
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Run linting
+        run: make lint
+  build:
+    name: Build the Docker image
+    runs-on: Ubuntu-20.04
+    steps:
+      - name: Checkout the PR
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Build the Docker images
+        run: make build-ci
