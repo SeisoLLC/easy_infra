@@ -2,5 +2,5 @@
 Contact: mailto:security@SeisoLLC.com
 
 # Our security policy
-Policy: https://github.com/SeisoLLC/easy_infra/blob/master/SECURITY.md
+Policy: https://github.com/SeisoLLC/easy_infra/blob/main/SECURITY.md
 
