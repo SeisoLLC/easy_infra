@@ -18,7 +18,7 @@ jobs:
       - name: Run linting
         run: invoke lint
   build:
-    name: Build the Docker images
+    name: Build and test the Docker images
     runs-on: Ubuntu-20.04
     steps:
       - name: Checkout the PR
@@ -29,3 +29,5 @@ jobs:
         run: pip3 install -r ci.txt && echo "/home/runner/.local/bin" >> "${GITHUB_PATH}"
       - name: Build the Docker images
         run: invoke build
+      - name: Test the Docker images
+        run: invoke test

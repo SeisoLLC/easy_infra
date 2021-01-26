@@ -2,10 +2,19 @@
 commands:
   ansible:
     version: 2.9.6+dfsg-1
+    version_command: ansible --version
+  awscli:
+    version: 1.18.157
+    version_command: aws --version
   azure-cli:
     version: 2.12.1-1~focal
+    version_command: az version
+  checkov:
+    version: 1.0.711
+    version_command: checkov --version
   packer:
     version: 1.6.4
+    version_command: packer version
   terraform:
     security:
       checkov:
@@ -20,9 +29,11 @@ commands:
       - command: terraform validate
         description: validation
     version: 0.13.4
-    version_argument: version
+    version_command: terraform version
   tfenv:
     version: v2.0.0
+    version_command: tfenv --version
   tfsec:
     version: v0.30.1
+    version_command: tfsec --version
 version: 0.7.1-dirty

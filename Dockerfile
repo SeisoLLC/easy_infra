@@ -66,10 +66,10 @@ RUN git clone https://github.com/tfutils/tfenv.git ~/.tfenv \
  && command terraform -install-autocomplete
 
 # pip installs
-COPY checkov.txt ./
+ARG CHECKOV_VERSION
 ENV PATH="/root/.local/bin:${PATH}"
 RUN python3 -m pip install --upgrade --no-cache-dir pip \
- && pip install --user --no-cache-dir -r checkov.txt
+ && pip install --user --no-cache-dir checkov==${CHECKOV_VERSION}
 
 # setup functions
 COPY functions /functions
@@ -105,9 +105,9 @@ RUN apt-get update \
 
 FROM minimal as aws
 # pip installs
-COPY awscli.txt ./
+ARG AWSCLI_VERSION
 RUN python3 -m pip install --upgrade --no-cache-dir pip \
- && pip install --user --no-cache-dir -r awscli.txt
+ && pip install --user --no-cache-dir awscli==${AWSCLI_VERSION}
 
 # Add aws autocomplete
 RUN echo 'complete -C /root/.local/bin/aws_completer aws' >> ~/.bashrc
@@ -117,7 +117,6 @@ from minimal as final
 # AWS
 COPY --from=aws /root/.local /root/.local
 COPY --from=aws /root/.bashrc /root/.bashrc
-
 
 # Azure
 COPY --from=az /opt/az /opt/az
