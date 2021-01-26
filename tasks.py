@@ -4,6 +4,7 @@ Task execution tool & library
 """
 
 from pathlib import Path
+import os
 import sys
 import json
 from logging import getLogger, basicConfig
@@ -289,22 +290,42 @@ def run_aws_stage_tests(*, image: str):
 
 def run_security_tests(*, image: str):
     """Run the security tests"""
-    num_tests_ran = 0
+    temp_dir = TESTS_PATH.joinpath('tmp')
 
+    if os.environ.get("GITHUB_ACTIONS") == "true":
+        if os.environ.get("RUNNER_TEMP"):
+            # Update the temp_dir if a temporary directory is indicated by the
+            # environment
+            temp_dir = Path(str(os.environ.get("RUNNER_TEMP"))).absolute()
+        else:
+            LOG.warning("Unable to determine the context due to inconsistent environment variables, falling back to %s", str(temp_dir))
+
+    tag = image.split(':')[-1]
+    file_name = tag + ".tar"
+    image_file = temp_dir.joinpath(file_name)
+    raw_image = CLIENT.images.get(image).save(named=True)
+    with open(image_file, "wb") as file:
+        for chunk in raw_image:
+            file.write(chunk)
+
+    working_dir = "/tmp/"
+    volumes = {temp_dir: {"bind": working_dir, "mode": "ro"}}
+
+    num_tests_ran = 0
     scanner = "aquasec/trivy:latest"
 
     # Provide debug information about unknown, low, and medium severity
     # findings
-    command = "--quiet image --exit-code 0 --severity UNKNOWN,LOW,MEDIUM --format json --light " + image
-    response = opinionated_docker_run(image=scanner, command=command)
+    command = "--quiet image --exit-code 0 --severity UNKNOWN,LOW,MEDIUM --format json --light --input " + working_dir + file_name
+    response = opinionated_docker_run(image=scanner, command=command, volumes=volumes)
 
     if not expected_status_code(expected=0, response=response):
         sys.exit(response["StatusCode"])
     num_tests_ran += 1
 
     # Ensure no high or critical vulnerabilities exist in the image
-    command = "--quiet image --exit-code 1 --severity HIGH,CRITICAL --format json --light " + image
-    response = opinionated_docker_run(image=scanner, command=command)
+    command = "--quiet image --exit-code 1 --severity HIGH,CRITICAL --format json --light --input " + working_dir + file_name
+    response = opinionated_docker_run(image=scanner, command=command, volumes=volumes)
 
     if not expected_status_code(expected=0, response=response):
         sys.exit(response["StatusCode"])
