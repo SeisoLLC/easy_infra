@@ -525,3 +525,12 @@ def publish(c):  # pylint: disable=unused-argument
             LOG.info("Pushing %s to docker hub...", repository)
             CLIENT.images.push(repository=repository)
     LOG.info("Done publishing easy_infra Docker images")
+
+
+@task
+def clean(c):  # pylint: disable=unused-argument
+    """Clean up local easy_infra artifacts"""
+    temp_dir = TESTS_PATH.joinpath("tmp")
+
+    for tarball in temp_dir.glob('*.tar'):
+        tarball.unlink()
