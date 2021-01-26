@@ -290,7 +290,7 @@ def run_aws_stage_tests(*, image: str):
 
 def run_security_tests(*, image: str):
     """Run the security tests"""
-    temp_dir = TESTS_PATH.joinpath('tmp')
+    temp_dir = TESTS_PATH.joinpath("tmp")
 
     if os.environ.get("GITHUB_ACTIONS") == "true":
         if os.environ.get("RUNNER_TEMP"):
@@ -298,9 +298,12 @@ def run_security_tests(*, image: str):
             # environment
             temp_dir = Path(str(os.environ.get("RUNNER_TEMP"))).absolute()
         else:
-            LOG.warning("Unable to determine the context due to inconsistent environment variables, falling back to %s", str(temp_dir))
+            LOG.warning(
+                "Unable to determine the context due to inconsistent environment variables, falling back to %s",
+                str(temp_dir),
+            )
 
-    tag = image.split(':')[-1]
+    tag = image.split(":")[-1]
     file_name = tag + ".tar"
     image_file = temp_dir.joinpath(file_name)
     raw_image = CLIENT.images.get(image).save(named=True)
@@ -316,7 +319,11 @@ def run_security_tests(*, image: str):
 
     # Provide debug information about unknown, low, and medium severity
     # findings
-    command = "--quiet image --exit-code 0 --severity UNKNOWN,LOW,MEDIUM --format json --light --input " + working_dir + file_name
+    command = (
+        "--quiet image --exit-code 0 --severity UNKNOWN,LOW,MEDIUM --format json --light --input "
+        + working_dir
+        + file_name
+    )
     response = opinionated_docker_run(image=scanner, command=command, volumes=volumes)
 
     if not expected_status_code(expected=0, response=response):
@@ -324,7 +331,11 @@ def run_security_tests(*, image: str):
     num_tests_ran += 1
 
     # Ensure no high or critical vulnerabilities exist in the image
-    command = "--quiet image --exit-code 1 --severity HIGH,CRITICAL --format json --light --input " + working_dir + file_name
+    command = (
+        "--quiet image --exit-code 1 --severity HIGH,CRITICAL --format json --light --input "
+        + working_dir
+        + file_name
+    )
     response = opinionated_docker_run(image=scanner, command=command, volumes=volumes)
 
     if not expected_status_code(expected=0, response=response):
