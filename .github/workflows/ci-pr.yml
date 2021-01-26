@@ -14,7 +14,7 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
       - name: Install dependencies
-        run: pip3 install -r ci.txt && echo "/home/runner/.local/bin" >> "${GITHUB_PATH}"
+        run: pip3 install -r requirements.txt && echo "/home/runner/.local/bin" >> "${GITHUB_PATH}"
       - name: Run linting
         run: invoke lint
   build:
@@ -26,7 +26,7 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
       - name: Install dependencies
-        run: pip3 install -r ci.txt && echo "/home/runner/.local/bin" >> "${GITHUB_PATH}"
+        run: pip3 install -r requirements.txt && echo "/home/runner/.local/bin" >> "${GITHUB_PATH}"
       - name: Build the Docker images
         run: invoke build
       - name: Test the Docker images
