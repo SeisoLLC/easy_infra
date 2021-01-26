@@ -532,5 +532,5 @@ def clean(c):  # pylint: disable=unused-argument
     """Clean up local easy_infra artifacts"""
     temp_dir = TESTS_PATH.joinpath("tmp")
 
-    for tarball in temp_dir.glob('*.tar'):
+    for tarball in temp_dir.glob("*.tar"):
         tarball.unlink()
