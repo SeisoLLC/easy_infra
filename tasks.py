@@ -144,9 +144,16 @@ def opinionated_docker_run(
     return response
 
 
-def expected_status_code(*, expected: int, actual: int) -> bool:
+def expected_status_code(*, expected: int, response: dict) -> bool:
     """Check to see if the status code was expected"""
+    actual = response["StatusCode"]
+
     if expected != actual:
+        LOG.error(
+            "Received an unexpected status code of %s; additional details: %s",
+            response["StatusCode"],
+            response["logs"],
+        )
         return False
 
     return True
@@ -164,7 +171,7 @@ def test_version_commands(*, image: str, volumes: dict, working_dir: str):
             )
 
             # The defined version command should always exit 0
-            if not expected_status_code(expected=0, actual=response["StatusCode"]):
+            if not expected_status_code(expected=0, response=response):
                 LOG.error(
                     "Received a status code of %s, additional details: %s",
                     response["StatusCode"],
@@ -173,7 +180,7 @@ def test_version_commands(*, image: str, volumes: dict, working_dir: str):
                 sys.exit(response["StatusCode"])
             num_tests_ran += 1
 
-    LOG.info("Successfully ran %d tests", num_tests_ran)
+    LOG.info("%s passed %d smoke tests", image, num_tests_ran)
 
 
 def run_terraform_tests(*, image: str):
@@ -195,12 +202,7 @@ def run_terraform_tests(*, image: str):
         environment=environment,
     )
 
-    if not expected_status_code(expected=1, actual=response["StatusCode"]):
-        LOG.error(
-            "Received an unexpected status code of %s; additional details: %s",
-            response["StatusCode"],
-            response["logs"],
-        )
+    if not expected_status_code(expected=1, response=response):
         sys.exit(response["StatusCode"])
     num_tests_ran += 1
 
@@ -216,12 +218,7 @@ def run_terraform_tests(*, image: str):
         environment=environment,
     )
 
-    if not expected_status_code(expected=1, actual=response["StatusCode"]):
-        LOG.error(
-            "Received an unexpected status code of %s; additional details: %s",
-            response["StatusCode"],
-            response["logs"],
-        )
+    if not expected_status_code(expected=1, response=response):
         sys.exit(response["StatusCode"])
     num_tests_ran += 1
 
@@ -237,16 +234,11 @@ def run_terraform_tests(*, image: str):
         environment=environment,
     )
 
-    if not expected_status_code(expected=0, actual=response["StatusCode"]):
-        LOG.error(
-            "Received an unexpected status code of %s; additional details: %s",
-            response["StatusCode"],
-            response["logs"],
-        )
+    if not expected_status_code(expected=0, response=response):
         sys.exit(response["StatusCode"])
     num_tests_ran += 1
 
-    LOG.info("Successfully ran %d tests", num_tests_ran)
+    LOG.info("%s passed %d end to end terraform tests", image, num_tests_ran)
 
 
 def run_az_stage_tests(*, image: str):
@@ -257,12 +249,7 @@ def run_az_stage_tests(*, image: str):
     command = "az help"
     response = opinionated_docker_run(image=image, command=command)
 
-    if not expected_status_code(expected=0, actual=response["StatusCode"]):
-        LOG.error(
-            "Received an unexpected status code of %s; additional details: %s",
-            response["StatusCode"],
-            response["logs"],
-        )
+    if not expected_status_code(expected=0, response=response):
         sys.exit(response["StatusCode"])
     num_tests_ran += 1
 
@@ -270,16 +257,11 @@ def run_az_stage_tests(*, image: str):
     command = "aws help"
     response = opinionated_docker_run(image=image, command=command)
 
-    if not expected_status_code(expected=127, actual=response["StatusCode"]):
-        LOG.error(
-            "Received an unexpected status code of %s; additional details: %s",
-            response["StatusCode"],
-            response["logs"],
-        )
+    if not expected_status_code(expected=127, response=response):
         sys.exit(response["StatusCode"])
     num_tests_ran += 1
 
-    LOG.info("Successfully ran %d tests", num_tests_ran)
+    LOG.info("%s passed %d smoke tests", image, num_tests_ran)
 
 
 def run_aws_stage_tests(*, image: str):
@@ -290,12 +272,7 @@ def run_aws_stage_tests(*, image: str):
     command = "aws help"
     response = opinionated_docker_run(image=image, command=command)
 
-    if not expected_status_code(expected=0, actual=response["StatusCode"]):
-        LOG.error(
-            "Received an unexpected status code of %s; additional details: %s",
-            response["StatusCode"],
-            response["logs"],
-        )
+    if not expected_status_code(expected=0, response=response):
         sys.exit(response["StatusCode"])
     num_tests_ran += 1
 
@@ -303,16 +280,37 @@ def run_aws_stage_tests(*, image: str):
     command = "az help"
     response = opinionated_docker_run(image=image, command=command)
 
-    if not expected_status_code(expected=127, actual=response["StatusCode"]):
-        LOG.error(
-            "Received an unexpected status code of %s; additional details: %s",
-            response["StatusCode"],
-            response["logs"],
-        )
+    if not expected_status_code(expected=127, response=response):
         sys.exit(response["StatusCode"])
     num_tests_ran += 1
 
-    LOG.info("Successfully ran %d tests", num_tests_ran)
+    LOG.info("%s passed %d smoke tests", image, num_tests_ran)
+
+
+def run_security_tests(*, image: str):
+    """Run the security tests"""
+    num_tests_ran = 0
+
+    scanner = "aquasec/trivy:latest"
+
+    # Provide debug information about unknown, low, and medium severity
+    # findings
+    command = "--quiet image --exit-code 0 --severity UNKNOWN,LOW,MEDIUM --format json --light " + image
+    response = opinionated_docker_run(image=scanner, command=command)
+
+    if not expected_status_code(expected=0, response=response):
+        sys.exit(response["StatusCode"])
+    num_tests_ran += 1
+
+    # Ensure no high or critical vulnerabilities exist in the image
+    command = "--quiet image --exit-code 1 --severity HIGH,CRITICAL --format json --light " + image
+    response = opinionated_docker_run(image=scanner, command=command)
+
+    if not expected_status_code(expected=0, response=response):
+        sys.exit(response["StatusCode"])
+    num_tests_ran += 1
+
+    LOG.info("%s passed %d security tests", image, num_tests_ran)
 
 
 ## Globals
@@ -401,9 +399,9 @@ def update(c):  # pylint: disable=unused-argument
     CLIENT.images.pull(repository=image)
     command = (
         '/bin/bash -c "python3 -m pip install --upgrade pip &>/dev/null && pip3 install -r /usr/src/app/'
-        + str(CI_DEPENDENCIES["not pinned"])
+        + CI_DEPENDENCIES["not pinned"]
         + " &>/dev/null && pip3 freeze > /usr/src/app/"
-        + str(CI_DEPENDENCIES["pinned"])
+        + CI_DEPENDENCIES["pinned"]
         + '"'
     )
     opinionated_docker_run(
@@ -468,15 +466,19 @@ def test(c):  # pylint: disable=unused-argument
         LOG.info("Testing %s...", image)
         if target == "minimal":
             run_terraform_tests(image=image)
+            run_security_tests(image=image)
         elif target == "az":
             run_az_stage_tests(image=image)
+            run_security_tests(image=image)
         elif target == "aws":
             run_aws_stage_tests(image=image)
+            run_security_tests(image=image)
         elif target == "final":
             test_version_commands(
                 image=image, volumes=default_volumes, working_dir=default_working_dir
             )
             run_terraform_tests(image=image)
+            run_security_tests(image=image)
         else:
             LOG.error("Untested stage of %s", target)
 
