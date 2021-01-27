@@ -181,7 +181,7 @@ def test_version_commands(*, image: str, volumes: dict, working_dir: str):
                 sys.exit(response["StatusCode"])
             num_tests_ran += 1
 
-    LOG.info("%s passed %d smoke tests", image, num_tests_ran)
+    LOG.info("%s passed %d integration tests", image, num_tests_ran)
 
 
 def run_terraform_tests(*, image: str):
@@ -262,7 +262,7 @@ def run_az_stage_tests(*, image: str):
         sys.exit(response["StatusCode"])
     num_tests_ran += 1
 
-    LOG.info("%s passed %d smoke tests", image, num_tests_ran)
+    LOG.info("%s passed %d integration tests", image, num_tests_ran)
 
 
 def run_aws_stage_tests(*, image: str):
@@ -285,7 +285,7 @@ def run_aws_stage_tests(*, image: str):
         sys.exit(response["StatusCode"])
     num_tests_ran += 1
 
-    LOG.info("%s passed %d smoke tests", image, num_tests_ran)
+    LOG.info("%s passed %d integration tests", image, num_tests_ran)
 
 
 def run_security_tests(*, image: str):
