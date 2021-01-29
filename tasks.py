@@ -122,8 +122,9 @@ def opinionated_docker_run(
     working_dir: str = "/iac/",
     auto_remove: bool = False,
     detach: bool = True,
-    environment: dict = {}
-) -> dict:
+    environment: dict = {},
+    expected_exit: int = 0,
+):
     """Perform an opinionated docker run"""
     container = CLIENT.containers.run(
         auto_remove=auto_remove,
@@ -139,10 +140,8 @@ def opinionated_docker_run(
         response = container.wait(condition="not-running")
         response["logs"] = container.logs().decode("utf-8").strip().replace("\n", "  ")
         container.remove()
-    else:
-        response = {}
-
-    return response
+        if not is_status_expected(expected=expected_exit, response=response):
+            sys.exit(response["StatusCode"])
 
 
 def is_status_expected(*, expected: int, response: dict) -> bool:
@@ -167,18 +166,13 @@ def test_version_commands(*, image: str, volumes: dict, working_dir: str):
         # Test the provided version commands
         if "version_command" in CONFIG["commands"][command]:
             command = "command " + CONFIG["commands"][command]["version_command"]
-            response = opinionated_docker_run(
-                image=image, volumes=volumes, working_dir=working_dir, command=command,
+            opinionated_docker_run(
+                image=image,
+                volumes=volumes,
+                working_dir=working_dir,
+                command=command,
+                expected_exit=0,
             )
-
-            # The defined version command should always exit 0
-            if not is_status_expected(expected=0, response=response):
-                LOG.error(
-                    "Received a status code of %s, additional details: %s",
-                    response["StatusCode"],
-                    response["logs"],
-                )
-                sys.exit(response["StatusCode"])
             num_tests_ran += 1
 
     LOG.info("%s passed %d integration tests", image, num_tests_ran)
@@ -195,48 +189,42 @@ def run_terraform_tests(*, image: str):
     command = "terraform plan -lock=false"
     invalid_config_dir = TESTS_PATH.joinpath("terraform/invalid")
     volumes = {invalid_config_dir: {"bind": working_dir, "mode": "ro"}}
-    response = opinionated_docker_run(
+    opinionated_docker_run(
         image=image,
         volumes=volumes,
         working_dir=working_dir,
         command=command,
         environment=environment,
+        expected_exit=1,
     )
-
-    if not is_status_expected(expected=1, response=response):
-        sys.exit(response["StatusCode"])
     num_tests_ran += 1
 
     # Ensure insecure configurations fail
     command = "terraform plan -lock=false"
     insecure_config_dir = TESTS_PATH.joinpath("terraform/insecure")
     volumes = {insecure_config_dir: {"bind": working_dir, "mode": "ro"}}
-    response = opinionated_docker_run(
+    opinionated_docker_run(
         image=image,
         volumes=volumes,
         working_dir=working_dir,
         command=command,
         environment=environment,
+        expected_exit=1,
     )
-
-    if not is_status_expected(expected=1, response=response):
-        sys.exit(response["StatusCode"])
     num_tests_ran += 1
 
     # Ensure secure configurations pass
     command = "terraform plan -lock=false"
     secure_config_dir = TESTS_PATH.joinpath("terraform/secure")
     volumes = {secure_config_dir: {"bind": working_dir, "mode": "ro"}}
-    response = opinionated_docker_run(
+    opinionated_docker_run(
         image=image,
         volumes=volumes,
         working_dir=working_dir,
         command=command,
         environment=environment,
+        expected_exit=0,
     )
-
-    if not is_status_expected(expected=0, response=response):
-        sys.exit(response["StatusCode"])
     num_tests_ran += 1
 
     LOG.info("%s passed %d end to end terraform tests", image, num_tests_ran)
@@ -248,18 +236,12 @@ def run_az_stage_tests(*, image: str):
 
     # Ensure a basic azure help command succeeds
     command = "az help"
-    response = opinionated_docker_run(image=image, command=command)
-
-    if not is_status_expected(expected=0, response=response):
-        sys.exit(response["StatusCode"])
+    opinionated_docker_run(image=image, command=command, expected_exit=0)
     num_tests_ran += 1
 
     # Ensure a basic aws help command fails
     command = "aws help"
-    response = opinionated_docker_run(image=image, command=command)
-
-    if not is_status_expected(expected=127, response=response):
-        sys.exit(response["StatusCode"])
+    opinionated_docker_run(image=image, command=command, expected_exit=127)
     num_tests_ran += 1
 
     LOG.info("%s passed %d integration tests", image, num_tests_ran)
@@ -271,18 +253,12 @@ def run_aws_stage_tests(*, image: str):
 
     # Ensure a basic aws help command succeeds
     command = "aws help"
-    response = opinionated_docker_run(image=image, command=command)
-
-    if not is_status_expected(expected=0, response=response):
-        sys.exit(response["StatusCode"])
+    opinionated_docker_run(image=image, command=command, expected_exit=0)
     num_tests_ran += 1
 
     # Ensure a basic az help command fails
     command = "az help"
-    response = opinionated_docker_run(image=image, command=command)
-
-    if not is_status_expected(expected=127, response=response):
-        sys.exit(response["StatusCode"])
+    opinionated_docker_run(image=image, command=command, expected_exit=127)
     num_tests_ran += 1
 
     LOG.info("%s passed %d integration tests", image, num_tests_ran)
@@ -326,10 +302,9 @@ def run_security_tests(*, image: str):
         + working_dir
         + file_name
     )
-    response = opinionated_docker_run(image=scanner, command=command, volumes=volumes)
-
-    if not is_status_expected(expected=0, response=response):
-        sys.exit(response["StatusCode"])
+    opinionated_docker_run(
+        image=scanner, command=command, volumes=volumes, expected_exit=0
+    )
     num_tests_ran += 1
 
     # Ensure no high or critical vulnerabilities exist in the image
@@ -340,10 +315,9 @@ def run_security_tests(*, image: str):
         + working_dir
         + file_name
     )
-    response = opinionated_docker_run(image=scanner, command=command, volumes=volumes)
-
-    if not is_status_expected(expected=0, response=response):
-        sys.exit(response["StatusCode"])
+    opinionated_docker_run(
+        image=scanner, command=command, volumes=volumes, expected_exit=0
+    )
     num_tests_ran += 1
 
     LOG.info("%s passed %d security tests", image, num_tests_ran)
@@ -459,14 +433,12 @@ def lint(c):  # pylint: disable=unused-argument
     working_dir = "/root/"
     volumes = {CWD: {"bind": working_dir, "mode": "ro"}}
     CLIENT.images.pull(repository=image)
-    response = opinionated_docker_run(
+    opinionated_docker_run(
         image=image,
         volumes=volumes,
         working_dir=working_dir,
         command="dockerfile_lint -f /root/Dockerfile -r /root/.github/workflows/etc/oci_annotations.yml",
     )
-    if response["StatusCode"] != 0:
-        sys.exit(response["StatusCode"])
 
 
 @task
