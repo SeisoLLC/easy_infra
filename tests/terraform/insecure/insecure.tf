@@ -15,6 +15,7 @@ data "aws_ami" "ubuntu" {
 }
 
 resource "aws_instance" "web" {
+  # fails checkov checks CKV_AWS_8 and CKV_AWS_79
   ami           = data.aws_ami.ubuntu.id
   instance_type = "t3.micro"
 
