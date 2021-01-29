@@ -320,7 +320,9 @@ def run_security_tests(*, image: str):
     # Provide debug information about unknown, low, and medium severity
     # findings
     command = (
-        "--quiet image --exit-code 0 --severity UNKNOWN,LOW,MEDIUM --format json --light --input "
+        "--quiet image --exit-code 0 --severity "
+        + ",".join(INFORMATIONAL_VULNS)
+        + " --format json --light --input "
         + working_dir
         + file_name
     )
@@ -332,7 +334,9 @@ def run_security_tests(*, image: str):
 
     # Ensure no high or critical vulnerabilities exist in the image
     command = (
-        "--quiet image --exit-code 1 --severity HIGH,CRITICAL --format json --light --input "
+        "--quiet image --exit-code 1 --severity "
+        + ",".join(UNACCEPTABLE_VULNS)
+        + " --format json --light --input "
         + working_dir
         + file_name
     )
@@ -402,6 +406,8 @@ CI_DEPENDENCIES = {
     "not pinned": "requirements-to-freeze.txt",
     "pinned": "requirements.txt",
 }
+UNACCEPTABLE_VULNS = ["CRITICAL", "HIGH"]
+INFORMATIONAL_VULNS = ["UNKNOWN", "LOW", "MEDIUM"]
 
 
 ## Tasks
