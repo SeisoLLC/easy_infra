@@ -145,7 +145,7 @@ def opinionated_docker_run(
     return response
 
 
-def expected_status_code(*, expected: int, response: dict) -> bool:
+def is_status_expected(*, expected: int, response: dict) -> bool:
     """Check to see if the status code was expected"""
     actual = response["StatusCode"]
 
@@ -172,7 +172,7 @@ def test_version_commands(*, image: str, volumes: dict, working_dir: str):
             )
 
             # The defined version command should always exit 0
-            if not expected_status_code(expected=0, response=response):
+            if not is_status_expected(expected=0, response=response):
                 LOG.error(
                     "Received a status code of %s, additional details: %s",
                     response["StatusCode"],
@@ -203,7 +203,7 @@ def run_terraform_tests(*, image: str):
         environment=environment,
     )
 
-    if not expected_status_code(expected=1, response=response):
+    if not is_status_expected(expected=1, response=response):
         sys.exit(response["StatusCode"])
     num_tests_ran += 1
 
@@ -219,7 +219,7 @@ def run_terraform_tests(*, image: str):
         environment=environment,
     )
 
-    if not expected_status_code(expected=1, response=response):
+    if not is_status_expected(expected=1, response=response):
         sys.exit(response["StatusCode"])
     num_tests_ran += 1
 
@@ -235,7 +235,7 @@ def run_terraform_tests(*, image: str):
         environment=environment,
     )
 
-    if not expected_status_code(expected=0, response=response):
+    if not is_status_expected(expected=0, response=response):
         sys.exit(response["StatusCode"])
     num_tests_ran += 1
 
@@ -250,7 +250,7 @@ def run_az_stage_tests(*, image: str):
     command = "az help"
     response = opinionated_docker_run(image=image, command=command)
 
-    if not expected_status_code(expected=0, response=response):
+    if not is_status_expected(expected=0, response=response):
         sys.exit(response["StatusCode"])
     num_tests_ran += 1
 
@@ -258,7 +258,7 @@ def run_az_stage_tests(*, image: str):
     command = "aws help"
     response = opinionated_docker_run(image=image, command=command)
 
-    if not expected_status_code(expected=127, response=response):
+    if not is_status_expected(expected=127, response=response):
         sys.exit(response["StatusCode"])
     num_tests_ran += 1
 
@@ -273,7 +273,7 @@ def run_aws_stage_tests(*, image: str):
     command = "aws help"
     response = opinionated_docker_run(image=image, command=command)
 
-    if not expected_status_code(expected=0, response=response):
+    if not is_status_expected(expected=0, response=response):
         sys.exit(response["StatusCode"])
     num_tests_ran += 1
 
@@ -281,7 +281,7 @@ def run_aws_stage_tests(*, image: str):
     command = "az help"
     response = opinionated_docker_run(image=image, command=command)
 
-    if not expected_status_code(expected=127, response=response):
+    if not is_status_expected(expected=127, response=response):
         sys.exit(response["StatusCode"])
     num_tests_ran += 1
 
@@ -326,7 +326,7 @@ def run_security_tests(*, image: str):
     )
     response = opinionated_docker_run(image=scanner, command=command, volumes=volumes)
 
-    if not expected_status_code(expected=0, response=response):
+    if not is_status_expected(expected=0, response=response):
         sys.exit(response["StatusCode"])
     num_tests_ran += 1
 
@@ -338,7 +338,7 @@ def run_security_tests(*, image: str):
     )
     response = opinionated_docker_run(image=scanner, command=command, volumes=volumes)
 
-    if not expected_status_code(expected=0, response=response):
+    if not is_status_expected(expected=0, response=response):
         sys.exit(response["StatusCode"])
     num_tests_ran += 1
 
