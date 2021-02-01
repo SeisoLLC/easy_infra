@@ -60,8 +60,9 @@ function {{ command }}() {
   # Methods to skip **all** security tools for {{ command }}
   DISABLE_SECURITY="${DISABLE_SECURITY:-false}"
 
-  if [[ "${1}" == "{{ commands[command]["version_argument"] }}" ]]; then
+  if [[ "${FUNCNAME[0]} ${1}" == "{{ commands[command]["version_command"] }}" ]]; then
     _feedback INFO "Detected version check, skipping security checks for {{ command }}"
+    # Allow piping of the version command into other commands
     command "${FUNCNAME[0]}" "$@"
     return $?
   elif [[ "${1}" == "--disable-security" ]]; then

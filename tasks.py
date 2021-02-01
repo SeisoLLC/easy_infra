@@ -4,6 +4,7 @@ Task execution tool & library
 """
 
 from pathlib import Path
+import os
 import sys
 import json
 from logging import getLogger, basicConfig
@@ -71,6 +72,7 @@ def get_latest_release_from_apt(*, package: str) -> str:
     release = CLIENT.containers.run(
         image=image,
         auto_remove=True,
+        detach=False,
         command='/bin/bash -c "apt-get update &>/dev/null && apt-cache policy '
         + package
         + " | grep '^  Candidate:' | awk -F' ' '{print $NF}'\"",
@@ -84,6 +86,12 @@ def get_latest_release_from_github(*, repo: str) -> str:
         "https://api.github.com/repos/" + repo + "/releases/latest"
     ).json()
     return response["tag_name"]
+
+
+def get_latest_release_from_pypi(*, package: str) -> str:
+    """Get the latest release of a package on pypi"""
+    response = requests.get("https://pypi.org/pypi/" + package + "/json").json()
+    return response["info"]["version"]
 
 
 def get_latest_release_from_hashicorp(*, project: str) -> str:
@@ -106,6 +114,215 @@ def update_config_file(*, thing: str, version: str):
     write_config(config=config)
 
 
+def opinionated_docker_run(
+    *,
+    command: str,
+    image: str,
+    volumes: dict = {},
+    working_dir: str = "/iac/",
+    auto_remove: bool = False,
+    detach: bool = True,
+    environment: dict = {},
+    expected_exit: int = 0,
+):
+    """Perform an opinionated docker run"""
+    container = CLIENT.containers.run(
+        auto_remove=auto_remove,
+        command=command,
+        detach=detach,
+        environment=environment,
+        image=image,
+        volumes=volumes,
+        working_dir=working_dir,
+    )
+
+    if not auto_remove:
+        response = container.wait(condition="not-running")
+        response["logs"] = container.logs().decode("utf-8").strip().replace("\n", "  ")
+        container.remove()
+        if not is_status_expected(expected=expected_exit, response=response):
+            sys.exit(response["StatusCode"])
+
+
+def is_status_expected(*, expected: int, response: dict) -> bool:
+    """Check to see if the status code was expected"""
+    actual = response["StatusCode"]
+
+    if expected != actual:
+        LOG.error(
+            "Received an unexpected status code of %s; additional details: %s",
+            response["StatusCode"],
+            response["logs"],
+        )
+        return False
+
+    return True
+
+
+def test_version_commands(*, image: str, volumes: dict, working_dir: str):
+    """Test the version commands listed in the config"""
+    num_tests_ran = 0
+    for command in CONFIG["commands"]:
+        # Test the provided version commands
+        if "version_command" in CONFIG["commands"][command]:
+            command = "command " + CONFIG["commands"][command]["version_command"]
+            opinionated_docker_run(
+                image=image,
+                volumes=volumes,
+                working_dir=working_dir,
+                command=command,
+                expected_exit=0,
+            )
+            num_tests_ran += 1
+
+    LOG.info("%s passed %d integration tests", image, num_tests_ran)
+
+
+def run_terraform_tests(*, image: str):
+    """Run the terraform tests"""
+    num_tests_ran = 0
+    working_dir = "/iac/"
+    # Required due to the readonly volume mount
+    environment = {"TF_DATA_DIR": "/tmp"}
+
+    # Ensure invalid configurations fail
+    command = "terraform plan -lock=false"
+    invalid_config_dir = TESTS_PATH.joinpath("terraform/invalid")
+    volumes = {invalid_config_dir: {"bind": working_dir, "mode": "ro"}}
+    opinionated_docker_run(
+        image=image,
+        volumes=volumes,
+        working_dir=working_dir,
+        command=command,
+        environment=environment,
+        expected_exit=1,
+    )
+    num_tests_ran += 1
+
+    # Ensure insecure configurations fail
+    command = "terraform plan -lock=false"
+    insecure_config_dir = TESTS_PATH.joinpath("terraform/insecure")
+    volumes = {insecure_config_dir: {"bind": working_dir, "mode": "ro"}}
+    opinionated_docker_run(
+        image=image,
+        volumes=volumes,
+        working_dir=working_dir,
+        command=command,
+        environment=environment,
+        expected_exit=1,
+    )
+    num_tests_ran += 1
+
+    # Ensure secure configurations pass
+    command = "terraform plan -lock=false"
+    secure_config_dir = TESTS_PATH.joinpath("terraform/secure")
+    volumes = {secure_config_dir: {"bind": working_dir, "mode": "ro"}}
+    opinionated_docker_run(
+        image=image,
+        volumes=volumes,
+        working_dir=working_dir,
+        command=command,
+        environment=environment,
+        expected_exit=0,
+    )
+    num_tests_ran += 1
+
+    LOG.info("%s passed %d end to end terraform tests", image, num_tests_ran)
+
+
+def run_az_stage_tests(*, image: str):
+    """Run the az tests"""
+    num_tests_ran = 0
+
+    # Ensure a basic azure help command succeeds
+    command = "az help"
+    opinionated_docker_run(image=image, command=command, expected_exit=0)
+    num_tests_ran += 1
+
+    # Ensure a basic aws help command fails
+    command = "aws help"
+    opinionated_docker_run(image=image, command=command, expected_exit=127)
+    num_tests_ran += 1
+
+    LOG.info("%s passed %d integration tests", image, num_tests_ran)
+
+
+def run_aws_stage_tests(*, image: str):
+    """Run the aws tests"""
+    num_tests_ran = 0
+
+    # Ensure a basic aws help command succeeds
+    command = "aws help"
+    opinionated_docker_run(image=image, command=command, expected_exit=0)
+    num_tests_ran += 1
+
+    # Ensure a basic az help command fails
+    command = "az help"
+    opinionated_docker_run(image=image, command=command, expected_exit=127)
+    num_tests_ran += 1
+
+    LOG.info("%s passed %d integration tests", image, num_tests_ran)
+
+
+def run_security_tests(*, image: str):
+    """Run the security tests"""
+    temp_dir = TESTS_PATH.joinpath("tmp")
+
+    if os.environ.get("GITHUB_ACTIONS") == "true":
+        if os.environ.get("RUNNER_TEMP"):
+            # Update the temp_dir if a temporary directory is indicated by the
+            # environment
+            temp_dir = Path(str(os.environ.get("RUNNER_TEMP"))).absolute()
+        else:
+            LOG.warning(
+                "Unable to determine the context due to inconsistent environment variables, falling back to %s",
+                str(temp_dir),
+            )
+
+    tag = image.split(":")[-1]
+    file_name = tag + ".tar"
+    image_file = temp_dir.joinpath(file_name)
+    raw_image = CLIENT.images.get(image).save(named=True)
+    with open(image_file, "wb") as file:
+        for chunk in raw_image:
+            file.write(chunk)
+
+    working_dir = "/tmp/"
+    volumes = {temp_dir: {"bind": working_dir, "mode": "ro"}}
+
+    num_tests_ran = 0
+    scanner = "aquasec/trivy:latest"
+
+    # Provide debug information about unknown, low, and medium severity
+    # findings
+    command = (
+        "--quiet image --exit-code 0 --severity "
+        + ",".join(INFORMATIONAL_VULNS)
+        + " --format json --light --input "
+        + working_dir
+        + file_name
+    )
+    opinionated_docker_run(
+        image=scanner, command=command, volumes=volumes, expected_exit=0
+    )
+    num_tests_ran += 1
+
+    # Ensure no high or critical vulnerabilities exist in the image
+    command = (
+        "--quiet image --exit-code 1 --severity "
+        + ",".join(UNACCEPTABLE_VULNS)
+        + " --format json --light --input "
+        + working_dir
+        + file_name
+    )
+    opinionated_docker_run(
+        image=scanner, command=command, volumes=volumes, expected_exit=0
+    )
+    num_tests_ran += 1
+
+    LOG.info("%s passed %d security tests", image, num_tests_ran)
+
+
 ## Globals
 CONFIG_FILE = Path("easy_infra.yml").absolute()
 OUTPUT_FILE = Path("functions").absolute()
@@ -113,6 +330,7 @@ JINJA2_FILE = Path("functions.j2").absolute()
 CONFIG = parse_config(config_file=CONFIG_FILE)
 VERSION = CONFIG["version"]
 CWD = Path(".").absolute()
+TESTS_PATH = CWD.joinpath("tests")
 
 LOG_FORMAT = json.dumps(
     {
@@ -155,8 +373,15 @@ for target in TARGETS:
 # easy_infra
 APT_PACKAGES = {"ansible", "azure-cli"}
 GITHUB_REPOS = {"tfutils/tfenv", "tfsec/tfsec"}
-PYTHON_FILES = {"ci", "awscli", "checkov"}
+PYTHON_PACKAGES = {"awscli", "checkov"}
 HASHICORP_PROJECTS = {"terraform", "packer"}
+TESTS_PATH = CWD.joinpath("tests")
+CI_DEPENDENCIES = {
+    "not pinned": "requirements-to-freeze.txt",
+    "pinned": "requirements.txt",
+}
+UNACCEPTABLE_VULNS = ["CRITICAL", "HIGH"]
+INFORMATIONAL_VULNS = ["UNKNOWN", "LOW", "MEDIUM"]
 
 
 ## Tasks
@@ -175,22 +400,30 @@ def update(c):  # pylint: disable=unused-argument
         version = get_latest_release_from_hashicorp(project=project)
         update_config_file(thing=project, version=version)
 
-    for python_file in PYTHON_FILES:
-        image = "python:3.9"
-        working_dir = "/usr/src/app/"
-        volumes = {CWD: {"bind": working_dir, "mode": "rw"}}
-        CLIENT.images.pull(repository=image)
-        CLIENT.containers.run(
-            image=image,
-            volumes=volumes,
-            working_dir=working_dir,
-            auto_remove=True,
-            command='/bin/bash -c "python3 -m pip install --upgrade pip &>/dev/null && pip3 install -r /usr/src/app/'
-            + python_file
-            + "-to-freeze.txt &>/dev/null && pip3 freeze > /usr/src/app/"
-            + python_file
-            + '.txt"',
-        )
+    for package in PYTHON_PACKAGES:
+        version = get_latest_release_from_pypi(package=package)
+        update_config_file(thing=package, version=version)
+
+    # Update the CI dependencies
+    image = "python:3.9"
+    working_dir = "/usr/src/app/"
+    volumes = {CWD: {"bind": working_dir, "mode": "rw"}}
+    CLIENT.images.pull(repository=image)
+    command = (
+        '/bin/bash -c "python3 -m pip install --upgrade pip &>/dev/null && pip3 install -r /usr/src/app/'
+        + CI_DEPENDENCIES["not pinned"]
+        + " &>/dev/null && pip3 freeze > /usr/src/app/"
+        + CI_DEPENDENCIES["pinned"]
+        + '"'
+    )
+    opinionated_docker_run(
+        image=image,
+        volumes=volumes,
+        working_dir=working_dir,
+        auto_remove=True,
+        detach=False,
+        command=command,
+    )
 
 
 @task
@@ -200,19 +433,12 @@ def lint(c):  # pylint: disable=unused-argument
     working_dir = "/root/"
     volumes = {CWD: {"bind": working_dir, "mode": "ro"}}
     CLIENT.images.pull(repository=image)
-    # Don't remove the container immediately because we need to inspect it
-    container = CLIENT.containers.run(
+    opinionated_docker_run(
         image=image,
         volumes=volumes,
         working_dir=working_dir,
-        detach=True,
         command="dockerfile_lint -f /root/Dockerfile -r /root/.github/workflows/etc/oci_annotations.yml",
     )
-    response = container.wait(condition="not-running")
-    LOG.info(container.logs().decode("utf-8").strip().replace('\n', '  '))
-    container.remove()
-    if response["StatusCode"] != 0:
-        sys.exit(response["StatusCode"])
 
 
 @task
@@ -221,11 +447,11 @@ def build(c):  # pylint: disable=unused-argument
     render_jinja2(template_file=JINJA2_FILE, config=CONFIG, output_file=OUTPUT_FILE)
 
     buildargs = {"VERSION": VERSION, "COMMIT_HASH": COMMIT_HASH}
-    for thing in CONFIG["commands"]:
-        if "version" in CONFIG["commands"][thing]:
+    for command in CONFIG["commands"]:
+        if "version" in CONFIG["commands"][command]:
             # Normalize the build args
-            arg = thing.upper().replace("-", "_") + "_VERSION"
-            buildargs[arg] = CONFIG["commands"][thing]["version"]
+            arg = command.upper().replace("-", "_") + "_VERSION"
+            buildargs[arg] = CONFIG["commands"][command]["version"]
 
     # pylint: disable=redefined-outer-name
     for target in TARGETS:
@@ -234,6 +460,37 @@ def build(c):  # pylint: disable=unused-argument
             CLIENT.images.build(
                 path=str(CWD), target=target, rm=True, tag=tag, buildargs=buildargs
             )
+
+
+@task
+def test(c):  # pylint: disable=unused-argument
+    """Test easy_infra"""
+    default_working_dir = "/iac/"
+    default_volumes = {TESTS_PATH: {"bind": default_working_dir, "mode": "ro"}}
+
+    # pylint: disable=redefined-outer-name
+    for target in TARGETS:
+        # Only test using the last tag for each target
+        image = TARGETS[target]["tags"][-1]
+
+        LOG.info("Testing %s...", image)
+        if target == "minimal":
+            run_terraform_tests(image=image)
+            run_security_tests(image=image)
+        elif target == "az":
+            run_az_stage_tests(image=image)
+            run_security_tests(image=image)
+        elif target == "aws":
+            run_aws_stage_tests(image=image)
+            run_security_tests(image=image)
+        elif target == "final":
+            test_version_commands(
+                image=image, volumes=default_volumes, working_dir=default_working_dir
+            )
+            run_terraform_tests(image=image)
+            run_security_tests(image=image)
+        else:
+            LOG.error("Untested stage of %s", target)
 
 
 @task
@@ -246,3 +503,12 @@ def publish(c):  # pylint: disable=unused-argument
             LOG.info("Pushing %s to docker hub...", repository)
             CLIENT.images.push(repository=repository)
     LOG.info("Done publishing easy_infra Docker images")
+
+
+@task
+def clean(c):  # pylint: disable=unused-argument
+    """Clean up local easy_infra artifacts"""
+    temp_dir = TESTS_PATH.joinpath("tmp")
+
+    for tarball in temp_dir.glob("*.tar"):
+        tarball.unlink()
