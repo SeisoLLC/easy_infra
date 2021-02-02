@@ -22,13 +22,13 @@ commands:
     security:
       checkov:
         command: checkov -d . --no-guide
-        description: checkov directory scan
+        description: directory scan
       terrascan:
-        command: terrascan
-        description: recursive terrascan
+        command: terrascan scan
+        description: recursive scan
       tfsec:
         command: tfsec .
-        description: recursive tfsec scan
+        description: recursive scan
     validation:
       - command: terraform init
         description: initialization
