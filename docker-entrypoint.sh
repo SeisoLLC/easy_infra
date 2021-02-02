@@ -7,9 +7,16 @@ set -o pipefail
 
 if [ "$#" -eq 0 ]; then
   # Print select tool versions then open an bash shell
-  echo -en "terraform\t" && command terraform version | head -1 | awk -F' ' '{print $2}' | sed 's/^v//'
-  echo -en "packer\t\t"  && command packer --version
-  echo -en "ansible\t\t" && command ansible --version | head -1 | awk -F' ' '{print $2}'
+  if [ -x "$(which aws)" ]; then
+    echo -e "aws-cli\t\t $(command aws --version | awk -F' ' '{print $1}' | awk -F'/' '{print $2}')" &
+  fi
+  if [ -x "$(which az)" ]; then
+    echo -e "azure-cli\t $(command az version | jq -r '.["azure-cli"]')" &
+  fi
+  echo -e "terraform\t $(command terraform version | head -1 | awk -F' ' '{print $2}' | sed 's/^v//')" &
+  echo -e "packer\t\t $(command packer --version)" &
+  echo -e "ansible\t\t $(command ansible --version | head -1 | awk -F' ' '{print $2}')" &
+  wait
 
   exec bash
 else
