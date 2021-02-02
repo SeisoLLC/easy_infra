@@ -4,7 +4,7 @@ commands:
     security:
       gitleaks:
         command: gitleaks --path=. -v --no-git
-        description: gitleaks local directory scan
+        description: local directory scan
     version: 2.9.6+dfsg-1
     version_command: ansible --version
   awscli:
