@@ -1,10 +1,6 @@
 ---
 commands:
   ansible:
-    security:
-      gitleaks:
-        command: gitleaks --path=. -v --no-git
-        description: local directory scan
     version: 2.9.6+dfsg-1
     version_command: ansible --version
   awscli:
@@ -30,9 +26,6 @@ commands:
       checkov:
         command: checkov -d . --no-guide
         description: directory scan
-      gitleaks:
-        command: gitleaks --path=. -v --no-git
-        description: local directory scan
       terrascan:
         command: terrascan scan
         description: recursive scan

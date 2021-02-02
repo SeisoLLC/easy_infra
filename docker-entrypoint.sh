@@ -6,6 +6,9 @@
 set -o pipefail
 
 if [ "$#" -eq 0 ]; then
+  # Run one-time security scans on entrypoint
+  command gitleaks --path=/ -v &
+
   # Print select tool versions then open an bash shell
   if [ -x "$(which aws)" ]; then
     echo -e "aws-cli\t\t $(command aws --version | awk -F' ' '{print $1}' | awk -F'/' '{print $2}')" &
