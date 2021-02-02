@@ -43,6 +43,7 @@ RUN apt-get update \
 ARG TFSEC_VERSION
 ARG PACKER_VERSION
 ARG TERRASCAN_VERSION
+ARG GITLEAKS_VERSION
 RUN curl -L https://github.com/liamg/tfsec/releases/download/${TFSEC_VERSION}/tfsec-linux-amd64 -o /usr/local/bin/tfsec \
  && chmod 0755 /usr/local/bin/tfsec \
  && curl -L https://releases.hashicorp.com/packer/${PACKER_VERSION}/packer_${PACKER_VERSION}_linux_amd64.zip -o /usr/local/bin/packer.zip \
@@ -52,7 +53,9 @@ RUN curl -L https://github.com/liamg/tfsec/releases/download/${TFSEC_VERSION}/tf
  && curl -L https://github.com/accurics/terrascan/releases/download/${TERRASCAN_VERSION}/terrascan_${TERRASCAN_VERSION#v}_Linux_x86_64.tar.gz -o /usr/local/bin/terrascan.tar.gz \
  && tar -xvf /usr/local/bin/terrascan.tar.gz -C /usr/local/bin/ terrascan \
  && rm -f /usr/local/bin/terrascan.tar.gz \
- && chmod 0755 /usr/local/bin/terrascan
+ && chmod 0755 /usr/local/bin/terrascan \
+ && curl -L https://github.com/zricethezav/gitleaks/releases/download/${GITLEAKS_VERSION}/gitleaks-linux-amd64 -o /usr/local/bin/gitleaks \
+ && chmod 0755 /usr/local/bin/gitleaks
 
 # git installs
 ARG TERRAFORM_VERSION
