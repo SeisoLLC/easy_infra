@@ -400,7 +400,12 @@ for target in TARGETS:
 
 # easy_infra
 APT_PACKAGES = {"ansible", "azure-cli"}
-GITHUB_REPOS = {"tfutils/tfenv", "tfsec/tfsec"}
+GITHUB_REPOS = {
+    "tfutils/tfenv",
+    "tfsec/tfsec",
+    "hashicorp/consul-template",
+    "hashicorp/envconsul",
+}
 PYTHON_PACKAGES = {"awscli", "checkov"}
 HASHICORP_PROJECTS = {"terraform", "packer"}
 TESTS_PATH = CWD.joinpath("tests")

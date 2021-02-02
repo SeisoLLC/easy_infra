@@ -12,6 +12,12 @@ commands:
   checkov:
     version: 1.0.711
     version_command: checkov --version
+  consul-template:
+    version: 0.25.1
+    version_command: consul-template --version
+  envconsul:
+    version: 0.11.0
+    version_command: envconsul --version
   packer:
     version: 1.6.4
     version_command: packer version
