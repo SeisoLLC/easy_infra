@@ -199,10 +199,38 @@ def run_terraform_tests(*, image: str):
     )
     num_tests_ran += 1
 
-    # Ensure insecure configurations fail
-    command = "terraform plan -lock=false"
-    insecure_config_dir = TESTS_PATH.joinpath("terraform/insecure")
-    volumes = {insecure_config_dir: {"bind": working_dir, "mode": "ro"}}
+    # Ensure insecure configurations fail due to tfsec
+    command = "terraform --skip-checkov --skip-terrascan plan -lock=false"
+    tfsec_test_dir = TESTS_PATH.joinpath("terraform/tfsec")
+    volumes = {tfsec_test_dir: {"bind": working_dir, "mode": "ro"}}
+    opinionated_docker_run(
+        image=image,
+        volumes=volumes,
+        working_dir=working_dir,
+        command=command,
+        environment=environment,
+        expected_exit=1,
+    )
+    num_tests_ran += 1
+
+    # Ensure insecure configurations fail due to checkov
+    command = "terraform --skip-tfsec --skip-terrascan plan -lock=false"
+    checkov_test_dir = TESTS_PATH.joinpath("terraform/checkov")
+    volumes = {checkov_test_dir: {"bind": working_dir, "mode": "ro"}}
+    opinionated_docker_run(
+        image=image,
+        volumes=volumes,
+        working_dir=working_dir,
+        command=command,
+        environment=environment,
+        expected_exit=1,
+    )
+    num_tests_ran += 1
+
+    # Ensure insecure configurations fail due to terrascan
+    command = "terraform --skip-tfsec --skip-checkov plan -lock=false"
+    terrascan_test_dir = TESTS_PATH.joinpath("terraform/terrascan")
+    volumes = {terrascan_test_dir: {"bind": working_dir, "mode": "ro"}}
     opinionated_docker_run(
         image=image,
         volumes=volumes,
