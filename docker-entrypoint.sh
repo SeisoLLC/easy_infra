@@ -5,10 +5,10 @@
 
 set -o pipefail
 
-if [ "$#" -eq 0 ]; then
-  # Run one-time security scans on entrypoint
-  command gitleaks --path=/ -v &
+# Run one-time security scans on entrypoint
+command gitleaks --path=. -v &
 
+if [ "$#" -eq 0 ]; then
   # Print select tool versions then open an bash shell
   if [ -x "$(which aws)" ]; then
     echo -e "aws-cli\t\t $(command aws --version | awk -F' ' '{print $1}' | awk -F'/' '{print $2}')" &
@@ -23,6 +23,7 @@ if [ "$#" -eq 0 ]; then
 
   exec bash
 else
+  wait
   "$@" # `exec` calls `execve()` which takes a `pathname` which "must be either
        # a binary executable, or a script starting with a line of the form". This
        # approach ensures the functions set via BASH_ENV are correctly sourced.
