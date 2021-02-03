@@ -1,3 +1,7 @@
+provider "aws" {
+    region = "us-east-1"
+}
+
 resource "aws_security_group_rule" "example" {
     # fails tfscan check AWS006
     type        = "ingress"
