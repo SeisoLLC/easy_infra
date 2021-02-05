@@ -37,4 +37,3 @@ docker run -v $(pwd):/iac -v $(pwd)/plugin-cache:/root/.terraform.d/plugin-cache
 1. Make your changes
 1. Commit your changes via `git commit -am 'Summarize the changes here'`
 1. Create a new pull request ([how-to](https://help.github.com/articles/creating-a-pull-request/))
-
