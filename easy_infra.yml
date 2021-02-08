@@ -15,11 +15,17 @@ commands:
   packer:
     version: 1.6.4
     version_command: packer version
+  terrascan:
+    version: v1.3.1
+    version_command: terrascan version
   terraform:
     security:
       checkov:
         command: checkov -d . --no-guide
-        description: checkov directory scan
+        description: directory scan
+      terrascan:
+        command: terrascan scan
+        description: recursive scan
       tfsec:
         command: tfsec .
         description: recursive scan
