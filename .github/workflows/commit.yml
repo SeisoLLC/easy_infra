@@ -48,3 +48,14 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Publish the Docker images
         run: pipenv run invoke publish
+      - name: Publish thte README
+        uses: christian-korneck/update-container-description-action@v1
+        env:
+          DOCKER_USER: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKER_PASS: ${{ secrets.DOCKERHUB_TOKEN }}
+        with:
+          destination_container_repo: seiso/easy_infra
+          provider: dockerhub
+          short_description: |
+            'A docker container to simplify the use of Infrastructure as Code (IaC) tools'
+          readme_file: 'README.md'
