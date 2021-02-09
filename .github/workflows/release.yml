@@ -1,5 +1,5 @@
 ---
-name: "Releases"
+name: "Release"
 on:
   push:
     tags:

@@ -1,6 +1,0 @@
-PyYAML
-jinja2
-invoke
-GitPython
-requests
-docker

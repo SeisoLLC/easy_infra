@@ -404,10 +404,6 @@ GITHUB_REPOS = {"tfutils/tfenv", "tfsec/tfsec"}
 PYTHON_PACKAGES = {"awscli", "checkov"}
 HASHICORP_PROJECTS = {"terraform", "packer"}
 TESTS_PATH = CWD.joinpath("tests")
-CI_DEPENDENCIES = {
-    "not pinned": "requirements-to-freeze.txt",
-    "pinned": "requirements.txt",
-}
 UNACCEPTABLE_VULNS = ["CRITICAL", "HIGH"]
 INFORMATIONAL_VULNS = ["UNKNOWN", "LOW", "MEDIUM"]
 
@@ -437,13 +433,7 @@ def update(c):  # pylint: disable=unused-argument
     working_dir = "/usr/src/app/"
     volumes = {CWD: {"bind": working_dir, "mode": "rw"}}
     CLIENT.images.pull(repository=image)
-    command = (
-        '/bin/bash -c "python3 -m pip install --upgrade pip &>/dev/null && pip3 install -r /usr/src/app/'
-        + CI_DEPENDENCIES["not pinned"]
-        + " &>/dev/null && pip3 freeze > /usr/src/app/"
-        + CI_DEPENDENCIES["pinned"]
-        + '"'
-    )
+    command = '/bin/bash -c "python3 -m pip install --upgrade pipenv &>/dev/null && pipenv update'
     opinionated_docker_run(
         image=image,
         volumes=volumes,

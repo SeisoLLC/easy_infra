@@ -25,7 +25,7 @@ While it's not suggested, if you'd like to disable this behavior you have some o
     docker run -v $(pwd):/iac seiso/easy_infra /bin/bash -c "terraform --skip-tfsec init && terraform --skip-tfsec validate && terraform --skip-tfsec apply"
     ```
 
-## Improve Caching
+## Terraform Caching
 If you're working with the same terraform across multiple runs you can leverage the cache via the following:
 ```
 docker run -v $(pwd):/iac -v $(pwd)/plugin-cache:/root/.terraform.d/plugin-cache easy_infra:latest /bin/bash -c "terraform init; terraform version"
@@ -37,4 +37,3 @@ docker run -v $(pwd):/iac -v $(pwd)/plugin-cache:/root/.terraform.d/plugin-cache
 1. Make your changes
 1. Commit your changes via `git commit -am 'Summarize the changes here'`
 1. Create a new pull request ([how-to](https://help.github.com/articles/creating-a-pull-request/))
-
