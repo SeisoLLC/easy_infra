@@ -58,13 +58,18 @@ function process_command_exit_status() {
 {%- if commands[command]["security"] is defined -%}
 function {{ command }}() {
   arguments=("${@}")
-  easy_infra_{{ command }}_tools=({% for tool in commands[command]["security"] %}{{ tool }} {% endfor %})
+  easy_infra_{{ command }}_tools=({% for tool in commands[command]["security"] %}{{ tool }}{% if not loop.last %} {% endif %}{% endfor %})
 
-  # If a "skip" argument was provided, set a related variable and remove the
-  # skip argument from the arguments array
+  # If an argument was provided which adjusts the easy_infra runtime, set a
+  # related variable and remove that argument from the arguments array
   for i in "${!arguments[@]}"; do
+    if [[ "${arguments[i],,}" == "--disable-security" ]]; then
+      unset 'arguments[i]'
+      security_skipped="argument"
+    fi
+
     for tool in "${easy_infra_{{ command }}_tools[@]}"; do
-      if [[ "${arguments[i]}" == "--skip-${tool}" ]]; then
+      if [[ "${arguments[i]},," == "--skip-${tool}" ]]; then
         unset 'arguments[i]'
         declare "${tool}_skipped=argument"
       fi
@@ -79,9 +84,8 @@ function {{ command }}() {
     # Allow piping of the version command into other commands
     command "${FUNCNAME[0]}" "${arguments[@]}"
     return $?
-  elif [[ "${1}" == "--disable-security" ]]; then
+  elif [[ "${security_skipped:-false}" == "argument" ]]; then
     _feedback WARNING "Skipping all security checks for {{ command }} due to the --disable-security argument"
-    shift
     command "${FUNCNAME[0]}" "${arguments[@]}"
     return $?
   elif [[ "${DISABLE_SECURITY,,}" == "true" ]]; then
