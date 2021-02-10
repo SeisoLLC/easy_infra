@@ -49,7 +49,7 @@ jobs:
       - name: Publish the Docker images
         run: pipenv run invoke publish
       - name: Publish the README
-        uses: christian-korneck/update-container-description-action@v1
+        uses: christian-korneck/update-container-description-action@d36005551adeaba9698d8d67a296bd16fa91f8e8
         env:
           DOCKER_USER: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKER_PASS: ${{ secrets.DOCKERHUB_TOKEN }}
