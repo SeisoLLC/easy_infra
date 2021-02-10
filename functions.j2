@@ -69,7 +69,7 @@ function {{ command }}() {
     fi
 
     for tool in "${easy_infra_{{ command }}_tools[@]}"; do
-      if [[ "${arguments[i]},," == "--skip-${tool}" ]]; then
+      if [[ "${arguments[i],,}" == "--skip-${tool}" ]]; then
         unset 'arguments[i]'
         declare "${tool}_skipped=argument"
       fi
