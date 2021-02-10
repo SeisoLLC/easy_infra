@@ -20,7 +20,7 @@ While it's not suggested, if you'd like to disable this behavior you have some o
     ```bash
     docker run --env SKIP_TFSEC=true -v $(pwd):/iac seiso/easy_infra /bin/bash -c "terraform init && terraform validate && terraform apply"
     ```
-1. Pass the `--skip-tfsec` argument to specific `terraform` commands.  Note that this must be the first argument after the `terraform` base command.  It is processed by easy_infra and removed prior to passing parameters to the `terraform` command.
+1. Pass the `--skip-tfsec` argument to specific `terraform` commands.  This argument is processed by easy_infra and removed prior to passing parameters to the `terraform` command.
     ```bash
     docker run -v $(pwd):/iac seiso/easy_infra /bin/bash -c "terraform --skip-tfsec init && terraform --skip-tfsec validate && terraform --skip-tfsec apply"
     ```
