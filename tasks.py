@@ -237,7 +237,7 @@ def run_terraform_tests(*, image: str):
         working_dir=working_dir,
         command=command,
         environment=environment,
-        expected_exit=1,
+        expected_exit=3,
     )
     num_tests_ran += 1
 
