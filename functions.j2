@@ -86,6 +86,7 @@ function {{ command }}() {
     return $?
   elif [[ "${security_skipped:-false}" == "argument" ]]; then
     _feedback WARNING "Skipping all security checks for {{ command }} due to the --disable-security argument"
+    unset 'security_skipped'
     command "${FUNCNAME[0]}" "${arguments[@]}"
     return $?
   elif [[ "${DISABLE_SECURITY,,}" == "true" ]]; then
@@ -121,7 +122,8 @@ function {{ command }}() {
 
   ## Methods to skip {{ tool }}
   if [[ "{{ '${' }}{{ tool }}_skipped:-false}" == "argument" ]]; then
-      _feedback WARNING "Skipping {{ tool }} due to {{ '${' }}{{ tool }}_skip_argument}"
+    _feedback WARNING "Skipping {{ tool }} due to {{ '${' }}{{ tool }}_skip_argument}"
+    unset '{{ tool }}_skipped'
   # If the "skip" environment variable was set to true, skip the security scan
   elif [[ "${!{{ tool }}_skip_env_var,,}" == "true" ]]; then
     _feedback WARNING "Skipping {{ tool }} due to the {{ '${' }}{{ tool }}_skip_env_var} environment variable value"
