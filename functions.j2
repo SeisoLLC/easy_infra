@@ -57,22 +57,41 @@ function process_command_exit_status() {
 {% for command in commands -%}
 {%- if commands[command]["security"] is defined -%}
 function {{ command }}() {
+  arguments=("${@}")
+  easy_infra_{{ command }}_tools=({% for tool in commands[command]["security"] %}{{ tool }}{% if not loop.last %} {% endif %}{% endfor %})
+
+  # If an argument was provided which adjusts the easy_infra runtime, set a
+  # related variable and remove that argument from the arguments array
+  for i in "${!arguments[@]}"; do
+    if [[ "${arguments[i],,}" == "--disable-security" ]]; then
+      unset 'arguments[i]'
+      security_skipped="argument"
+    fi
+
+    for tool in "${easy_infra_{{ command }}_tools[@]}"; do
+      if [[ "${arguments[i],,}" == "--skip-${tool}" ]]; then
+        unset 'arguments[i]'
+        declare "${tool}_skipped=argument"
+      fi
+    done
+  done
+
   # Methods to skip **all** security tools for {{ command }}
   DISABLE_SECURITY="${DISABLE_SECURITY:-false}"
 
   if [[ "${FUNCNAME[0]} ${1}" == "{{ commands[command]["version_command"] }}" ]]; then
     _feedback INFO "Detected version check, skipping security checks for {{ command }}"
     # Allow piping of the version command into other commands
-    command "${FUNCNAME[0]}" "$@"
+    command "${FUNCNAME[0]}" "${arguments[@]}"
     return $?
-  elif [[ "${1}" == "--disable-security" ]]; then
+  elif [[ "${security_skipped:-false}" == "argument" ]]; then
     _feedback WARNING "Skipping all security checks for {{ command }} due to the --disable-security argument"
-    shift
-    command "${FUNCNAME[0]}" "$@"
+    unset 'security_skipped'
+    command "${FUNCNAME[0]}" "${arguments[@]}"
     return $?
   elif [[ "${DISABLE_SECURITY,,}" == "true" ]]; then
     _feedback WARNING "Skipping all security checks for {{ command }} due to the DISABLE_SECURITY environment variable value"
-    command "${FUNCNAME[0]}" "$@"
+    command "${FUNCNAME[0]}" "${arguments[@]}"
     return $?
   else
     ## Validate the input prior to running security tooling
@@ -94,22 +113,20 @@ function {{ command }}() {
   fi
 
   ## Setup the per-tool security integrations
-{#- For each command being wrapped, loop through each security tool and make tool-specific skips via env var/argument #}
+  {#- For each command being wrapped, loop through each security tool and apply tool-specific skips based on env vars/arguments #}
   {%- for tool in commands[command]["security"] %}
+  {{ tool }}_skip_argument="--skip-{{ tool }}"
   {{ tool }}_upper=$(echo "{{ tool }}" | tr '[:lower:]' '[:upper:]')
-  {{ tool }}_argument="--skip-{{ tool }}"
-  {# In order for us to use ${variable} in bash directly around a jinja2 variable it needs to be escaped -#}
-  {{ tool }}_env_var="SKIP_{{ '${' }}{{ tool }}_upper}"
-  declare "SKIP_{{ '${' }}{{ tool }}_upper}={{ '${' }}!{{ tool }}_env_var:-false}"
+  {{ tool }}_skip_env_var="SKIP_{{ '${' }}{{ tool }}_upper}"
+  declare "SKIP_{{ '${' }}{{ tool }}_upper}={{ '${' }}!{{ tool }}_skip_env_var:-false}"
 
   ## Methods to skip {{ tool }}
-  # If the "skip" argument was provided, skip the security scan
-  if [[ "${1}" == "{{ '${' }}{{ tool }}_argument}" ]]; then
-    _feedback WARNING "Skipping {{ tool }} due to {{ '${' }}{{ tool }}_argument}"
-    shift
+  if [[ "{{ '${' }}{{ tool }}_skipped:-false}" == "argument" ]]; then
+    _feedback WARNING "Skipping {{ tool }} due to {{ '${' }}{{ tool }}_skip_argument}"
+    unset '{{ tool }}_skipped'
   # If the "skip" environment variable was set to true, skip the security scan
-  elif [[ "${!{{ tool }}_env_var,,}" == "true" ]]; then
-    _feedback WARNING "Skipping {{ tool }} due to the {{ '${' }}{{ tool }}_env_var} environment variable value"
+  elif [[ "${!{{ tool }}_skip_env_var,,}" == "true" ]]; then
+    _feedback WARNING "Skipping {{ tool }} due to the {{ '${' }}{{ tool }}_skip_env_var} environment variable value"
   # If the security scan was already run successfully in an non-interactive
   # shell, don't run it again
   elif [[ -r "/{{ tool }}_complete" ]]; then
@@ -126,8 +143,9 @@ function {{ command }}() {
   fi
   {%- endfor %}
 
-  # Run the command per a PATH lookup, after any easy_infra specific arguments are removed
-  command "${FUNCNAME[0]}" "$@"
+  # Run the command per a PATH lookup, after any easy_infra specific arguments
+  # are removed
+  command "${FUNCNAME[0]}" "${arguments[@]}"
 }
 
 {% endif -%}
