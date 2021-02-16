@@ -12,9 +12,6 @@ commands:
   checkov:
     version: 1.0.711
     version_command: checkov --version
-  gitleaks:
-    version: v7.2.1
-    version_command: gitleaks --version
   packer:
     version: 1.6.4
     version_command: packer version
