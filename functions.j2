@@ -93,6 +93,7 @@ function {{ command }}() {
     _feedback WARNING "Skipping all security checks for {{ command }} due to the DISABLE_SECURITY environment variable value"
     command "${FUNCNAME[0]}" "${arguments[@]}"
     return $?
+{%- if commands[command]["validation"] is defined %}
   else
     ## Validate the input prior to running security tooling
     {%- for validation in commands[command]["validation"] %}
@@ -109,7 +110,8 @@ function {{ command }}() {
         return "${return}"
       fi
     fi
-    {%- endfor %}
+    {%- endfor -%}
+{%- endif %}
   fi
 
   ## Setup the per-tool security integrations
