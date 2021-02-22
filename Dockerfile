@@ -1,7 +1,7 @@
 ARG FROM_IMAGE=ubuntu
 ARG FROM_IMAGE_TAG=20.04
 
-FROM "${FROM_IMAGE}":"${FROM_IMAGE_TAG}" as minimal
+FROM "${FROM_IMAGE}":"${FROM_IMAGE_TAG}" AS minimal
 
 ARG VERSION
 ARG COMMIT_HASH
@@ -89,7 +89,7 @@ WORKDIR /iac
 COPY docker-entrypoint.sh /usr/local/bin/
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 
-FROM minimal as az
+FROM minimal AS  az
 ARG AZURE_CLI_VERSION
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 # hadolint ignore=DL3008
@@ -113,7 +113,7 @@ RUN apt-get update \
  && apt-get -y autoremove \
  && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/*
 
-FROM minimal as aws
+FROM minimal AS aws
 # pip installs
 ARG AWSCLI_VERSION
 # hadolint ignore=DL3013
@@ -123,7 +123,7 @@ RUN python3 -m pip install --upgrade --no-cache-dir pip \
 # Add aws autocomplete
 RUN echo 'complete -C /root/.local/bin/aws_completer aws' >> ~/.bashrc
 
-from minimal as final
+from minimal AS final
 
 # AWS
 COPY --from=aws /root/.local /root/.local
