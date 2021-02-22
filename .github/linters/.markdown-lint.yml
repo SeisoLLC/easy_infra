@@ -1,2 +1,3 @@
 ---
+MD013: 120    # Allow 120 characters per line
 MD041: false  # Allow the first line to use HTML
