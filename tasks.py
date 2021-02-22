@@ -3,19 +3,21 @@
 Task execution tool & library
 """
 
-from pathlib import Path
+import json
 import os
 import sys
-import json
-from logging import getLogger, basicConfig
+from logging import basicConfig, getLogger
+from pathlib import Path
+
+import docker
 import git
-from yaml import safe_load, YAMLError, dump
-from jinja2 import Environment, FileSystemLoader
 import requests
 from invoke import task
-import docker
+from jinja2 import Environment, FileSystemLoader
+from yaml import YAMLError, dump, safe_load
 
-## Helper functions
+
+# Helper functions
 def render_jinja2(*, template_file: Path, config: dict, output_file: Path) -> None:
     """Render the functions file"""
     folder = str(template_file.parent)
@@ -351,7 +353,7 @@ def run_security_tests(*, image: str):
     LOG.info("%s passed %d security tests", image, num_tests_ran)
 
 
-## Globals
+# Globals
 CONFIG_FILE = Path("easy_infra.yml").absolute()
 OUTPUT_FILE = Path("functions").absolute()
 JINJA2_FILE = Path("functions.j2").absolute()
@@ -408,7 +410,7 @@ UNACCEPTABLE_VULNS = ["CRITICAL", "HIGH"]
 INFORMATIONAL_VULNS = ["UNKNOWN", "LOW", "MEDIUM"]
 
 
-## Tasks
+# Tasks
 @task
 def update(c):  # pylint: disable=unused-argument
     """Update the core components of easy_infra"""

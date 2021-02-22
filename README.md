@@ -10,7 +10,7 @@ docker run -v $(pwd):/iac seiso/easy_infra terraform validate
 
 ## Secure by default
 This container provides security features by default.  Let's say you are looking to deploy an environment using terraform:
-```
+```bash
 docker run -v $(pwd):/iac seiso/easy_infra /bin/bash -c "terraform init && terraform validate && terraform apply"
 ```
 What actually happens is that a security scan of your terraform code will be run prior to executing the first `terraform` command, regardless of what it is.  If an issue is detected, it will exit with a non-zero status, preventing any subsequent execution of `terraform`.
@@ -27,7 +27,7 @@ While it's not suggested, if you'd like to disable this behavior you have some o
 
 ## Terraform Caching
 If you're working with the same terraform across multiple runs you can leverage the cache via the following:
-```
+```bash
 docker run -v $(pwd):/iac -v $(pwd)/plugin-cache:/root/.terraform.d/plugin-cache easy_infra:latest /bin/bash -c "terraform init; terraform version"
 ```
 
