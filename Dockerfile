@@ -60,6 +60,7 @@ ARG TFENV_VERSION
 COPY .terraformrc /root/
 ENV PATH="/root/.tfenv/bin:${PATH}"
 RUN git clone https://github.com/tfutils/tfenv.git ~/.tfenv \
+  # hadolint ignore=SC2016
  && echo 'PATH=/root/.tfenv/bin:${PATH}' >> ~/.bashrc \
  && . ~/.bashrc \
  && cd ~/.tfenv \
