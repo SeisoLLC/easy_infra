@@ -20,6 +20,7 @@ LABEL org.opencontainers.image.revision="${COMMIT_HASH}"
 ARG ANSIBLE_VERSION
 ENV DEBIAN_FRONTEND=noninteractive
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+# hadolint ignore=DL3008
 RUN apt-get update \
  && apt-get -y install --no-install-recommends ansible=${ANSIBLE_VERSION} \
                                                bsdmainutils \
@@ -59,8 +60,8 @@ ARG TERRAFORM_VERSION
 ARG TFENV_VERSION
 COPY .terraformrc /root/
 ENV PATH="/root/.tfenv/bin:${PATH}"
+# hadolint ignore=SC2016,DL3003
 RUN git clone https://github.com/tfutils/tfenv.git ~/.tfenv \
-  # hadolint ignore=SC2016
  && echo 'PATH=/root/.tfenv/bin:${PATH}' >> ~/.bashrc \
  && . ~/.bashrc \
  && cd ~/.tfenv \
@@ -74,12 +75,14 @@ RUN git clone https://github.com/tfutils/tfenv.git ~/.tfenv \
 # pip installs
 ARG CHECKOV_VERSION
 ENV PATH="/root/.local/bin:${PATH}"
+# hadolint ignore=DL3013
 RUN python3 -m pip install --upgrade --no-cache-dir pip \
  && pip install --user --no-cache-dir checkov==${CHECKOV_VERSION}
 
 # setup functions
 COPY functions /functions
 ENV BASH_ENV=/functions
+# hadolint ignore=SC2016
 RUN echo 'source ${BASH_ENV}' >> ~/.bashrc
 
 WORKDIR /iac
@@ -89,6 +92,7 @@ ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 FROM minimal as az
 ARG AZURE_CLI_VERSION
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+# hadolint ignore=DL3008
 RUN apt-get update \
  #####
  # Per Microsoft recommendation at https://docs.microsoft.com/en-us/cli/azure/install-azure-cli-linux?pivots=apt
@@ -112,6 +116,7 @@ RUN apt-get update \
 FROM minimal as aws
 # pip installs
 ARG AWSCLI_VERSION
+# hadolint ignore=DL3013
 RUN python3 -m pip install --upgrade --no-cache-dir pip \
  && pip install --user --no-cache-dir awscli==${AWSCLI_VERSION}
 
