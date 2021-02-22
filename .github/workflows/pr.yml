@@ -18,6 +18,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           ref: ${{ github.event.pull_request.head.sha }}
+      - uses: seisollc/goat@main
       - uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
