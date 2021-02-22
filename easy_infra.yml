@@ -21,7 +21,7 @@ commands:
         command: checkov -d . --no-guide
         description: directory scan
       terrascan:
-        command: terrascan scan -i terraform -t all
+        command: terrascan scan -i terraform -t all -d .
         description: recursive scan
       tfsec:
         command: tfsec .
