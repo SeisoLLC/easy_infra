@@ -186,9 +186,9 @@ def run_terraform_tests(*, image: str):
     environment = {"TF_DATA_DIR": "/tmp"}
 
     # Ensure invalid configurations fail
-    command = "terraform plan -lock=false"
+    command = "terraform plan"
     invalid_config_dir = TESTS_PATH.joinpath("terraform/invalid")
-    volumes = {invalid_config_dir: {"bind": working_dir, "mode": "ro"}}
+    volumes = {invalid_config_dir: {"bind": working_dir, "mode": "rw"}}
     opinionated_docker_run(
         image=image,
         volumes=volumes,
@@ -200,9 +200,9 @@ def run_terraform_tests(*, image: str):
     num_tests_ran += 1
 
     # Ensure insecure configurations fail due to tfsec
-    command = "terraform --skip-checkov --skip-terrascan plan -lock=false"
+    command = "terraform --skip-checkov --skip-terrascan plan"
     tfsec_test_dir = TESTS_PATH.joinpath("terraform/tfsec")
-    volumes = {tfsec_test_dir: {"bind": working_dir, "mode": "ro"}}
+    volumes = {tfsec_test_dir: {"bind": working_dir, "mode": "rw"}}
     opinionated_docker_run(
         image=image,
         volumes=volumes,
@@ -214,9 +214,9 @@ def run_terraform_tests(*, image: str):
     num_tests_ran += 1
 
     # Ensure insecure configurations fail due to checkov
-    command = "terraform --skip-tfsec --skip-terrascan plan -lock=false"
+    command = "terraform --skip-tfsec --skip-terrascan plan"
     checkov_test_dir = TESTS_PATH.joinpath("terraform/checkov")
-    volumes = {checkov_test_dir: {"bind": working_dir, "mode": "ro"}}
+    volumes = {checkov_test_dir: {"bind": working_dir, "mode": "rw"}}
     opinionated_docker_run(
         image=image,
         volumes=volumes,
@@ -228,9 +228,9 @@ def run_terraform_tests(*, image: str):
     num_tests_ran += 1
 
     # Ensure insecure configurations fail due to terrascan
-    command = "terraform --skip-tfsec --skip-checkov plan -lock=false"
+    command = "terraform --skip-tfsec --skip-checkov plan"
     terrascan_test_dir = TESTS_PATH.joinpath("terraform/terrascan")
-    volumes = {terrascan_test_dir: {"bind": working_dir, "mode": "ro"}}
+    volumes = {terrascan_test_dir: {"bind": working_dir, "mode": "rw"}}
     opinionated_docker_run(
         image=image,
         volumes=volumes,
@@ -242,9 +242,9 @@ def run_terraform_tests(*, image: str):
     num_tests_ran += 1
 
     # Ensure secure configurations pass
-    command = "terraform plan -lock=false"
+    command = "terraform plan"
     secure_config_dir = TESTS_PATH.joinpath("terraform/secure")
-    volumes = {secure_config_dir: {"bind": working_dir, "mode": "ro"}}
+    volumes = {secure_config_dir: {"bind": working_dir, "mode": "rw"}}
     opinionated_docker_run(
         image=image,
         volumes=volumes,
