@@ -1,5 +1,6 @@
 ---
 MD013:
   line_length: 120  # Allow 120 characters per line
+  code_blocks: off  # Ignore code blocks
 MD041: false        # Allow the first line to use HTML
 MD033: false        # Allow inline HTML
