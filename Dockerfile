@@ -33,7 +33,6 @@ RUN apt-get update \
                                                nodejs \
                                                python3 \
                                                python3-pip \
-                                               sudo \
                                                time \
                                                unzip \
  && apt-get clean autoclean \
@@ -96,17 +95,17 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN apt-get update \
  #####
  # Per Microsoft recommendation at https://docs.microsoft.com/en-us/cli/azure/install-azure-cli-linux?pivots=apt
- && sudo apt remove azure-cli -y \
- && sudo apt autoremove -y \
+ && apt-get remove azure-cli -y \
+ && apt-get autoremove -y \
  #####
  && apt-get -y install --no-install-recommends ca-certificates \
                                                curl \
                                                apt-transport-https \
                                                lsb-release \
                                                gnupg \
- && curl -sL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/microsoft.gpg > /dev/null \
+ && curl -sL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor | tee /etc/apt/trusted.gpg.d/microsoft.gpg > /dev/null \
  && AZ_REPO=$(lsb_release -cs) \
- && echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ $AZ_REPO main" | sudo tee /etc/apt/sources.list.d/azure-cli.list \
+ && echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ $AZ_REPO main" | tee /etc/apt/sources.list.d/azure-cli.list \
  && apt-get update \
  && apt-get -y install --no-install-recommends azure-cli=${AZURE_CLI_VERSION} \
  && apt-get clean autoclean \
@@ -123,7 +122,7 @@ RUN python3 -m pip install --upgrade --no-cache-dir pip \
 # Add aws autocomplete
 RUN echo 'complete -C /root/.local/bin/aws_completer aws' >> ~/.bashrc
 
-from minimal AS final
+FROM minimal AS final
 
 # AWS
 COPY --from=aws /root/.local /root/.local
