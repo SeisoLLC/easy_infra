@@ -28,6 +28,7 @@ subsequent execution of `terraform`.
 
 While it's not suggested, if you'd like to disable this behavior you have some
 options:
+
 1. Set the `SKIP_TFSEC` environment variable to `true`.
 
     ```bash
@@ -47,9 +48,9 @@ options:
 If you're working with the same terraform across multiple runs you can leverage
 the cache via the following:
 
-```bash
-docker run -v $(pwd):/iac -v $(pwd)/plugin-cache:/root/.terraform.d/plugin-cache easy_infra:latest /bin/bash -c "terraform init; terraform version"
-```
+    ```bash
+    docker run -v $(pwd):/iac -v $(pwd)/plugin-cache:/root/.terraform.d/plugin-cache easy_infra:latest /bin/bash -c "terraform init; terraform version"
+    ```
 
 ## Contributing
 

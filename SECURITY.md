@@ -17,4 +17,3 @@ announcement.
 
 Report security bugs in third-party modules to the person or team maintaining
 the module.
-
