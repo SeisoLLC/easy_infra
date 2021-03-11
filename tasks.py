@@ -435,7 +435,7 @@ def update(c):  # pylint: disable=unused-argument
     working_dir = "/usr/src/app/"
     volumes = {CWD: {"bind": working_dir, "mode": "rw"}}
     CLIENT.images.pull(repository=image)
-    command = '/bin/bash -c "python3 -m pip install --upgrade pipenv &>/dev/null && pipenv update'
+    command = '/bin/bash -c "python3 -m pip install --upgrade pipenv &>/dev/null && pipenv update"'
     opinionated_docker_run(
         image=image,
         volumes=volumes,
