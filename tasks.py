@@ -185,7 +185,6 @@ def run_terraform_tests(*, image: str):
     """Run the terraform tests"""
     num_tests_ran = 0
     working_dir = "/iac/"
-    # Required due to the readonly volume mount
     environment = {"TF_DATA_DIR": "/tmp"}
 
     # Ensure invalid configurations fail
@@ -203,60 +202,132 @@ def run_terraform_tests(*, image: str):
     num_tests_ran += 1
 
     # Ensure insecure configurations fail due to tfsec
-    command = "terraform --skip-checkov --skip-terrascan plan"
     tfsec_test_dir = TESTS_PATH.joinpath("terraform/tfsec")
     volumes = {tfsec_test_dir: {"bind": working_dir, "mode": "rw"}}
-    opinionated_docker_run(
-        image=image,
-        volumes=volumes,
-        working_dir=working_dir,
-        command=command,
-        environment=environment,
-        expected_exit=1,
-    )
-    num_tests_ran += 1
+    commands = [
+        "terraform --skip-checkov --skip-terrascan plan",
+        "SKIP_CHECKOV=true terraform --skip-terrascan plan",
+        "SKIP_TERRASCAN=true terraform --skip-checkov plan",
+        "SKIP_TERRASCAN=true SKIP_CHECKOV=true terraform plan",
+        "SKIP_TERRASCAN=true SKIP_CHECKOV=true terraform --skip-checkov plan --skip-terrascan",
+    ]
+
+    for command in commands:
+        opinionated_docker_run(
+            image=image,
+            volumes=volumes,
+            working_dir=working_dir,
+            command=command,
+            environment=environment,
+            expected_exit=1,
+        )
+        num_tests_ran += 1
 
     # Ensure insecure configurations fail due to checkov
-    command = "terraform --skip-tfsec --skip-terrascan plan"
     checkov_test_dir = TESTS_PATH.joinpath("terraform/checkov")
     volumes = {checkov_test_dir: {"bind": working_dir, "mode": "rw"}}
-    opinionated_docker_run(
-        image=image,
-        volumes=volumes,
-        working_dir=working_dir,
-        command=command,
-        environment=environment,
-        expected_exit=1,
-    )
-    num_tests_ran += 1
+    commands = [
+        "terraform --skip-tfsec --skip-terrascan plan",
+        "SKIP_TFSEC=true terraform plan --skip-terrascan",
+        "SKIP_TERRASCAN=true terraform --skip-tfsec plan",
+        "SKIP_TFSEC=true terraform --skip-tfsec plan --skip-terrascan",
+        "SKIP_TERRASCAN=true SKIP_TFSEC=true terraform --skip-tfsec plan --skip-terrascan",
+    ]
+
+    for command in commands:
+        opinionated_docker_run(
+            image=image,
+            volumes=volumes,
+            working_dir=working_dir,
+            command=command,
+            environment=environment,
+            expected_exit=1,
+        )
+        num_tests_ran += 1
 
     # Ensure insecure configurations fail due to terrascan
-    command = "terraform --skip-tfsec --skip-checkov plan"
     terrascan_test_dir = TESTS_PATH.joinpath("terraform/terrascan")
     volumes = {terrascan_test_dir: {"bind": working_dir, "mode": "rw"}}
-    opinionated_docker_run(
-        image=image,
-        volumes=volumes,
-        working_dir=working_dir,
-        command=command,
-        environment=environment,
-        expected_exit=3,
-    )
-    num_tests_ran += 1
+    commands = [
+        "terraform --skip-tfsec --skip-checkov plan",
+        "SKIP_CHECKOV=true terraform plan --skip-tfsec",
+        "SKIP_TFSEC=true terraform plan --skip-checkov",
+        "SKIP_CHECKOV=true SKIP_TFSEC=true terraform plan",
+        "SKIP_CHECKOV=true SKIP_TFSEC=true terraform plan --skip-checkov --skip-tfsec",
+    ]
+
+    for command in commands:
+        opinionated_docker_run(
+            image=image,
+            volumes=volumes,
+            working_dir=working_dir,
+            command=command,
+            environment=environment,
+            expected_exit=3,
+        )
+        num_tests_ran += 1
 
     # Ensure secure configurations pass
-    command = "terraform plan"
     secure_config_dir = TESTS_PATH.joinpath("terraform/secure")
     volumes = {secure_config_dir: {"bind": working_dir, "mode": "rw"}}
-    opinionated_docker_run(
-        image=image,
-        volumes=volumes,
-        working_dir=working_dir,
-        command=command,
-        environment=environment,
-        expected_exit=0,
-    )
-    num_tests_ran += 1
+    commands = [
+        "terraform plan",
+        "terraform init",
+        "terraform validate",
+        "terraform version",
+    ]
+
+    for command in commands:
+        opinionated_docker_run(
+            image=image,
+            volumes=volumes,
+            working_dir=working_dir,
+            command=command,
+            environment=environment,
+            expected_exit=0,
+        )
+        num_tests_ran += 1
+
+
+    # Run interactive tests
+    secure_config_dir = TESTS_PATH.joinpath("terraform/secure")
+    volumes = {secure_config_dir: {"bind": working_dir, "mode": "rw"}}
+    test_interactive_container = CLIENT.containers.run(image=image, detach=True, auto_remove=False, tty=True, working_dir=working_dir, volumes=volumes, environment=environment)
+
+    # Running an interactive terraform command should not cause the creation of
+    # the following files
+    test_interactive_container.exec_run(cmd=["/bin/bash", "-ic", "terraform validate"], tty=True)
+    files = ["/tfsec_complete", "/terrascan_complete", "/checkov_complete"]
+    for file in files:
+        # attempt is a tuple of (exit_code, output)
+        attempt = test_interactive_container.exec_run(cmd=f"cat {file}")
+        if attempt[0] == 0:
+            test_interactive_container.kill()
+            LOG.error("Found the file %s when it was not expected")
+            sys.exit(1)
+        num_tests_ran += 1
+
+    test_interactive_container.kill()
+
+    # Run non-interactive tests
+    secure_config_dir = TESTS_PATH.joinpath("terraform/secure")
+    volumes = {secure_config_dir: {"bind": working_dir, "mode": "rw"}}
+    test_noninteractive_container = CLIENT.containers.run(image=image, detach=True, auto_remove=False, tty=False, working_dir=working_dir, volumes=volumes, environment=environment)
+
+    # Running a non-interactive terraform command should cause the creation of
+    # the following files
+    test_interactive_container.exec_run(cmd=["/bin/bash", "-c", "terraform validate"], tty=False)
+    files = ["/tfsec_complete", "/terrascan_complete", "/checkov_complete"]
+    for file in files:
+        # attempt is a tuple of (exit_code, output)
+        attempt = test_noninteractive_container.exec_run(cmd=f"cat {file}")
+        if attempt[0] != 0:
+            test_noninteractive_container.kill()
+            LOG.error("Received an unexpected status code of %s; additional details: %s", attempt[0], attempt[1].decode('UTF-8').replace('\n', ' ').strip())
+            sys.exit(attempt[0])
+        num_tests_ran += 1
+
+    test_noninteractive_container.kill()
 
     LOG.info("%s passed %d end to end terraform tests", image, num_tests_ran)
 
