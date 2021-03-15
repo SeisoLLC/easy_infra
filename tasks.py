@@ -69,6 +69,7 @@ def write_config(*, config: dict):
 
 def get_latest_release_from_apt(*, package: str) -> str:
     """Get the latest release of a project via apt"""
+    # latest-az is used because it has the Microsoft repo added
     image = IMAGE + ":latest-az"
     CLIENT.images.pull(repository=image)
     release = CLIENT.containers.run(
@@ -85,21 +86,21 @@ def get_latest_release_from_apt(*, package: str) -> str:
 def get_latest_release_from_github(*, repo: str) -> str:
     """Get the latest release of a repo on github"""
     response = requests.get(
-        "https://api.github.com/repos/" + repo + "/releases/latest"
+        f"https://api.github.com/repos/{repo}/releases/latest"
     ).json()
     return response["tag_name"]
 
 
 def get_latest_release_from_pypi(*, package: str) -> str:
     """Get the latest release of a package on pypi"""
-    response = requests.get("https://pypi.org/pypi/" + package + "/json").json()
+    response = requests.get(f"https://pypi.org/pypi/{package}/json").json()
     return response["info"]["version"]
 
 
 def get_latest_release_from_hashicorp(*, project: str) -> str:
     """Get the latest release of a project from hashicorp"""
     response = requests.get(
-        "https://checkpoint-api.hashicorp.com/v1/check/" + project
+        f"https://checkpoint-api.hashicorp.com/v1/check/{project}"
     ).json()
     return response["current_version"]
 
@@ -167,7 +168,7 @@ def test_version_commands(*, image: str, volumes: dict, working_dir: str):
     for command in CONFIG["commands"]:
         # Test the provided version commands
         if "version_command" in CONFIG["commands"][command]:
-            command = "command " + CONFIG["commands"][command]["version_command"]
+            command = command + CONFIG["commands"][command]["version_command"]
             opinionated_docker_run(
                 image=image,
                 volumes=volumes,
@@ -294,6 +295,23 @@ def run_aws_stage_tests(*, image: str):
     LOG.info("%s passed %d integration tests", image, num_tests_ran)
 
 
+def run_cli_tests(*, image: str):
+    """Run basic cli tests"""
+    num_tests_ran = 0
+
+    # Ensure a basic aws help command succeeds
+    command = "aws help"
+    opinionated_docker_run(image=image, command=command, expected_exit=0)
+    num_tests_ran += 1
+
+    # Ensure a basic azure help command succeeds
+    command = "az help"
+    opinionated_docker_run(image=image, command=command, expected_exit=0)
+    num_tests_ran += 1
+
+    LOG.info("%s passed %d integration tests", image, num_tests_ran)
+
+
 def run_security_tests(*, image: str):
     """Run the security tests"""
     temp_dir = TESTS_PATH.joinpath("tmp")
@@ -310,7 +328,7 @@ def run_security_tests(*, image: str):
             )
 
     tag = image.split(":")[-1]
-    file_name = tag + ".tar"
+    file_name = f"{tag}.tar"
     image_file = temp_dir.joinpath(file_name)
     raw_image = CLIENT.images.get(image).save(named=True)
     with open(image_file, "wb") as file:
@@ -508,6 +526,7 @@ def test(c):  # pylint: disable=unused-argument
                 image=image, volumes=default_volumes, working_dir=default_working_dir
             )
             run_terraform_tests(image=image)
+            run_cli_tests(image=image)
             run_security_tests(image=image)
         else:
             LOG.error("Untested stage of %s", target)
