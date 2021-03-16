@@ -308,6 +308,31 @@ def run_terraform_tests(*, image: str):
         )
         num_tests_ran += 1
 
+    # Ensure insecure configurations still succeed when security checks are
+    # disabled
+    terrascan_test_dir = TESTS_PATH.joinpath("terraform/terrascan")
+    volumes = {terrascan_test_dir: {"bind": working_dir, "mode": "rw"}}
+    env_and_cmd: list[tuple[dict, str, int]] = [
+        ({"DISABLE_SECURITY": "true"}, "terraform plan", 0),
+        ({"DISABLE_SECURITY": "true"}, "DISABLE_SECURITY=true terraform plan", 0),
+        ({}, "DISABLE_SECURITY=true terraform plan", 0),
+        ({}, "DISABLE_SECURITY=true terraform --disable-security plan", 0),
+        ({}, "DISABLE_SECURITY=true terraform plan --disable-security", 0),
+        ({}, "terraform plan --disable-security", 0),
+    ]
+
+    for environment, command, expected_exit in env_and_cmd:
+        environment["TF_DATA_DIR"] = "/tmp"
+        opinionated_docker_run(
+            image=image,
+            volumes=volumes,
+            working_dir=working_dir,
+            command=command,
+            environment=environment,
+            expected_exit=expected_exit,
+        )
+        num_tests_ran += 1
+
     # Ensure secure configurations pass
     secure_config_dir = TESTS_PATH.joinpath("terraform/secure")
     volumes = {secure_config_dir: {"bind": working_dir, "mode": "rw"}}
