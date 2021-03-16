@@ -44,3 +44,5 @@ jobs:
         run: pipenv run invoke build
       - name: Test the Docker images
         run: pipenv run invoke test
+      - name: Generate documentation
+        run: pipenv run sphinx-build -M html docs/ docs/_build/ 
