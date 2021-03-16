@@ -168,7 +168,7 @@ def test_version_commands(*, image: str, volumes: dict, working_dir: str):
     for command in CONFIG["commands"]:
         # Test the provided version commands
         if "version_command" in CONFIG["commands"][command]:
-            command = command + CONFIG["commands"][command]["version_command"]
+            command = "command " + CONFIG["commands"][command]["version_command"]
             opinionated_docker_run(
                 image=image,
                 volumes=volumes,
@@ -334,8 +334,8 @@ def run_terraform_tests(*, image: str):
             sys.exit(1)
         num_tests_ran += 1
 
-#     # TODO: Cleanup?
-#     test_interactive_container.kill()
+    # Cleanup
+    test_interactive_container.kill()
 
     # Run non-interactive tests
     secure_config_dir = TESTS_PATH.joinpath("terraform/secure")
