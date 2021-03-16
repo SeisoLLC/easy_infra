@@ -308,6 +308,7 @@ def run_terraform_tests(*, image: str):
     # Run interactive tests
     secure_config_dir = TESTS_PATH.joinpath("terraform/secure")
     volumes = {secure_config_dir: {"bind": working_dir, "mode": "rw"}}
+    environment = {"TF_DATA_DIR": "/tmp"}
     test_interactive_container = CLIENT.containers.run(
         image=image,
         detach=True,
@@ -321,28 +322,30 @@ def run_terraform_tests(*, image: str):
     # Running an interactive terraform command should not cause the creation of
     # the following files
     test_interactive_container.exec_run(
-        cmd=["/bin/bash", "-ic", "terraform validate"], tty=True
+        cmd="/bin/bash -ic \"terraform validate\"", tty=True
     )
     files = ["/tfsec_complete", "/terrascan_complete", "/checkov_complete"]
     for file in files:
         # attempt is a tuple of (exit_code, output)
-        attempt = test_interactive_container.exec_run(cmd=f"cat {file}")
+        attempt = test_interactive_container.exec_run(cmd=f"ls {file}")
         if attempt[0] == 0:
             test_interactive_container.kill()
-            LOG.error("Found the file %s when it was not expected")
+            LOG.error("Found the file %s when it was not expected", file)
             sys.exit(1)
         num_tests_ran += 1
 
-    test_interactive_container.kill()
+#     # TODO: Cleanup?
+#     test_interactive_container.kill()
 
     # Run non-interactive tests
     secure_config_dir = TESTS_PATH.joinpath("terraform/secure")
     volumes = {secure_config_dir: {"bind": working_dir, "mode": "rw"}}
+    environment = {"TF_DATA_DIR": "/tmp"}
     test_noninteractive_container = CLIENT.containers.run(
         image=image,
         detach=True,
         auto_remove=False,
-        tty=False,
+        tty=True,
         working_dir=working_dir,
         volumes=volumes,
         environment=environment,
@@ -350,13 +353,14 @@ def run_terraform_tests(*, image: str):
 
     # Running a non-interactive terraform command should cause the creation of
     # the following files
-    test_interactive_container.exec_run(
-        cmd=["/bin/bash", "-c", "terraform validate"], tty=False
+    test_noninteractive_container.exec_run(
+        cmd="/bin/bash -c \"terraform validate\"", tty=False
     )
     files = ["/tfsec_complete", "/terrascan_complete", "/checkov_complete"]
     for file in files:
+        cmd = f"ls {file}"
         # attempt is a tuple of (exit_code, output)
-        attempt = test_noninteractive_container.exec_run(cmd=f"cat {file}")
+        attempt = test_noninteractive_container.exec_run(cmd=cmd, tty=False)
         if attempt[0] != 0:
             test_noninteractive_container.kill()
             LOG.error(
@@ -367,6 +371,7 @@ def run_terraform_tests(*, image: str):
             sys.exit(attempt[0])
         num_tests_ran += 1
 
+    # Cleanup
     test_noninteractive_container.kill()
 
     LOG.info("%s passed %d end to end terraform tests", image, num_tests_ran)
