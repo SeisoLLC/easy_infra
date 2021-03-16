@@ -49,13 +49,10 @@ jobs:
       - name: Publish the Docker images
         run: pipenv run invoke publish
       - name: Publish the README
-        uses: christian-korneck/update-container-description-action@d36005551adeaba9698d8d67a296bd16fa91f8e8
-        env:
-          DOCKER_USER: ${{ secrets.DOCKERHUB_USERNAME }}
-          DOCKER_PASS: ${{ secrets.DOCKERHUB_TOKEN }}
+        uses: peter-evans/dockerhub-description@v2
         with:
-          destination_container_repo: seiso/easy_infra
-          provider: dockerhub
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: seiso/easy_infra
           short_description: |
-            'A docker container to simplify the use of Infrastructure as Code (IaC) tools'
-          readme_file: 'README.md'
+            A docker container to simplify the use of Infrastructure as Code (IaC) tools
