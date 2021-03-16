@@ -3,7 +3,7 @@ name: "CI for commits"
 on:
   push:
     branches:
-      - master
+      - main
 jobs:
   lint:
     name: Lint
