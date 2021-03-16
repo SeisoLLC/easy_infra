@@ -4,7 +4,6 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-sphinx = "*"
 
 [dev-packages]
 invoke = "*"
@@ -13,3 +12,4 @@ docker = "*"
 PyYAML = "*"
 Jinja2 = "*"
 GitPython = "*"
+sphinx = "*"
