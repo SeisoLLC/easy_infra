@@ -204,22 +204,33 @@ def run_terraform_tests(*, image: str):
     # Ensure insecure configurations fail due to tfsec
     tfsec_test_dir = TESTS_PATH.joinpath("terraform/tfsec")
     volumes = {tfsec_test_dir: {"bind": working_dir, "mode": "rw"}}
-    env_and_cmd: list[tuple[dict, str]] = [
-        ({}, "terraform --skip-checkov --skip-terrascan plan"),
-        ({"SKIP_CHECKOV": "true"}, "terraform --skip-terrascan plan"),
-        ({"SKIP_TERRASCAN": "TRUE"}, "terraform --skip-checkov plan"),
-        ({"SKIP_TERRASCAN": "True", "SKIP_CHECKOV": "TrUe"}, "terraform plan"),
+    env_and_cmd: list[tuple[dict, str, int]] = [
+        ({}, "terraform --skip-checkov --skip-terrascan plan", 1),
+        ({}, "SKIP_CHECKOV=true SKIP_TERRASCAN=true terraform plan", 1),
+        ({"SKIP_CHECKOV": "true"}, "SKIP_TERRASCAN=true terraform plan || true", 0),
+        (
+            {"SKIP_CHECKOV": "true"},
+            "SKIP_TERRASCAN=true terraform plan || true && false",
+            1,
+        ),
+        ({"SKIP_CHECKOV": "true"}, "SKIP_TERRASCAN=true terraform plan || false", 1),
+        ({"SKIP_CHECKOV": "true"}, "terraform --skip-terrascan plan", 1),
+        ({"SKIP_TERRASCAN": "TRUE"}, "terraform --skip-checkov plan", 1),
+        ({"SKIP_TERRASCAN": "True", "SKIP_CHECKOV": "TrUe"}, "terraform plan", 1),
         (
             {"SKIP_TERRASCAN": "tRuE", "SKIP_CHECKOV": "FaLsE"},
             "terraform --skip-checkov plan --skip-terrascan",
+            1,
         ),
         (
             {"SKIP_TERRASCAN": "tRuE", "SKIP_TFSEC": "false"},
             "terraform --skip-checkov plan --skip-terrascan",
+            1,
         ),
+        ({}, "terraform --skip-checkov --skip-terrascan plan || true", 0),
     ]
 
-    for environment, command in env_and_cmd:
+    for environment, command, expected_exit in env_and_cmd:
         environment["TF_DATA_DIR"] = "/tmp"
         opinionated_docker_run(
             image=image,
@@ -227,25 +238,34 @@ def run_terraform_tests(*, image: str):
             working_dir=working_dir,
             command=command,
             environment=environment,
-            expected_exit=1,
+            expected_exit=expected_exit,
         )
         num_tests_ran += 1
 
     # Ensure insecure configurations fail due to checkov
     checkov_test_dir = TESTS_PATH.joinpath("terraform/checkov")
     volumes = {checkov_test_dir: {"bind": working_dir, "mode": "rw"}}
-    env_and_cmd: list[tuple[dict, str]] = [
-        ({}, "terraform --skip-tfsec --skip-terrascan plan"),
-        ({"SKIP_TFSEC": "true"}, "terraform plan --skip-terrascan"),
-        ({"SKIP_TERRASCAN": "true"}, "terraform --skip-tfsec plan"),
-        ({"SKIP_TFSEC": "true"}, "terraform --skip-tfsec plan --skip-terrascan"),
+    env_and_cmd: list[tuple[dict, str, int]] = [
+        ({}, "terraform --skip-tfsec --skip-terrascan plan", 1),
+        ({}, "SKIP_TFSEC=true SKIP_TERRASCAN=true terraform plan", 1),
+        ({"SKIP_TFSEC": "true"}, "SKIP_TERRASCAN=true terraform plan || true", 0),
+        (
+            {"SKIP_TFSEC": "true"},
+            "SKIP_TERRASCAN=true terraform plan || true && false",
+            1,
+        ),
+        ({"SKIP_TFSEC": "true"}, "SKIP_TERRASCAN=true terraform plan || false", 1),
+        ({"SKIP_TFSEC": "true"}, "terraform plan --skip-terrascan", 1),
+        ({"SKIP_TERRASCAN": "true"}, "terraform --skip-tfsec plan", 1),
+        ({"SKIP_TFSEC": "true"}, "terraform --skip-tfsec plan --skip-terrascan", 1),
         (
             {"SKIP_TERRASCAN": "true", "SKIP_TFSEC": "true"},
             "terraform --skip-tfsec plan --skip-terrascan",
+            1,
         ),
     ]
 
-    for environment, command in env_and_cmd:
+    for environment, command, expected_exit in env_and_cmd:
         environment["TF_DATA_DIR"] = "/tmp"
         opinionated_docker_run(
             image=image,
@@ -253,25 +273,30 @@ def run_terraform_tests(*, image: str):
             working_dir=working_dir,
             command=command,
             environment=environment,
-            expected_exit=1,
+            expected_exit=expected_exit,
         )
         num_tests_ran += 1
 
     # Ensure insecure configurations fail due to terrascan
     terrascan_test_dir = TESTS_PATH.joinpath("terraform/terrascan")
     volumes = {terrascan_test_dir: {"bind": working_dir, "mode": "rw"}}
-    env_and_cmd: list[tuple[dict, str]] = [
-        ({}, "terraform --skip-tfsec --skip-checkov plan"),
-        ({"SKIP_CHECKOV": "true"}, "terraform plan --skip-tfsec"),
-        ({"SKIP_TFSEC": "true"}, "terraform plan --skip-checkov"),
-        ({"SKIP_CHECKOV": "true", "SKIP_TFSEC": "true"}, "terraform plan"),
+    env_and_cmd: list[tuple[dict, str, int]] = [
+        ({}, "terraform --skip-tfsec --skip-checkov plan", 3),
+        ({}, "SKIP_TFSEC=true SKIP_CHECKOV=true terraform plan", 3),
+        ({}, "SKIP_TFSEC=true SKIP_CHECKOV=true terraform plan || true", 0),
+        ({}, "SKIP_TFSEC=true SKIP_CHECKOV=true terraform plan || true && false", 1),
+        ({}, "SKIP_TFSEC=true SKIP_CHECKOV=true terraform plan || false", 1),
+        ({"SKIP_CHECKOV": "true"}, "terraform plan --skip-tfsec", 3),
+        ({"SKIP_TFSEC": "true"}, "terraform plan --skip-checkov", 3),
+        ({"SKIP_CHECKOV": "true", "SKIP_TFSEC": "true"}, "terraform plan", 3),
         (
             {"SKIP_CHECKOV": "true", "SKIP_TFSEC": "true"},
             "terraform plan --skip-checkov --skip-tfsec",
+            3,
         ),
     ]
 
-    for environment, command in env_and_cmd:
+    for environment, command, expected_exit in env_and_cmd:
         environment["TF_DATA_DIR"] = "/tmp"
         opinionated_docker_run(
             image=image,
@@ -279,21 +304,21 @@ def run_terraform_tests(*, image: str):
             working_dir=working_dir,
             command=command,
             environment=environment,
-            expected_exit=3,
+            expected_exit=expected_exit,
         )
         num_tests_ran += 1
 
     # Ensure secure configurations pass
     secure_config_dir = TESTS_PATH.joinpath("terraform/secure")
     volumes = {secure_config_dir: {"bind": working_dir, "mode": "rw"}}
-    env_and_cmd: list[tuple[dict, str]] = [
-        ({}, "terraform plan"),
-        ({}, "terraform init"),
-        ({}, "terraform validate"),
-        ({}, "terraform version"),
+    env_and_cmd: list[tuple[dict, str, int]] = [
+        ({}, "terraform plan", 0),
+        ({}, "terraform init", 0),
+        ({}, "terraform validate", 0),
+        ({}, "terraform version", 0),
     ]
 
-    for environment, command in env_and_cmd:
+    for environment, command, expected_exit in env_and_cmd:
         environment["TF_DATA_DIR"] = "/tmp"
         opinionated_docker_run(
             image=image,
@@ -301,11 +326,11 @@ def run_terraform_tests(*, image: str):
             working_dir=working_dir,
             command=command,
             environment=environment,
-            expected_exit=0,
+            expected_exit=expected_exit,
         )
         num_tests_ran += 1
 
-    # Run interactive tests
+    # Run base interactive tests
     secure_config_dir = TESTS_PATH.joinpath("terraform/secure")
     volumes = {secure_config_dir: {"bind": working_dir, "mode": "rw"}}
     environment = {"TF_DATA_DIR": "/tmp"}
@@ -322,7 +347,7 @@ def run_terraform_tests(*, image: str):
     # Running an interactive terraform command should not cause the creation of
     # the following files
     test_interactive_container.exec_run(
-        cmd="/bin/bash -ic \"terraform validate\"", tty=True
+        cmd='/bin/bash -ic "terraform validate"', tty=True
     )
     files = ["/tfsec_complete", "/terrascan_complete", "/checkov_complete"]
     for file in files:
@@ -337,7 +362,7 @@ def run_terraform_tests(*, image: str):
     # Cleanup
     test_interactive_container.kill()
 
-    # Run non-interactive tests
+    # Run base non-interactive tests
     secure_config_dir = TESTS_PATH.joinpath("terraform/secure")
     volumes = {secure_config_dir: {"bind": working_dir, "mode": "rw"}}
     environment = {"TF_DATA_DIR": "/tmp"}
@@ -354,13 +379,12 @@ def run_terraform_tests(*, image: str):
     # Running a non-interactive terraform command should cause the creation of
     # the following files
     test_noninteractive_container.exec_run(
-        cmd="/bin/bash -c \"terraform validate\"", tty=False
+        cmd='/bin/bash -c "terraform validate"', tty=False
     )
     files = ["/tfsec_complete", "/terrascan_complete", "/checkov_complete"]
     for file in files:
-        cmd = f"ls {file}"
         # attempt is a tuple of (exit_code, output)
-        attempt = test_noninteractive_container.exec_run(cmd=cmd, tty=False)
+        attempt = test_noninteractive_container.exec_run(cmd=f"ls {file}", tty=False)
         if attempt[0] != 0:
             test_noninteractive_container.kill()
             LOG.error(
@@ -369,6 +393,38 @@ def run_terraform_tests(*, image: str):
                 attempt[1].decode("UTF-8").replace("\n", " ").strip(),
             )
             sys.exit(attempt[0])
+        num_tests_ran += 1
+
+    # Cleanup
+    test_noninteractive_container.kill()
+
+    # Run terraform version non-interactive test
+    secure_config_dir = TESTS_PATH.joinpath("terraform/secure")
+    volumes = {secure_config_dir: {"bind": working_dir, "mode": "rw"}}
+    environment = {"TF_DATA_DIR": "/tmp"}
+    test_noninteractive_container = CLIENT.containers.run(
+        image=image,
+        detach=True,
+        auto_remove=False,
+        tty=True,
+        working_dir=working_dir,
+        volumes=volumes,
+        environment=environment,
+    )
+
+    # Running a non-interactive terraform version (or any other supported
+    # "version" argument) should NOT cause the creation of the following files
+    test_noninteractive_container.exec_run(
+        cmd='/bin/bash -c "terraform version"', tty=False
+    )
+    files = ["/tfsec_complete", "/terrascan_complete", "/checkov_complete"]
+    for file in files:
+        # attempt is a tuple of (exit_code, output)
+        attempt = test_noninteractive_container.exec_run(cmd=f"ls {file}", tty=False)
+        if attempt[0] == 0:
+            test_interactive_container.kill()
+            LOG.error("Found the file %s when it was not expected", file)
+            sys.exit(1)
         num_tests_ran += 1
 
     # Cleanup
