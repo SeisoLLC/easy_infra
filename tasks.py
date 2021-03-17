@@ -462,8 +462,16 @@ def run_terraform_tests(*, image: str):
     volumes = {secure_config_dir: {"bind": working_dir, "mode": "rw"}}
     env_and_cmd: list[tuple[dict, str, int]] = [
         ({}, "terraform init", 0),
-        ({}, '/usr/bin/env bash -c "terraform init && terraform validate && terraform plan && terraform validate"', 0),
-        ({}, '/usr/bin/env bash -c "terraform init && terraform validate && terraform plan && terraform validate && false"', 1),
+        (
+            {},
+            '/usr/bin/env bash -c "terraform init && terraform validate && terraform plan && terraform validate"',
+            0,
+        ),
+        (
+            {},
+            '/usr/bin/env bash -c "terraform init && terraform validate && terraform plan && terraform validate && false"',
+            1,
+        ),
     ]
 
     for environment, command, expected_exit in env_and_cmd:
