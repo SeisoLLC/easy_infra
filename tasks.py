@@ -464,9 +464,9 @@ def run_terraform_tests(*, image: str):
         ({}, "terraform init", 0),
         (
             {},
-            '/bin/bash -c "terraform init && terraform validate && terraform apply"',
-            0,
-        ),  # Getting Started example from the README.md
+            '/bin/bash -c "terraform init && terraform validate && echo no | terraform apply"',
+            1,
+        ),  # Getting Started example from the README.md (Minimally modified for automation)
         (
             {},
             '/bin/bash -c "terraform init; terraform version"',
