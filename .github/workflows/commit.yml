@@ -55,7 +55,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
           repository: seiso/easy_infra
-          short-description: |
+          short_description: |
             A docker container to simplify the use of Infrastructure as Code (IaC) tools
       - name: Publish the Docker images
         run: pipenv run invoke publish
