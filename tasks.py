@@ -206,14 +206,32 @@ def run_terraform_tests(*, image: str):
     volumes = {tfsec_test_dir: {"bind": working_dir, "mode": "rw"}}
     env_and_cmd: list[tuple[dict, str, int]] = [
         ({}, "terraform --skip-checkov --skip-terrascan plan", 1),
-        ({}, "SKIP_CHECKOV=true SKIP_TERRASCAN=true terraform plan", 1),
-        ({"SKIP_CHECKOV": "true"}, "SKIP_TERRASCAN=true terraform plan || true", 0),
         (
-            {"SKIP_CHECKOV": "true"},
-            "SKIP_TERRASCAN=true terraform plan || true && false",
+            {},
+            "SKIP_CHECKOV=true SKIP_TERRASCAN=true terraform plan",
+            127,
+        ),  # Not supported; prepended variables do not work unless the
+        #     commands are passed through bash
+        (
+            {},
+            '/usr/bin/env bash -c "SKIP_CHECKOV=true SKIP_TERRASCAN=true terraform plan"',
             1,
         ),
-        ({"SKIP_CHECKOV": "true"}, "SKIP_TERRASCAN=true terraform plan || false", 1),
+        (
+            {"SKIP_CHECKOV": "true"},
+            '/usr/bin/env bash -c "SKIP_TERRASCAN=true terraform plan || true"',
+            0,
+        ),
+        (
+            {"SKIP_CHECKOV": "true"},
+            '/usr/bin/env bash -c "SKIP_TERRASCAN=true terraform plan || true && false"',
+            1,
+        ),
+        (
+            {"SKIP_CHECKOV": "true"},
+            '/usr/bin/env bash -c "SKIP_TERRASCAN=true terraform plan || false"',
+            1,
+        ),
         ({"SKIP_CHECKOV": "true"}, "terraform --skip-terrascan plan", 1),
         ({"SKIP_TERRASCAN": "TRUE"}, "terraform --skip-checkov plan", 1),
         ({"SKIP_TERRASCAN": "True", "SKIP_CHECKOV": "TrUe"}, "terraform plan", 1),
@@ -227,11 +245,21 @@ def run_terraform_tests(*, image: str):
             "terraform --skip-checkov plan --skip-terrascan",
             1,
         ),
-        ({}, "terraform --skip-checkov --skip-terrascan plan || true", 0),
+        (
+            {},
+            '/usr/bin/env bash -c "terraform --skip-checkov --skip-terrascan plan || true"',
+            0,
+        ),
     ]
 
     for environment, command, expected_exit in env_and_cmd:
         environment["TF_DATA_DIR"] = "/tmp"
+        LOG.debug(
+            '{"environment": %s, "command": "%s", "expected_exit": %s}',
+            environment,
+            command,
+            expected_exit,
+        )
         opinionated_docker_run(
             image=image,
             volumes=volumes,
@@ -247,14 +275,26 @@ def run_terraform_tests(*, image: str):
     volumes = {checkov_test_dir: {"bind": working_dir, "mode": "rw"}}
     env_and_cmd: list[tuple[dict, str, int]] = [
         ({}, "terraform --skip-tfsec --skip-terrascan plan", 1),
-        ({}, "SKIP_TFSEC=true SKIP_TERRASCAN=true terraform plan", 1),
-        ({"SKIP_TFSEC": "true"}, "SKIP_TERRASCAN=true terraform plan || true", 0),
         (
-            {"SKIP_TFSEC": "true"},
-            "SKIP_TERRASCAN=true terraform plan || true && false",
+            {},
+            '/usr/bin/env bash -c "SKIP_TFSEC=true SKIP_TERRASCAN=true terraform plan"',
             1,
         ),
-        ({"SKIP_TFSEC": "true"}, "SKIP_TERRASCAN=true terraform plan || false", 1),
+        (
+            {"SKIP_TFSEC": "true"},
+            '/usr/bin/env bash -c "SKIP_TERRASCAN=true terraform plan || true"',
+            0,
+        ),
+        (
+            {"SKIP_TFSEC": "true"},
+            '/usr/bin/env bash -c "SKIP_TERRASCAN=true terraform plan || true && false"',
+            1,
+        ),
+        (
+            {"SKIP_TFSEC": "true"},
+            '/usr/bin/env bash -c "SKIP_TERRASCAN=true terraform plan || false"',
+            1,
+        ),
         ({"SKIP_TFSEC": "true"}, "terraform plan --skip-terrascan", 1),
         ({"SKIP_TERRASCAN": "true"}, "terraform --skip-tfsec plan", 1),
         ({"SKIP_TFSEC": "true"}, "terraform --skip-tfsec plan --skip-terrascan", 1),
@@ -267,6 +307,12 @@ def run_terraform_tests(*, image: str):
 
     for environment, command, expected_exit in env_and_cmd:
         environment["TF_DATA_DIR"] = "/tmp"
+        LOG.debug(
+            '{"environment": %s, "command": "%s", "expected_exit": %s}',
+            environment,
+            command,
+            expected_exit,
+        )
         opinionated_docker_run(
             image=image,
             volumes=volumes,
@@ -282,10 +328,26 @@ def run_terraform_tests(*, image: str):
     volumes = {terrascan_test_dir: {"bind": working_dir, "mode": "rw"}}
     env_and_cmd: list[tuple[dict, str, int]] = [
         ({}, "terraform --skip-tfsec --skip-checkov plan", 3),
-        ({}, "SKIP_TFSEC=true SKIP_CHECKOV=true terraform plan", 3),
-        ({}, "SKIP_TFSEC=true SKIP_CHECKOV=true terraform plan || true", 0),
-        ({}, "SKIP_TFSEC=true SKIP_CHECKOV=true terraform plan || true && false", 1),
-        ({}, "SKIP_TFSEC=true SKIP_CHECKOV=true terraform plan || false", 1),
+        (
+            {},
+            '/usr/bin/env bash -c "SKIP_TFSEC=true SKIP_CHECKOV=true terraform plan"',
+            3,
+        ),
+        (
+            {},
+            '/usr/bin/env bash -c "SKIP_TFSEC=true SKIP_CHECKOV=true terraform plan || true"',
+            0,
+        ),
+        (
+            {},
+            '/usr/bin/env bash -c "SKIP_TFSEC=true SKIP_CHECKOV=true terraform plan || true && false"',
+            1,
+        ),
+        (
+            {},
+            '/usr/bin/env bash -c "SKIP_TFSEC=true SKIP_CHECKOV=true terraform plan || false"',
+            1,
+        ),
         ({"SKIP_CHECKOV": "true"}, "terraform plan --skip-tfsec", 3),
         ({"SKIP_TFSEC": "true"}, "terraform plan --skip-checkov", 3),
         ({"SKIP_CHECKOV": "true", "SKIP_TFSEC": "true"}, "terraform plan", 3),
@@ -298,6 +360,12 @@ def run_terraform_tests(*, image: str):
 
     for environment, command, expected_exit in env_and_cmd:
         environment["TF_DATA_DIR"] = "/tmp"
+        LOG.debug(
+            '{"environment": %s, "command": "%s", "expected_exit": %s}',
+            environment,
+            command,
+            expected_exit,
+        )
         opinionated_docker_run(
             image=image,
             volumes=volumes,
@@ -313,16 +381,72 @@ def run_terraform_tests(*, image: str):
     terrascan_test_dir = TESTS_PATH.joinpath("terraform/terrascan")
     volumes = {terrascan_test_dir: {"bind": working_dir, "mode": "rw"}}
     env_and_cmd: list[tuple[dict, str, int]] = [
-        ({"DISABLE_SECURITY": "true"}, "terraform plan", 0),
-        ({"DISABLE_SECURITY": "true"}, "DISABLE_SECURITY=true terraform plan", 0),
-        ({}, "DISABLE_SECURITY=true terraform plan", 0),
-        ({}, "DISABLE_SECURITY=true terraform --disable-security plan", 0),
-        ({}, "DISABLE_SECURITY=true terraform plan --disable-security", 0),
-        ({}, "terraform plan --disable-security", 0),
+        ({"DISABLE_SECURITY": "true"}, "terraform init", 0),
+        (
+            {"DISABLE_SECURITY": "true"},
+            '/usr/bin/env bash -c "DISABLE_SECURITY=true terraform init"',
+            0,
+        ),
+        ({}, '/usr/bin/env bash -c "DISABLE_SECURITY=true terraform init"', 0),
+        (
+            {},
+            '/usr/bin/env bash -c "DISABLE_SECURITY=true terraform --disable-security init"',
+            0,
+        ),
+        (
+            {},
+            '/usr/bin/env bash -c "DISABLE_SECURITY=true terraform init --disable-security"',
+            0,
+        ),
+        ({}, "terraform --disable-security init", 0),
+        ({}, "terraform init --disable-security", 0),
+        (
+            {},
+            '/usr/bin/env bash -c "DISABLE_SECURITY=true terraform init --disable-security || true"',
+            0,
+        ),
+        (
+            {},
+            '/usr/bin/env bash -c "DISABLE_SECURITY=true terraform init --disable-security || true && false"',
+            1,
+        ),
+        ({"DISABLE_SECURITY": "true"}, "terraform init", 0),
+        (
+            {"DISABLE_SECURITY": "true"},
+            "terraform plan || false",
+            1,
+        ),  # Not supported; reproduce "Too many command line
+        #     arguments. Configuration path expected." error locally with
+        #     `docker run -e DISABLE_SECURITY=true -v
+        #     $(pwd)/tests/terraform/terrascan:/iac
+        #     seiso/easy_infra:latest terraform plan \|\| false`, prefer
+        #     passing the commands through bash like the following test
+        (
+            {"DISABLE_SECURITY": "true"},
+            '/usr/bin/env bash -c "terraform plan || false"',
+            1,
+        ),
+        (
+            {"DISABLE_SECURITY": "true"},
+            '/usr/bin/env bash -c "terraform plan || true"',
+            0,
+        ),
+        (
+            {},
+            "DISABLE_SECURITY=true terraform plan",
+            127,
+        ),  # Not supported; prepended variables do not work unless the
+        #     commands are passed through bash
     ]
 
     for environment, command, expected_exit in env_and_cmd:
         environment["TF_DATA_DIR"] = "/tmp"
+        LOG.debug(
+            '{"environment": %s, "command": "%s", "expected_exit": %s}',
+            environment,
+            command,
+            expected_exit,
+        )
         opinionated_docker_run(
             image=image,
             volumes=volumes,
@@ -337,14 +461,19 @@ def run_terraform_tests(*, image: str):
     secure_config_dir = TESTS_PATH.joinpath("terraform/secure")
     volumes = {secure_config_dir: {"bind": working_dir, "mode": "rw"}}
     env_and_cmd: list[tuple[dict, str, int]] = [
-        ({}, "terraform plan", 0),
         ({}, "terraform init", 0),
-        ({}, "terraform validate", 0),
-        ({}, "terraform version", 0),
+        ({}, '/usr/bin/env bash -c "terraform init && terraform validate && terraform plan && terraform validate"', 0),
+        ({}, '/usr/bin/env bash -c "terraform init && terraform validate && terraform plan && terraform validate && false"', 1),
     ]
 
     for environment, command, expected_exit in env_and_cmd:
         environment["TF_DATA_DIR"] = "/tmp"
+        LOG.debug(
+            '{"environment": %s, "command": "%s", "expected_exit": %s}',
+            environment,
+            command,
+            expected_exit,
+        )
         opinionated_docker_run(
             image=image,
             volumes=volumes,
