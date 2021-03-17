@@ -16,6 +16,9 @@ jobs:
     steps:
       - name: Checkout the PR
         uses: actions/checkout@v2
+      - uses: seisollc/goat@main
+        with:
+          disable_terrascan: true
       - uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
