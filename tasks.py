@@ -462,6 +462,8 @@ def run_terraform_tests(*, image: str):
     volumes = {secure_config_dir: {"bind": working_dir, "mode": "rw"}}
     env_and_cmd: list[tuple[dict, str, int]] = [
         ({}, "terraform init", 0),
+        ({}, '/bin/bash -c "terraform init && terraform validate && terraform apply"', 0), # Getting Started example from the README.md
+        ({}, '/bin/bash -c "terraform init; terraform version"', 0), # Terraform Caching example from the README.md
         (
             {},
             '/usr/bin/env bash -c "terraform init && terraform validate && terraform plan && terraform validate"',
