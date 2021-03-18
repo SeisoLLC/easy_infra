@@ -1,7 +1,7 @@
 ARG FROM_IMAGE=ubuntu
 ARG FROM_IMAGE_TAG=20.04
 
-FROM "${FROM_IMAGE}":"${FROM_IMAGE_TAG}" as minimal
+FROM "${FROM_IMAGE}":"${FROM_IMAGE_TAG}" AS minimal
 
 ARG VERSION
 ARG COMMIT_HASH
@@ -20,6 +20,7 @@ LABEL org.opencontainers.image.revision="${COMMIT_HASH}"
 ARG ANSIBLE_VERSION
 ENV DEBIAN_FRONTEND=noninteractive
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+# hadolint ignore=DL3008
 RUN apt-get update \
  && apt-get -y install --no-install-recommends ansible=${ANSIBLE_VERSION} \
                                                bsdmainutils \
@@ -32,7 +33,6 @@ RUN apt-get update \
                                                nodejs \
                                                python3 \
                                                python3-pip \
-                                               sudo \
                                                time \
                                                unzip \
  && apt-get clean autoclean \
@@ -59,6 +59,7 @@ ARG TERRAFORM_VERSION
 ARG TFENV_VERSION
 COPY .terraformrc /root/
 ENV PATH="/root/.tfenv/bin:${PATH}"
+# hadolint ignore=SC2016,DL3003
 RUN git clone https://github.com/tfutils/tfenv.git ~/.tfenv \
  && echo 'PATH=/root/.tfenv/bin:${PATH}' >> ~/.bashrc \
  && . ~/.bashrc \
@@ -73,51 +74,55 @@ RUN git clone https://github.com/tfutils/tfenv.git ~/.tfenv \
 # pip installs
 ARG CHECKOV_VERSION
 ENV PATH="/root/.local/bin:${PATH}"
+# hadolint ignore=DL3013
 RUN python3 -m pip install --upgrade --no-cache-dir pip \
  && pip install --user --no-cache-dir checkov==${CHECKOV_VERSION}
 
 # setup functions
 COPY functions /functions
 ENV BASH_ENV=/functions
+# hadolint ignore=SC2016
 RUN echo 'source ${BASH_ENV}' >> ~/.bashrc
 
 WORKDIR /iac
 COPY docker-entrypoint.sh /usr/local/bin/
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 
-FROM minimal as az
+FROM minimal AS  az
 ARG AZURE_CLI_VERSION
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+# hadolint ignore=DL3008
 RUN apt-get update \
  #####
  # Per Microsoft recommendation at https://docs.microsoft.com/en-us/cli/azure/install-azure-cli-linux?pivots=apt
- && sudo apt remove azure-cli -y \
- && sudo apt autoremove -y \
+ && apt-get remove azure-cli -y \
+ && apt-get autoremove -y \
  #####
  && apt-get -y install --no-install-recommends ca-certificates \
                                                curl \
                                                apt-transport-https \
                                                lsb-release \
                                                gnupg \
- && curl -sL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/microsoft.gpg > /dev/null \
+ && curl -sL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor | tee /etc/apt/trusted.gpg.d/microsoft.gpg > /dev/null \
  && AZ_REPO=$(lsb_release -cs) \
- && echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ $AZ_REPO main" | sudo tee /etc/apt/sources.list.d/azure-cli.list \
+ && echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ $AZ_REPO main" | tee /etc/apt/sources.list.d/azure-cli.list \
  && apt-get update \
  && apt-get -y install --no-install-recommends azure-cli=${AZURE_CLI_VERSION} \
  && apt-get clean autoclean \
  && apt-get -y autoremove \
  && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/*
 
-FROM minimal as aws
+FROM minimal AS aws
 # pip installs
 ARG AWSCLI_VERSION
+# hadolint ignore=DL3013
 RUN python3 -m pip install --upgrade --no-cache-dir pip \
  && pip install --user --no-cache-dir awscli==${AWSCLI_VERSION}
 
 # Add aws autocomplete
 RUN echo 'complete -C /root/.local/bin/aws_completer aws' >> ~/.bashrc
 
-from minimal as final
+FROM minimal AS final
 
 # AWS
 COPY --from=aws /root/.local /root/.local

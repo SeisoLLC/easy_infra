@@ -16,6 +16,9 @@ jobs:
     steps:
       - name: Checkout the PR
         uses: actions/checkout@v2
+      - uses: seisollc/goat@main
+        with:
+          disable_terrascan: true
       - uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
@@ -52,7 +55,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
           repository: seiso/easy_infra
-          short_description: |
+          short-description: |
             A docker container to simplify the use of Infrastructure as Code (IaC) tools
       - name: Publish the Docker images
         run: pipenv run invoke publish
