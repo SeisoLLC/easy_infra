@@ -204,7 +204,9 @@ def run_terraform_tests(*, image: str):
     # Ensure insecure configurations fail due to tfsec
     tfsec_test_dir = TESTS_PATH.joinpath("terraform/tfsec")
     volumes = {tfsec_test_dir: {"bind": working_dir, "mode": "rw"}}
-    env_and_cmd: list[tuple[dict, str, int]] = [
+    # Tests is a list of tuples containing the test environment, command, and
+    # expected exit code
+    tests: list[tuple[dict, str, int]] = [
         ({}, "terraform --skip-checkov --skip-terrascan plan", 1),
         (
             {},
@@ -252,7 +254,7 @@ def run_terraform_tests(*, image: str):
         ),
     ]
 
-    for environment, command, expected_exit in env_and_cmd:
+    for environment, command, expected_exit in tests:
         environment["TF_DATA_DIR"] = "/tmp"
         LOG.debug(
             '{"environment": %s, "command": "%s", "expected_exit": %s}',
@@ -273,7 +275,9 @@ def run_terraform_tests(*, image: str):
     # Ensure insecure configurations fail due to checkov
     checkov_test_dir = TESTS_PATH.joinpath("terraform/checkov")
     volumes = {checkov_test_dir: {"bind": working_dir, "mode": "rw"}}
-    env_and_cmd: list[tuple[dict, str, int]] = [
+    # Tests is a list of tuples containing the test environment, command, and
+    # expected exit code
+    tests: list[tuple[dict, str, int]] = [
         ({}, "terraform --skip-tfsec --skip-terrascan plan", 1),
         (
             {},
@@ -305,7 +309,7 @@ def run_terraform_tests(*, image: str):
         ),
     ]
 
-    for environment, command, expected_exit in env_and_cmd:
+    for environment, command, expected_exit in tests:
         environment["TF_DATA_DIR"] = "/tmp"
         LOG.debug(
             '{"environment": %s, "command": "%s", "expected_exit": %s}',
@@ -326,7 +330,9 @@ def run_terraform_tests(*, image: str):
     # Ensure insecure configurations fail due to terrascan
     terrascan_test_dir = TESTS_PATH.joinpath("terraform/terrascan")
     volumes = {terrascan_test_dir: {"bind": working_dir, "mode": "rw"}}
-    env_and_cmd: list[tuple[dict, str, int]] = [
+    # Tests is a list of tuples containing the test environment, command, and
+    # expected exit code
+    tests: list[tuple[dict, str, int]] = [
         ({}, "terraform --skip-tfsec --skip-checkov plan", 3),
         (
             {},
@@ -358,7 +364,7 @@ def run_terraform_tests(*, image: str):
         ),
     ]
 
-    for environment, command, expected_exit in env_and_cmd:
+    for environment, command, expected_exit in tests:
         environment["TF_DATA_DIR"] = "/tmp"
         LOG.debug(
             '{"environment": %s, "command": "%s", "expected_exit": %s}',
@@ -380,7 +386,9 @@ def run_terraform_tests(*, image: str):
     # disabled
     terrascan_test_dir = TESTS_PATH.joinpath("terraform/terrascan")
     volumes = {terrascan_test_dir: {"bind": working_dir, "mode": "rw"}}
-    env_and_cmd: list[tuple[dict, str, int]] = [
+    # Tests is a list of tuples containing the test environment, command, and
+    # expected exit code
+    tests: list[tuple[dict, str, int]] = [
         ({"DISABLE_SECURITY": "true"}, "terraform init", 0),
         (
             {"DISABLE_SECURITY": "true"},
@@ -439,7 +447,7 @@ def run_terraform_tests(*, image: str):
         #     commands are passed through bash
     ]
 
-    for environment, command, expected_exit in env_and_cmd:
+    for environment, command, expected_exit in tests:
         environment["TF_DATA_DIR"] = "/tmp"
         LOG.debug(
             '{"environment": %s, "command": "%s", "expected_exit": %s}',
@@ -460,7 +468,9 @@ def run_terraform_tests(*, image: str):
     # Ensure secure configurations pass
     secure_config_dir = TESTS_PATH.joinpath("terraform/secure")
     volumes = {secure_config_dir: {"bind": working_dir, "mode": "rw"}}
-    env_and_cmd: list[tuple[dict, str, int]] = [
+    # Tests is a list of tuples containing the test environment, command, and
+    # expected exit code
+    tests: list[tuple[dict, str, int]] = [
         ({}, "terraform init", 0),
         (
             {},
@@ -484,7 +494,7 @@ def run_terraform_tests(*, image: str):
         ),
     ]
 
-    for environment, command, expected_exit in env_and_cmd:
+    for environment, command, expected_exit in tests:
         environment["TF_DATA_DIR"] = "/tmp"
         LOG.debug(
             '{"environment": %s, "command": "%s", "expected_exit": %s}',
