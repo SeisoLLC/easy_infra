@@ -1,9 +1,14 @@
 ---
-name: "Commit"
+name: "CI"
+
 on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
+
 jobs:
   test:
     name: Test
@@ -32,6 +37,7 @@ jobs:
         run: pipenv run invoke test
   distribute:
     name: Distribute
+    if: ${{ github.event_name == 'push' }}
     runs-on: Ubuntu-20.04
     needs: Test
     steps:
