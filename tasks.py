@@ -181,7 +181,9 @@ def test_version_commands(*, image: str, volumes: dict, working_dir: str):
     LOG.info("%s passed %d integration tests", image, num_tests_ran)
 
 
-def exec_terraform_tests(*, tests: list[tuple[dict, str, int]], volumes: dict, image: str) -> int:
+def exec_terraform_tests(
+    *, tests: list[tuple[dict, str, int]], volumes: dict, image: str
+) -> int:
     """Execute the provided terraform tests and return a count of tests run"""
     num_tests_ran = 0
     config_dir = list(volumes.keys())[0]
