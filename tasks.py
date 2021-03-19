@@ -181,6 +181,31 @@ def test_version_commands(*, image: str, volumes: dict, working_dir: str):
     LOG.info("%s passed %d integration tests", image, num_tests_ran)
 
 
+def exec_terraform_tests(*, tests: list[tuple[dict, str, int]], volumes: dict, image: str) -> int:
+    """Execute the provided terraform tests and return a count of tests run"""
+    num_tests_ran = 0
+    config_dir = list(volumes.keys())[0]
+    working_dir = volumes[config_dir]["bind"]
+
+    for environment, command, expected_exit in tests:
+        LOG.debug(
+            '{"environment": %s, "command": "%s", "expected_exit": %s}',
+            environment,
+            command,
+            expected_exit,
+        )
+        opinionated_docker_run(
+            command=command,
+            environment=environment,
+            expected_exit=expected_exit,
+            image=image,
+            volumes=volumes,
+            working_dir=working_dir,
+        )
+        num_tests_ran += 1
+    return num_tests_ran
+
+
 def run_terraform_tests(*, image: str):
     """Run the terraform tests"""
     num_tests_ran = 0
@@ -254,23 +279,7 @@ def run_terraform_tests(*, image: str):
         ),
     ]
 
-    for environment, command, expected_exit in tests:
-        environment["TF_DATA_DIR"] = "/tmp"
-        LOG.debug(
-            '{"environment": %s, "command": "%s", "expected_exit": %s}',
-            environment,
-            command,
-            expected_exit,
-        )
-        opinionated_docker_run(
-            image=image,
-            volumes=volumes,
-            working_dir=working_dir,
-            command=command,
-            environment=environment,
-            expected_exit=expected_exit,
-        )
-        num_tests_ran += 1
+    num_tests_ran += exec_terraform_tests(tests=tests, volumes=volumes, image=image)
 
     # Ensure insecure configurations fail due to checkov
     checkov_test_dir = TESTS_PATH.joinpath("terraform/checkov")
@@ -309,23 +318,7 @@ def run_terraform_tests(*, image: str):
         ),
     ]
 
-    for environment, command, expected_exit in tests:
-        environment["TF_DATA_DIR"] = "/tmp"
-        LOG.debug(
-            '{"environment": %s, "command": "%s", "expected_exit": %s}',
-            environment,
-            command,
-            expected_exit,
-        )
-        opinionated_docker_run(
-            image=image,
-            volumes=volumes,
-            working_dir=working_dir,
-            command=command,
-            environment=environment,
-            expected_exit=expected_exit,
-        )
-        num_tests_ran += 1
+    num_tests_ran += exec_terraform_tests(tests=tests, volumes=volumes, image=image)
 
     # Ensure insecure configurations fail due to terrascan
     terrascan_test_dir = TESTS_PATH.joinpath("terraform/terrascan")
@@ -364,23 +357,7 @@ def run_terraform_tests(*, image: str):
         ),
     ]
 
-    for environment, command, expected_exit in tests:
-        environment["TF_DATA_DIR"] = "/tmp"
-        LOG.debug(
-            '{"environment": %s, "command": "%s", "expected_exit": %s}',
-            environment,
-            command,
-            expected_exit,
-        )
-        opinionated_docker_run(
-            image=image,
-            volumes=volumes,
-            working_dir=working_dir,
-            command=command,
-            environment=environment,
-            expected_exit=expected_exit,
-        )
-        num_tests_ran += 1
+    num_tests_ran += exec_terraform_tests(tests=tests, volumes=volumes, image=image)
 
     # Ensure insecure configurations still succeed when security checks are
     # disabled
@@ -447,23 +424,7 @@ def run_terraform_tests(*, image: str):
         #     commands are passed through bash
     ]
 
-    for environment, command, expected_exit in tests:
-        environment["TF_DATA_DIR"] = "/tmp"
-        LOG.debug(
-            '{"environment": %s, "command": "%s", "expected_exit": %s}',
-            environment,
-            command,
-            expected_exit,
-        )
-        opinionated_docker_run(
-            image=image,
-            volumes=volumes,
-            working_dir=working_dir,
-            command=command,
-            environment=environment,
-            expected_exit=expected_exit,
-        )
-        num_tests_ran += 1
+    num_tests_ran += exec_terraform_tests(tests=tests, volumes=volumes, image=image)
 
     # Ensure secure configurations pass
     secure_config_dir = TESTS_PATH.joinpath("terraform/secure")
@@ -494,23 +455,7 @@ def run_terraform_tests(*, image: str):
         ),
     ]
 
-    for environment, command, expected_exit in tests:
-        environment["TF_DATA_DIR"] = "/tmp"
-        LOG.debug(
-            '{"environment": %s, "command": "%s", "expected_exit": %s}',
-            environment,
-            command,
-            expected_exit,
-        )
-        opinionated_docker_run(
-            image=image,
-            volumes=volumes,
-            working_dir=working_dir,
-            command=command,
-            environment=environment,
-            expected_exit=expected_exit,
-        )
-        num_tests_ran += 1
+    num_tests_ran += exec_terraform_tests(tests=tests, volumes=volumes, image=image)
 
     # Run base interactive tests
     secure_config_dir = TESTS_PATH.joinpath("terraform/secure")
