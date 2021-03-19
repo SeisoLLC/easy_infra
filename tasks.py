@@ -121,11 +121,12 @@ def opinionated_docker_run(
     *,
     command: str,
     image: str,
-    volumes: dict = {},
-    working_dir: str = "/iac/",
     auto_remove: bool = False,
+    tty: bool = False,
     detach: bool = True,
     environment: dict = {},
+    volumes: dict = {},
+    working_dir: str = "/iac/",
     expected_exit: int = 0,
 ):
     """Perform an opinionated docker run"""
@@ -135,6 +136,7 @@ def opinionated_docker_run(
         detach=detach,
         environment=environment,
         image=image,
+        tty=tty,
         volumes=volumes,
         working_dir=working_dir,
     )
@@ -182,7 +184,10 @@ def test_version_commands(*, image: str, volumes: dict, working_dir: str):
 
 
 def exec_terraform_tests(
-    *, tests: list[tuple[dict, str, int]], volumes: dict, image: str
+    *,
+    tests: list[tuple[dict, str, int]],
+    volumes: dict,
+    image: str,
 ) -> int:
     """Execute the provided terraform tests and return a count of tests run"""
     num_tests_ran = 0
@@ -212,16 +217,23 @@ def run_terraform_tests(*, image: str):
     """Run the terraform tests"""
     num_tests_ran = 0
     working_dir = "/iac/"
+    environment = {"TF_DATA_DIR": "/tmp"}
+    invalid_test_dir = TESTS_PATH.joinpath("terraform/invalid")
+    invalid_volumes = {invalid_test_dir: {"bind": working_dir, "mode": "rw"}}
+    tfsec_test_dir = TESTS_PATH.joinpath("terraform/tfsec")
+    tfsec_volumes = {tfsec_test_dir: {"bind": working_dir, "mode": "rw"}}
+    checkov_test_dir = TESTS_PATH.joinpath("terraform/checkov")
+    checkov_volumes = {checkov_test_dir: {"bind": working_dir, "mode": "rw"}}
+    terrascan_test_dir = TESTS_PATH.joinpath("terraform/terrascan")
+    terrascan_volumes = {terrascan_test_dir: {"bind": working_dir, "mode": "rw"}}
+    secure_config_dir = TESTS_PATH.joinpath("terraform/secure")
+    secure_volumes = {secure_config_dir: {"bind": working_dir, "mode": "rw"}}
 
     # Ensure invalid configurations fail
     command = "terraform plan"
-    invalid_config_dir = TESTS_PATH.joinpath("terraform/invalid")
-    volumes = {invalid_config_dir: {"bind": working_dir, "mode": "rw"}}
-    environment = {"TF_DATA_DIR": "/tmp"}
     opinionated_docker_run(
         image=image,
-        volumes=volumes,
-        working_dir=working_dir,
+        volumes=invalid_volumes,
         command=command,
         environment=environment,
         expected_exit=1,
@@ -229,8 +241,6 @@ def run_terraform_tests(*, image: str):
     num_tests_ran += 1
 
     # Ensure insecure configurations fail due to tfsec
-    tfsec_test_dir = TESTS_PATH.joinpath("terraform/tfsec")
-    volumes = {tfsec_test_dir: {"bind": working_dir, "mode": "rw"}}
     # Tests is a list of tuples containing the test environment, command, and
     # expected exit code
     tests: list[tuple[dict, str, int]] = [
@@ -281,11 +291,11 @@ def run_terraform_tests(*, image: str):
         ),
     ]
 
-    num_tests_ran += exec_terraform_tests(tests=tests, volumes=volumes, image=image)
+    num_tests_ran += exec_terraform_tests(
+        tests=tests, volumes=tfsec_volumes, image=image
+    )
 
     # Ensure insecure configurations fail due to checkov
-    checkov_test_dir = TESTS_PATH.joinpath("terraform/checkov")
-    volumes = {checkov_test_dir: {"bind": working_dir, "mode": "rw"}}
     # Tests is a list of tuples containing the test environment, command, and
     # expected exit code
     tests: list[tuple[dict, str, int]] = [
@@ -320,11 +330,11 @@ def run_terraform_tests(*, image: str):
         ),
     ]
 
-    num_tests_ran += exec_terraform_tests(tests=tests, volumes=volumes, image=image)
+    num_tests_ran += exec_terraform_tests(
+        tests=tests, volumes=checkov_volumes, image=image
+    )
 
     # Ensure insecure configurations fail due to terrascan
-    terrascan_test_dir = TESTS_PATH.joinpath("terraform/terrascan")
-    volumes = {terrascan_test_dir: {"bind": working_dir, "mode": "rw"}}
     # Tests is a list of tuples containing the test environment, command, and
     # expected exit code
     tests: list[tuple[dict, str, int]] = [
@@ -359,12 +369,12 @@ def run_terraform_tests(*, image: str):
         ),
     ]
 
-    num_tests_ran += exec_terraform_tests(tests=tests, volumes=volumes, image=image)
+    num_tests_ran += exec_terraform_tests(
+        tests=tests, volumes=terrascan_volumes, image=image
+    )
 
     # Ensure insecure configurations still succeed when security checks are
     # disabled
-    terrascan_test_dir = TESTS_PATH.joinpath("terraform/terrascan")
-    volumes = {terrascan_test_dir: {"bind": working_dir, "mode": "rw"}}
     # Tests is a list of tuples containing the test environment, command, and
     # expected exit code
     tests: list[tuple[dict, str, int]] = [
@@ -426,11 +436,11 @@ def run_terraform_tests(*, image: str):
         #     commands are passed through bash
     ]
 
-    num_tests_ran += exec_terraform_tests(tests=tests, volumes=volumes, image=image)
+    num_tests_ran += exec_terraform_tests(
+        tests=tests, volumes=terrascan_volumes, image=image
+    )
 
     # Ensure secure configurations pass
-    secure_config_dir = TESTS_PATH.joinpath("terraform/secure")
-    volumes = {secure_config_dir: {"bind": working_dir, "mode": "rw"}}
     # Tests is a list of tuples containing the test environment, command, and
     # expected exit code
     tests: list[tuple[dict, str, int]] = [
@@ -457,19 +467,17 @@ def run_terraform_tests(*, image: str):
         ),
     ]
 
-    num_tests_ran += exec_terraform_tests(tests=tests, volumes=volumes, image=image)
+    num_tests_ran += exec_terraform_tests(
+        tests=tests, volumes=secure_volumes, image=image
+    )
 
     # Run base interactive tests
-    secure_config_dir = TESTS_PATH.joinpath("terraform/secure")
-    volumes = {secure_config_dir: {"bind": working_dir, "mode": "rw"}}
-    environment = {"TF_DATA_DIR": "/tmp"}
     test_interactive_container = CLIENT.containers.run(
         image=image,
         detach=True,
         auto_remove=False,
         tty=True,
-        working_dir=working_dir,
-        volumes=volumes,
+        volumes=secure_volumes,
         environment=environment,
     )
 
@@ -492,16 +500,12 @@ def run_terraform_tests(*, image: str):
     test_interactive_container.kill()
 
     # Run base non-interactive tests
-    secure_config_dir = TESTS_PATH.joinpath("terraform/secure")
-    volumes = {secure_config_dir: {"bind": working_dir, "mode": "rw"}}
-    environment = {"TF_DATA_DIR": "/tmp"}
     test_noninteractive_container = CLIENT.containers.run(
         image=image,
         detach=True,
         auto_remove=False,
         tty=True,
-        working_dir=working_dir,
-        volumes=volumes,
+        volumes=secure_volumes,
         environment=environment,
     )
 
@@ -528,16 +532,12 @@ def run_terraform_tests(*, image: str):
     test_noninteractive_container.kill()
 
     # Run terraform version non-interactive test
-    secure_config_dir = TESTS_PATH.joinpath("terraform/secure")
-    volumes = {secure_config_dir: {"bind": working_dir, "mode": "rw"}}
-    environment = {"TF_DATA_DIR": "/tmp"}
     test_noninteractive_container = CLIENT.containers.run(
         image=image,
         detach=True,
         auto_remove=False,
         tty=True,
-        working_dir=working_dir,
-        volumes=volumes,
+        volumes=secure_volumes,
         environment=environment,
     )
 
