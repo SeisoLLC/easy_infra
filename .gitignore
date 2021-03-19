@@ -4,6 +4,9 @@ functions
 # Ignore .terraform.d, including the plugin cache
 .terraform.d
 
+# Ignore .terraform.lock.hcl files
+.terraform.lock.hcl
+
 
 # Created by https://www.toptal.com/developers/gitignore/api/vim,macos,python,terraform
 # Edit at https://www.toptal.com/developers/gitignore?templates=vim,macos,python,terraform

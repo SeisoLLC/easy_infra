@@ -12,3 +12,6 @@ docker = "*"
 PyYAML = "*"
 Jinja2 = "*"
 GitPython = "*"
+
+[requires]
+python_version = "3.9"
