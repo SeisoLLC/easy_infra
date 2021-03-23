@@ -6,12 +6,12 @@ from pathlib import Path
 
 import docker
 import git
-from invoke import task
-from jinja2 import Environment, FileSystemLoader
-from yaml import YAMLError, dump, safe_load
+from yaml import YAMLError, safe_load
+
 
 def parse_config(*, config_file: Path) -> dict:
     """Parse the easy_infra config file"""
+
     # Filter
     suffix_whitelist = {".yml", ".yaml"}
 
@@ -40,6 +40,7 @@ def parse_config(*, config_file: Path) -> dict:
         sys.exit(1)
 
     return config
+
 
 # Globals
 CONFIG_FILE = Path("easy_infra.yml").absolute()
@@ -97,6 +98,7 @@ TESTS_PATH = CWD.joinpath("tests")
 UNACCEPTABLE_VULNS = ["CRITICAL", "HIGH"]
 INFORMATIONAL_VULNS = ["UNKNOWN", "LOW", "MEDIUM"]
 
+
 def opinionated_docker_run(
     *,
     command: str,
@@ -128,6 +130,7 @@ def opinionated_docker_run(
         if not is_status_expected(expected=expected_exit, response=response):
             sys.exit(response["StatusCode"])
 
+
 def is_status_expected(*, expected: int, response: dict) -> bool:
     """Check to see if the status code was expected"""
     actual = response["StatusCode"]
@@ -141,6 +144,7 @@ def is_status_expected(*, expected: int, response: dict) -> bool:
         return False
 
     return True
+
 
 def version_commands(*, image: str, volumes: dict, working_dir: str):
     """Test the version commands listed in the config"""
@@ -159,6 +163,7 @@ def version_commands(*, image: str, volumes: dict, working_dir: str):
             num_tests_ran += 1
 
     LOG.info("%s passed %d integration tests", image, num_tests_ran)
+
 
 def exec_terraform(
     *,
@@ -268,9 +273,7 @@ def run_terraform(*, image: str):
         ),
     ]
 
-    num_tests_ran += exec_terraform(
-        tests=tests, volumes=tfsec_volumes, image=image
-    )
+    num_tests_ran += exec_terraform(tests=tests, volumes=tfsec_volumes, image=image)
 
     # Ensure insecure configurations fail due to checkov
     # Tests is a list of tuples containing the test environment, command, and
@@ -307,9 +310,7 @@ def run_terraform(*, image: str):
         ),
     ]
 
-    num_tests_ran += exec_terraform(
-        tests=tests, volumes=checkov_volumes, image=image
-    )
+    num_tests_ran += exec_terraform(tests=tests, volumes=checkov_volumes, image=image)
 
     # Ensure insecure configurations fail due to terrascan
     # Tests is a list of tuples containing the test environment, command, and
@@ -346,9 +347,7 @@ def run_terraform(*, image: str):
         ),
     ]
 
-    num_tests_ran += exec_terraform(
-        tests=tests, volumes=terrascan_volumes, image=image
-    )
+    num_tests_ran += exec_terraform(tests=tests, volumes=terrascan_volumes, image=image)
 
     # Ensure insecure configurations still succeed when security checks are
     # disabled
@@ -413,9 +412,7 @@ def run_terraform(*, image: str):
         #     commands are passed through bash
     ]
 
-    num_tests_ran += exec_terraform(
-        tests=tests, volumes=terrascan_volumes, image=image
-    )
+    num_tests_ran += exec_terraform(tests=tests, volumes=terrascan_volumes, image=image)
 
     # Ensure secure configurations pass
     # Tests is a list of tuples containing the test environment, command, and
@@ -444,9 +441,7 @@ def run_terraform(*, image: str):
         ),
     ]
 
-    num_tests_ran += exec_terraform(
-        tests=tests, volumes=secure_volumes, image=image
-    )
+    num_tests_ran += exec_terraform(tests=tests, volumes=secure_volumes, image=image)
 
     # Run base interactive tests
     test_interactive_container = CLIENT.containers.run(

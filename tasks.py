@@ -4,7 +4,6 @@ Task execution tool & library
 """
 
 import json
-import os
 import sys
 from logging import basicConfig, getLogger
 from pathlib import Path
@@ -163,6 +162,7 @@ def is_status_expected(*, expected: int, response: dict) -> bool:
         return False
 
     return True
+
 
 # Globals
 CONFIG_FILE = Path("easy_infra.yml").absolute()
