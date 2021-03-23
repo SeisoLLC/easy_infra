@@ -12,6 +12,7 @@ from pathlib import Path
 import docker
 import git
 import requests
+import tests
 from invoke import task
 from jinja2 import Environment, FileSystemLoader
 from yaml import YAMLError, dump, safe_load
@@ -814,21 +815,21 @@ def test(c):  # pylint: disable=unused-argument
 
         LOG.info("Testing %s...", image)
         if target == "minimal":
-            run_terraform_tests(image=image)
-            run_security_tests(image=image)
+            tests.run_terraform(image=image)
+            tests.run_security(image=image)
         elif target == "az":
-            run_az_stage_tests(image=image)
-            run_security_tests(image=image)
+            tests.run_az_stage(image=image)
+            tests.run_security(image=image)
         elif target == "aws":
-            run_aws_stage_tests(image=image)
-            run_security_tests(image=image)
+            tests.run_aws_stage(image=image)
+            tests.run_security(image=image)
         elif target == "final":
-            test_version_commands(
+            tests.version_commands(
                 image=image, volumes=default_volumes, working_dir=default_working_dir
             )
-            run_terraform_tests(image=image)
-            run_cli_tests(image=image)
-            run_security_tests(image=image)
+            tests.run_terraform(image=image)
+            tests.run_cli(image=image)
+            tests.run_security(image=image)
         else:
             LOG.error("Untested stage of %s", target)
 
