@@ -6,88 +6,16 @@ from pathlib import Path
 
 import docker
 import git
+import tests.constants as constants
 from yaml import YAMLError, safe_load
 
-
-def parse_config(*, config_file: Path) -> dict:
-    """Parse the easy_infra config file"""
-
-    # Filter
-    suffix_whitelist = {".yml", ".yaml"}
-
-    if config_file.suffix not in suffix_whitelist:
-        LOG.error("Suffix for the config file %s is not allowed", config_file)
-        raise RuntimeError
-
-    try:
-        with open(config_file) as yaml_data:
-            config = safe_load(yaml_data)
-    except (
-        YAMLError,
-        FileNotFoundError,
-        PermissionError,
-        IsADirectoryError,
-        OSError,
-    ) as err:
-        LOG.error(
-            "The config file %s was unable to be loaded due to the following exception: %s",
-            config_file,
-            str(err),
-        )
-        # Raise if info or debug level logging
-        if LOG.getEffectiveLevel() <= 20:
-            raise err
-        sys.exit(1)
-
-    return config
-
-
 # Globals
-CONFIG_FILE = Path("easy_infra.yml").absolute()
 OUTPUT_FILE = Path("functions").absolute()
 JINJA2_FILE = Path("functions.j2").absolute()
-CONFIG = parse_config(config_file=CONFIG_FILE)
-VERSION = CONFIG["version"]
 CWD = Path(".").absolute()
 TESTS_PATH = CWD.joinpath("tests")
-
-LOG_FORMAT = json.dumps(
-    {
-        "timestamp": "%(asctime)s",
-        "namespace": "%(name)s",
-        "loglevel": "%(levelname)s",
-        "message": "%(message)s",
-    }
-)
-basicConfig(level="INFO", format=LOG_FORMAT)
 LOG = getLogger("easy_infra")
 
-# git
-REPO = git.Repo(CWD)
-COMMIT_HASH = REPO.head.object.hexsha
-
-# Docker
-CLIENT = docker.from_env()
-IMAGE = "seiso/easy_infra"
-TARGETS = {
-    "minimal": {},
-    "aws": {},
-    "az": {},
-    "final": {},
-}
-for target in TARGETS:
-    if target == "final":
-        TARGETS[target]["tags"] = [
-            IMAGE + ":" + COMMIT_HASH,
-            IMAGE + ":" + VERSION,
-            IMAGE + ":latest",
-        ]
-    else:
-        TARGETS[target]["tags"] = [
-            IMAGE + ":" + COMMIT_HASH + "-" + target,
-            IMAGE + ":" + VERSION + "-" + target,
-            IMAGE + ":" + "latest" + "-" + target,
-        ]
 
 # easy_infra
 APT_PACKAGES = {"ansible", "azure-cli"}
@@ -112,7 +40,7 @@ def opinionated_docker_run(
     expected_exit: int = 0,
 ):
     """Perform an opinionated docker run"""
-    container = CLIENT.containers.run(
+    container = constants.CLIENT.containers.run(
         auto_remove=auto_remove,
         command=command,
         detach=detach,
@@ -149,10 +77,12 @@ def is_status_expected(*, expected: int, response: dict) -> bool:
 def version_commands(*, image: str, volumes: dict, working_dir: str):
     """Test the version commands listed in the config"""
     num_tests_ran = 0
-    for command in CONFIG["commands"]:
+    for command in constants.CONFIG["commands"]:
         # Test the provided version commands
-        if "version_command" in CONFIG["commands"][command]:
-            command = "command " + CONFIG["commands"][command]["version_command"]
+        if "version_command" in constants.CONFIG["commands"][command]:
+            command = (
+                "command " + constants.CONFIG["commands"][command]["version_command"]
+            )
             opinionated_docker_run(
                 image=image,
                 volumes=volumes,
@@ -444,7 +374,7 @@ def run_terraform(*, image: str):
     num_tests_ran += exec_terraform(tests=tests, volumes=secure_volumes, image=image)
 
     # Run base interactive tests
-    test_interactive_container = CLIENT.containers.run(
+    test_interactive_container = constants.CLIENT.containers.run(
         image=image,
         detach=True,
         auto_remove=False,
@@ -472,7 +402,7 @@ def run_terraform(*, image: str):
     test_interactive_container.kill()
 
     # Run base non-interactive tests
-    test_noninteractive_container = CLIENT.containers.run(
+    test_noninteractive_container = constants.CLIENT.containers.run(
         image=image,
         detach=True,
         auto_remove=False,
@@ -504,7 +434,7 @@ def run_terraform(*, image: str):
     test_noninteractive_container.kill()
 
     # Run terraform version non-interactive test
-    test_noninteractive_container = CLIENT.containers.run(
+    test_noninteractive_container = constants.CLIENT.containers.run(
         image=image,
         detach=True,
         auto_remove=False,
@@ -603,7 +533,7 @@ def run_security(*, image: str):
     tag = image.split(":")[-1]
     file_name = f"{tag}.tar"
     image_file = temp_dir.joinpath(file_name)
-    raw_image = CLIENT.images.get(image).save(named=True)
+    raw_image = constants.CLIENT.images.get(image).save(named=True)
     with open(image_file, "wb") as file:
         for chunk in raw_image:
             file.write(chunk)
