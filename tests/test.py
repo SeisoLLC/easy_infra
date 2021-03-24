@@ -1,13 +1,9 @@
-import json
 import os
 import sys
-from logging import basicConfig, getLogger
+from logging import getLogger
 from pathlib import Path
 
-import docker
-import git
 import tests.constants as constants
-from yaml import YAMLError, safe_load
 
 # Globals
 OUTPUT_FILE = Path("functions").absolute()

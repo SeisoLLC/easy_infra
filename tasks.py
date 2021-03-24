@@ -5,11 +5,9 @@ Task execution tool & library
 
 import json
 import sys
-from logging import basicConfig, getLogger
+from logging import getLogger
 from pathlib import Path
 
-import docker
-import git
 import requests
 import tests.constants as constants
 from tests.test import (
@@ -78,9 +76,9 @@ def write_config(*, config: dict):
 def get_latest_release_from_apt(*, package: str) -> str:
     """Get the latest release of a project via apt"""
     # latest-az is used because it has the Microsoft repo added
-    image = IMAGE + ":latest-az"
-    CLIENT.images.pull(repository=image)
-    release = CLIENT.containers.run(
+    image = constants.IMAGE + ":latest-az"
+    constants.CLIENT.images.pull(repository=image)
+    release = constants.CLIENT.containers.run(
         image=image,
         auto_remove=True,
         detach=False,
@@ -138,7 +136,7 @@ def opinionated_docker_run(
     expected_exit: int = 0,
 ):
     """Perform an opinionated docker run"""
-    container = CLIENT.containers.run(
+    container = constants.CLIENT.containers.run(
         auto_remove=auto_remove,
         command=command,
         detach=detach,

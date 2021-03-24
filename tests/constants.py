@@ -1,4 +1,5 @@
 import json
+import sys
 from logging import basicConfig, getLogger
 from pathlib import Path
 
@@ -46,6 +47,7 @@ CONFIG = parse_config(config_file=CONFIG_FILE)
 VERSION = CONFIG["version"]
 CWD = Path(".").absolute()
 
+LOG = getLogger("easy_infra")
 LOG_FORMAT = json.dumps(
     {
         "timestamp": "%(asctime)s",
