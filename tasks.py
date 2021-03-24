@@ -3,13 +3,14 @@
 Task execution tool & library
 """
 
-import json
 import sys
 from logging import getLogger
 from pathlib import Path
 
 import requests
 import tests.constants as constants
+from invoke import task
+from jinja2 import Environment, FileSystemLoader
 from tests.test import (
     run_aws_stage,
     run_az_stage,
@@ -18,8 +19,6 @@ from tests.test import (
     run_terraform,
     version_commands,
 )
-from invoke import task
-from jinja2 import Environment, FileSystemLoader
 from yaml import YAMLError, dump, safe_load
 
 
