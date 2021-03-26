@@ -245,6 +245,7 @@ def run_terraform_tests(*, image: str):
     # expected exit code
     tests: list[tuple[dict, str, int]] = [
         ({}, "terraform --skip-checkov --skip-terrascan plan", 1),
+        ({}, "tfenv --skip-checkov exec --skip-terrascan plan", 1),
         (
             {},
             "SKIP_CHECKOV=true SKIP_TERRASCAN=true terraform plan",
@@ -300,6 +301,7 @@ def run_terraform_tests(*, image: str):
     # expected exit code
     tests: list[tuple[dict, str, int]] = [
         ({}, "terraform --skip-tfsec --skip-terrascan plan", 1),
+        ({}, "tfenv --skip-tfsec --skip-terrascan exec plan", 1),
         (
             {},
             '/usr/bin/env bash -c "SKIP_TFSEC=true SKIP_TERRASCAN=true terraform plan"',
@@ -339,6 +341,7 @@ def run_terraform_tests(*, image: str):
     # expected exit code
     tests: list[tuple[dict, str, int]] = [
         ({}, "terraform --skip-tfsec --skip-checkov plan", 3),
+        ({}, "tfenv --skip-tfsec --skip-checkov exec plan", 3),
         (
             {},
             '/usr/bin/env bash -c "SKIP_TFSEC=true SKIP_CHECKOV=true terraform plan"',
@@ -379,6 +382,7 @@ def run_terraform_tests(*, image: str):
     # expected exit code
     tests: list[tuple[dict, str, int]] = [
         ({"DISABLE_SECURITY": "true"}, "terraform init", 0),
+        ({"DISABLE_SECURITY": "true"}, "tfenv exec init", 0),
         (
             {"DISABLE_SECURITY": "true"},
             '/usr/bin/env bash -c "DISABLE_SECURITY=true terraform init"',
@@ -445,6 +449,7 @@ def run_terraform_tests(*, image: str):
     # expected exit code
     tests: list[tuple[dict, str, int]] = [
         ({}, "terraform init", 0),
+        ({}, "tfenv exec init", 0),
         (
             {},
             '/bin/bash -c "terraform init && terraform validate && echo no | terraform apply"',
