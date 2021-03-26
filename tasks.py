@@ -767,17 +767,48 @@ def update(c):  # pylint: disable=unused-argument
 
 @task
 def lint(c):  # pylint: disable=unused-argument
-    """Lint easy_infra"""
-    image = "projectatomic/dockerfile-lint"
-    working_dir = "/root/"
-    volumes = {CWD: {"bind": working_dir, "mode": "ro"}}
-    CLIENT.images.pull(repository=image)
-    opinionated_docker_run(
+    """Lint {{ cookiecutter.project_name }}"""
+    environment = {}
+
+    if REPO.is_dirty(untracked_files=True):
+        LOG.error("Linting requires a clean git directory to function properly")
+        sys.exit(1)
+
+    # Pass in all of the host environment variables starting with INPUT_
+    for element in dict(os.environ):
+        if element.startswith("INPUT_"):
+            environment[element] = os.environ.get(element)
+
+    image = "seiso/goat:latest"
+    environment["RUN_LOCAL"] = True
+    working_dir = "/goat/"
+    volumes = {CWD: {"bind": working_dir, "mode": "rw"}}
+
+    LOG.info("Pulling %s...", image)
+    CLIENT.images.pull(image)
+    LOG.info("Running %s...", image)
+    container = CLIENT.containers.run(
+        auto_remove=False,
+        detach=True,
+        environment=environment,
         image=image,
         volumes=volumes,
         working_dir=working_dir,
-        command="dockerfile_lint -f /root/Dockerfile -r /root/.github/workflows/etc/oci_annotations.yml",
     )
+
+    response = container.wait(condition="not-running")
+    decoded_response = container.logs().decode("utf-8")
+    response["logs"] = decoded_response.strip().replace("\n", "  ")
+    container.remove()
+    if not response["StatusCode"] == 0:
+        LOG.error(
+            "Received a non-zero status code from docker (%s); additional details: %s",
+            response["StatusCode"],
+            response["logs"],
+        )
+        sys.exit(response["StatusCode"])
+
+    LOG.info("Linting completed successfully")
 
 
 @task
