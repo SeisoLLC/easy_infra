@@ -801,7 +801,7 @@ def build(c):  # pylint: disable=unused-argument
             )
 
 
-@task
+@task(pre=[lint, build])
 def test(c):  # pylint: disable=unused-argument
     """Test easy_infra"""
     default_working_dir = "/iac/"

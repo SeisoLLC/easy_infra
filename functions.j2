@@ -76,6 +76,27 @@ function {{ command }}() {
     done
   done
 
+{% if commands[command]["allow_filter"] is defined %}
+  # Apply the allow filters after easy_infra specific arguments have been
+  # removed
+  for i in "${!arguments[@]}"; do
+    echo "for ${i} in ${arguments[@]}"
+{%- for filter in commands[command]["allow_filter"] %}
+    if [[ "${i}" == "{{ filter['position'] }}" && "${arguments[i]}" == "{{ filter['match'] }}" ]]; then
+      echo "hit is true"
+      hit="true"
+    fi
+{%- endfor %}
+
+    if [[ "${hit:-false}" == "false" ]]; then
+      echo "hit was false or not set, run ${FUNCNAME[0]} ${arguments[@]}"
+      # Run the command and return
+      command "${FUNCNAME[0]}" "${arguments[@]}"
+      return $?
+    fi
+  done
+{%- endif %}
+
   # Methods to skip **all** security tools for {{ command }}
   DISABLE_SECURITY="${DISABLE_SECURITY:-false}"
 
