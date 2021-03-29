@@ -13,7 +13,6 @@ import git
 import requests
 from invoke import task
 from jinja2 import Environment, FileSystemLoader
-from yaml import YAMLError, dump, safe_load
 from tests.test import (
     test_run_aws_stage,
     test_run_az_stage,
@@ -22,7 +21,7 @@ from tests.test import (
     test_run_terraform,
     test_version_commands,
 )
-
+from yaml import YAMLError, dump, safe_load
 
 # Helper functions
 def render_jinja2(*, template_file: Path, config: dict, output_file: Path) -> None:
