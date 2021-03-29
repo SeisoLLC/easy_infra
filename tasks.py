@@ -23,6 +23,7 @@ from tests.test import (
 )
 from yaml import YAMLError, dump, safe_load
 
+
 # Helper functions
 def render_jinja2(*, template_file: Path, config: dict, output_file: Path) -> None:
     """Render the functions file"""
