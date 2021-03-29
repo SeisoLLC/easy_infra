@@ -25,12 +25,6 @@ While it's not suggested, if you'd like to disable this behavior you have some o
     docker run -v $(pwd):/iac seiso/easy_infra /bin/bash -c "terraform --skip-tfsec init && terraform validate --skip-tfsec && terraform --skip-tfsec apply"
     ```
 
-## Terraform Caching
-If you're working with the same terraform across multiple runs you can leverage the cache via the following:
-```
-docker run -v $(pwd):/iac -v $(pwd)/plugin-cache:/root/.terraform.d/plugin-cache easy_infra:latest /bin/bash -c "terraform init; terraform version"
-```
-
 ## Contributing
 1. [Fork the repository](https://github.com/SeisoLLC/easy_infra/fork)
 1. Create a feature branch via `git checkout -b feature/description`
