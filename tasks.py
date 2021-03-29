@@ -3,23 +3,25 @@
 Task execution tool & library
 """
 
+import json
 import sys
-from logging import getLogger
+from logging import basicConfig, getLogger
 from pathlib import Path
 
+import docker
+import git
 import requests
-import tests.constants as constants
 from invoke import task
 from jinja2 import Environment, FileSystemLoader
-from tests.test import (
-    run_aws_stage,
-    run_az_stage,
-    run_cli,
-    run_security,
-    run_terraform,
-    version_commands,
-)
 from yaml import YAMLError, dump, safe_load
+from tests.test import (
+    test_run_aws_stage,
+    test_run_az_stage,
+    test_run_cli,
+    test_run_security,
+    test_run_terraform,
+    test_version_commands,
+)
 
 
 # Helper functions
@@ -75,9 +77,9 @@ def write_config(*, config: dict):
 def get_latest_release_from_apt(*, package: str) -> str:
     """Get the latest release of a project via apt"""
     # latest-az is used because it has the Microsoft repo added
-    image = constants.IMAGE + ":latest-az"
-    constants.CLIENT.images.pull(repository=image)
-    release = constants.CLIENT.containers.run(
+    image = IMAGE + ":latest-az"
+    CLIENT.images.pull(repository=image)
+    release = CLIENT.containers.run(
         image=image,
         auto_remove=True,
         detach=False,
@@ -135,7 +137,7 @@ def opinionated_docker_run(
     expected_exit: int = 0,
 ):
     """Perform an opinionated docker run"""
-    container = constants.CLIENT.containers.run(
+    container = CLIENT.containers.run(
         auto_remove=auto_remove,
         command=command,
         detach=detach,
@@ -178,15 +180,49 @@ VERSION = CONFIG["version"]
 CWD = Path(".").absolute()
 TESTS_PATH = CWD.joinpath("tests")
 
+LOG_FORMAT = json.dumps(
+    {
+        "timestamp": "%(asctime)s",
+        "namespace": "%(name)s",
+        "loglevel": "%(levelname)s",
+        "message": "%(message)s",
+    }
+)
+basicConfig(level="INFO", format=LOG_FORMAT)
 LOG = getLogger("easy_infra")
 
+# git
+REPO = git.Repo(CWD)
+COMMIT_HASH = REPO.head.object.hexsha
+
+# Docker
+CLIENT = docker.from_env()
+IMAGE = "seiso/easy_infra"
+TARGETS = {
+    "minimal": {},
+    "aws": {},
+    "az": {},
+    "final": {},
+}
+for target in TARGETS:
+    if target == "final":
+        TARGETS[target]["tags"] = [
+            IMAGE + ":" + COMMIT_HASH,
+            IMAGE + ":" + VERSION,
+            IMAGE + ":latest",
+        ]
+    else:
+        TARGETS[target]["tags"] = [
+            IMAGE + ":" + COMMIT_HASH + "-" + target,
+            IMAGE + ":" + VERSION + "-" + target,
+            IMAGE + ":" + "latest" + "-" + target,
+        ]
 
 # easy_infra
 APT_PACKAGES = {"ansible", "azure-cli"}
 GITHUB_REPOS = {"tfutils/tfenv", "tfsec/tfsec"}
 PYTHON_PACKAGES = {"awscli", "checkov"}
 HASHICORP_PROJECTS = {"terraform", "packer"}
-TESTS_PATH = CWD.joinpath("tests")
 UNACCEPTABLE_VULNS = ["CRITICAL", "HIGH"]
 INFORMATIONAL_VULNS = ["UNKNOWN", "LOW", "MEDIUM"]
 
@@ -215,7 +251,7 @@ def update(c):  # pylint: disable=unused-argument
     image = "python:3.9"
     working_dir = "/usr/src/app/"
     volumes = {CWD: {"bind": working_dir, "mode": "rw"}}
-    constants.CLIENT.images.pull(repository=image)
+    CLIENT.images.pull(repository=image)
     command = '/bin/bash -c "python3 -m pip install --upgrade pipenv &>/dev/null && pipenv update"'
     opinionated_docker_run(
         image=image,
@@ -233,7 +269,7 @@ def lint(c):  # pylint: disable=unused-argument
     image = "projectatomic/dockerfile-lint"
     working_dir = "/root/"
     volumes = {CWD: {"bind": working_dir, "mode": "ro"}}
-    constants.CLIENT.images.pull(repository=image)
+    CLIENT.images.pull(repository=image)
     opinionated_docker_run(
         image=image,
         volumes=volumes,
@@ -247,18 +283,18 @@ def build(c):  # pylint: disable=unused-argument
     """Build easy_infra"""
     render_jinja2(template_file=JINJA2_FILE, config=CONFIG, output_file=OUTPUT_FILE)
 
-    buildargs = {"VERSION": constants.VERSION, "COMMIT_HASH": constants.COMMIT_HASH}
-    for command in constants.CONFIG["commands"]:
-        if "version" in constants.CONFIG["commands"][command]:
+    buildargs = {"VERSION": VERSION, "COMMIT_HASH": COMMIT_HASH}
+    for command in CONFIG["commands"]:
+        if "version" in CONFIG["commands"][command]:
             # Normalize the build args
             arg = command.upper().replace("-", "_") + "_VERSION"
-            buildargs[arg] = constants.CONFIG["commands"][command]["version"]
+            buildargs[arg] = CONFIG["commands"][command]["version"]
 
     # pylint: disable=redefined-outer-name
-    for target in constants.TARGETS:
-        for tag in constants.TARGETS[target]["tags"]:
+    for target in TARGETS:
+        for tag in TARGETS[target]["tags"]:
             LOG.info("Building %s...", tag)
-            constants.CLIENT.images.build(
+            CLIENT.images.build(
                 path=str(CWD), target=target, rm=True, tag=tag, buildargs=buildargs
             )
 
@@ -270,27 +306,27 @@ def test(c):  # pylint: disable=unused-argument
     default_volumes = {TESTS_PATH: {"bind": default_working_dir, "mode": "ro"}}
 
     # pylint: disable=redefined-outer-name
-    for target in constants.TARGETS:
+    for target in TARGETS:
         # Only test using the last tag for each target
-        image = constants.TARGETS[target]["tags"][-1]
+        image = TARGETS[target]["tags"][-1]
 
         LOG.info("Testing %s...", image)
         if target == "minimal":
-            run_terraform(image=image)
-            run_security(image=image)
+            test_run_terraform(image=image)
+            test_run_security(image=image)
         elif target == "az":
-            run_az_stage(image=image)
-            run_security(image=image)
+            test_run_az_stage(image=image)
+            test_run_security(image=image)
         elif target == "aws":
-            run_aws_stage(image=image)
-            run_security(image=image)
+            test_run_aws_stage(image=image)
+            test_run_security(image=image)
         elif target == "final":
-            version_commands(
+            test_version_commands(
                 image=image, volumes=default_volumes, working_dir=default_working_dir
             )
-            run_terraform(image=image)
-            run_cli(image=image)
-            run_security(image=image)
+            test_run_terraform(image=image)
+            test_run_cli(image=image)
+            test_run_security(image=image)
         else:
             LOG.error("Untested stage of %s", target)
 
@@ -299,11 +335,11 @@ def test(c):  # pylint: disable=unused-argument
 def publish(c):  # pylint: disable=unused-argument
     """Publish easy_infra"""
     # pylint: disable=redefined-outer-name
-    for target in constants.TARGETS:
-        for tag in constants.TARGETS[target]["tags"]:
+    for target in TARGETS:
+        for tag in TARGETS[target]["tags"]:
             repository = tag
             LOG.info("Pushing %s to docker hub...", repository)
-            constants.CLIENT.images.push(repository=repository)
+            CLIENT.images.push(repository=repository)
     LOG.info("Done publishing easy_infra Docker images")
 
 

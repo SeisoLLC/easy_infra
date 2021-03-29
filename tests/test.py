@@ -1,24 +1,99 @@
+#!/usr/bin/env python3
+"""
+Test Functions
+"""
+
+import json
 import os
 import sys
-from logging import getLogger
+from logging import basicConfig, getLogger
 from pathlib import Path
 
-import tests.constants as constants
+import docker
+import git
+from yaml import YAMLError, safe_load
+
+
+def parse_config(*, config_file: Path) -> dict:
+    """Parse the easy_infra config file"""
+    # Filter
+    suffix_whitelist = {".yml", ".yaml"}
+
+    if config_file.suffix not in suffix_whitelist:
+        LOG.error("Suffix for the config file %s is not allowed", config_file)
+        raise RuntimeError
+
+    try:
+        with open(config_file) as yaml_data:
+            config = safe_load(yaml_data)
+    except (
+        YAMLError,
+        FileNotFoundError,
+        PermissionError,
+        IsADirectoryError,
+        OSError,
+    ) as err:
+        LOG.error(
+            "The config file %s was unable to be loaded due to the following exception: %s",
+            config_file,
+            str(err),
+        )
+        # Raise if info or debug level logging
+        if LOG.getEffectiveLevel() <= 20:
+            raise err
+        sys.exit(1)
+
+    return config
+
 
 # Globals
+CONFIG_FILE = Path("easy_infra.yml").absolute()
 OUTPUT_FILE = Path("functions").absolute()
-JINJA2_FILE = Path("functions.j2").absolute()
+CONFIG = parse_config(config_file=CONFIG_FILE)
+VERSION = CONFIG["version"]
 CWD = Path(".").absolute()
 TESTS_PATH = CWD.joinpath("tests")
+
+LOG_FORMAT = json.dumps(
+    {
+        "timestamp": "%(asctime)s",
+        "namespace": "%(name)s",
+        "loglevel": "%(levelname)s",
+        "message": "%(message)s",
+    }
+)
+basicConfig(level="INFO", format=LOG_FORMAT)
 LOG = getLogger("easy_infra")
+
+# git
+REPO = git.Repo(CWD)
+COMMIT_HASH = REPO.head.object.hexsha
+
+# Docker
+CLIENT = docker.from_env()
+IMAGE = "seiso/easy_infra"
+TARGETS = {
+    "minimal": {},
+    "aws": {},
+    "az": {},
+    "final": {},
+}
+for target in TARGETS:
+    if target == "final":
+        TARGETS[target]["tags"] = [
+            IMAGE + ":" + COMMIT_HASH,
+            IMAGE + ":" + VERSION,
+            IMAGE + ":latest",
+        ]
+    else:
+        TARGETS[target]["tags"] = [
+            IMAGE + ":" + COMMIT_HASH + "-" + target,
+            IMAGE + ":" + VERSION + "-" + target,
+            IMAGE + ":" + "latest" + "-" + target,
+        ]
 
 
 # easy_infra
-APT_PACKAGES = {"ansible", "azure-cli"}
-GITHUB_REPOS = {"tfutils/tfenv", "tfsec/tfsec"}
-PYTHON_PACKAGES = {"awscli", "checkov"}
-HASHICORP_PROJECTS = {"terraform", "packer"}
-TESTS_PATH = CWD.joinpath("tests")
 UNACCEPTABLE_VULNS = ["CRITICAL", "HIGH"]
 INFORMATIONAL_VULNS = ["UNKNOWN", "LOW", "MEDIUM"]
 
@@ -36,7 +111,7 @@ def opinionated_docker_run(
     expected_exit: int = 0,
 ):
     """Perform an opinionated docker run"""
-    container = constants.CLIENT.containers.run(
+    container = CLIENT.containers.run(
         auto_remove=auto_remove,
         command=command,
         detach=detach,
@@ -70,15 +145,13 @@ def is_status_expected(*, expected: int, response: dict) -> bool:
     return True
 
 
-def version_commands(*, image: str, volumes: dict, working_dir: str):
+def test_version_commands(*, image: str, volumes: dict, working_dir: str):
     """Test the version commands listed in the config"""
     num_tests_ran = 0
-    for command in constants.CONFIG["commands"]:
+    for command in CONFIG["commands"]:
         # Test the provided version commands
-        if "version_command" in constants.CONFIG["commands"][command]:
-            command = (
-                "command " + constants.CONFIG["commands"][command]["version_command"]
-            )
+        if "version_command" in CONFIG["commands"][command]:
+            command = "command " + CONFIG["commands"][command]["version_command"]
             opinionated_docker_run(
                 image=image,
                 volumes=volumes,
@@ -121,7 +194,7 @@ def exec_terraform(
     return num_tests_ran
 
 
-def run_terraform(*, image: str):
+def test_run_terraform(*, image: str):
     """Run the terraform tests"""
     num_tests_ran = 0
     working_dir = "/iac/"
@@ -370,7 +443,7 @@ def run_terraform(*, image: str):
     num_tests_ran += exec_terraform(tests=tests, volumes=secure_volumes, image=image)
 
     # Run base interactive tests
-    test_interactive_container = constants.CLIENT.containers.run(
+    test_interactive_container = CLIENT.containers.run(
         image=image,
         detach=True,
         auto_remove=False,
@@ -398,7 +471,7 @@ def run_terraform(*, image: str):
     test_interactive_container.kill()
 
     # Run base non-interactive tests
-    test_noninteractive_container = constants.CLIENT.containers.run(
+    test_noninteractive_container = CLIENT.containers.run(
         image=image,
         detach=True,
         auto_remove=False,
@@ -430,7 +503,7 @@ def run_terraform(*, image: str):
     test_noninteractive_container.kill()
 
     # Run terraform version non-interactive test
-    test_noninteractive_container = constants.CLIENT.containers.run(
+    test_noninteractive_container = CLIENT.containers.run(
         image=image,
         detach=True,
         auto_remove=False,
@@ -460,7 +533,7 @@ def run_terraform(*, image: str):
     LOG.info("%s passed %d end to end terraform tests", image, num_tests_ran)
 
 
-def run_az_stage(*, image: str):
+def test_run_az_stage(*, image: str):
     """Run the az tests"""
     num_tests_ran = 0
 
@@ -477,7 +550,7 @@ def run_az_stage(*, image: str):
     LOG.info("%s passed %d integration tests", image, num_tests_ran)
 
 
-def run_aws_stage(*, image: str):
+def test_run_aws_stage(*, image: str):
     """Run the aws tests"""
     num_tests_ran = 0
 
@@ -494,7 +567,7 @@ def run_aws_stage(*, image: str):
     LOG.info("%s passed %d integration tests", image, num_tests_ran)
 
 
-def run_cli(*, image: str):
+def test_run_cli(*, image: str):
     """Run basic cli tests"""
     num_tests_ran = 0
 
@@ -511,7 +584,7 @@ def run_cli(*, image: str):
     LOG.info("%s passed %d integration tests", image, num_tests_ran)
 
 
-def run_security(*, image: str):
+def test_run_security(*, image: str):
     """Run the security tests"""
     temp_dir = TESTS_PATH.joinpath("tmp")
 
@@ -529,7 +602,7 @@ def run_security(*, image: str):
     tag = image.split(":")[-1]
     file_name = f"{tag}.tar"
     image_file = temp_dir.joinpath(file_name)
-    raw_image = constants.CLIENT.images.get(image).save(named=True)
+    raw_image = CLIENT.images.get(image).save(named=True)
     with open(image_file, "wb") as file:
         for chunk in raw_image:
             file.write(chunk)
