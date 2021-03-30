@@ -52,7 +52,8 @@ RUN curl -L https://github.com/liamg/tfsec/releases/download/${TFSEC_VERSION}/tf
  && curl -L https://github.com/accurics/terrascan/releases/download/${TERRASCAN_VERSION}/terrascan_${TERRASCAN_VERSION#v}_Linux_x86_64.tar.gz -o /usr/local/bin/terrascan.tar.gz \
  && tar -xvf /usr/local/bin/terrascan.tar.gz -C /usr/local/bin/ terrascan \
  && rm -f /usr/local/bin/terrascan.tar.gz \
- && chmod 0755 /usr/local/bin/terrascan
+ && chmod 0755 /usr/local/bin/terrascan \
+ && terrascan init
 
 # git installs
 ARG TERRAFORM_VERSION
