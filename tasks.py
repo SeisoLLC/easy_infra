@@ -4,8 +4,8 @@ Task execution tool & library
 """
 
 import json
-import sys
 import os
+import sys
 from logging import basicConfig, getLogger
 from pathlib import Path
 
