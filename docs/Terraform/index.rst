@@ -15,7 +15,7 @@ You can also use easy_infra to deploy your infrastructure using ``terraform plan
 
     docker run -v $(pwd):/tf seiso/easy_infra:latest-minimal /bin/bash -c "terraform plan && terraform apply -auto-approve"
 
-Terraform Cacheing
+Terraform Caching
 ------------------
 If you're working with the same terraform code across multiple runs, you can leverage the cache::
 
