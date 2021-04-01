@@ -268,6 +268,8 @@ def update(c):  # pylint: disable=unused-argument
 def lint(c):  # pylint: disable=unused-argument
     """Lint {{ cookiecutter.project_name }}"""
     environment = {}
+    # Default to disabling terrascan
+    environment["INPUT_DISABLE_TERRASCAN"] = "true"
 
     if REPO.is_dirty(untracked_files=True):
         LOG.error("Linting requires a clean git directory to function properly")
