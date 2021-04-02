@@ -266,7 +266,7 @@ def update(c):  # pylint: disable=unused-argument
 
 @task
 def lint(c):  # pylint: disable=unused-argument
-    """Lint {{ cookiecutter.project_name }}"""
+    """Lint easy_infra"""
     environment = {}
     # Default to disabling terrascan
     environment["INPUT_DISABLE_TERRASCAN"] = "true"
