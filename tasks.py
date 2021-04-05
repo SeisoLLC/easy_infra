@@ -137,7 +137,7 @@ def build(c):  # pylint: disable=unused-argument
     )
 
     buildargs = {
-        "VERSION": CONFIG["VERSION"],
+        "VERSION": CONFIG["version"],
         "COMMIT_HASH": COMMIT_HASH,
     }
     for command in CONFIG["commands"]:
