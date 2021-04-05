@@ -1,5 +1,5 @@
 """
-Constants
+easy_infra constants
 """
 
 import json

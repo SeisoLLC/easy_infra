@@ -1,5 +1,5 @@
 """
-init
+easy_infra init
 """
 __maintainer__ = "Seiso"
 __copyright__ = "(c) 2020 Seiso, LLC"

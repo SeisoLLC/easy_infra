@@ -5,19 +5,17 @@ Test Functions
 
 import os
 import sys
-from logging import basicConfig, getLogger
+from logging import getLogger
 from pathlib import Path
 
 import docker
 from easy_infra import __project_name__, constants, utils
 
 # Globals
-CONFIG_FILE = Path(f"{__project_name__}.yml").absolute()
-CONFIG = utils.parse_config(config_file=CONFIG_FILE)
+CONFIG = utils.parse_config(config_file=constants.CONFIG_FILE)
 CWD = Path(".").absolute()
 TESTS_PATH = CWD.joinpath("tests")
 
-basicConfig(level=constants.LOG_DEFAULT, format=constants.LOG_FORMAT)
 LOG = getLogger(__name__)
 
 CLIENT = docker.from_env()
