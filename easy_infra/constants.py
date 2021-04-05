@@ -5,8 +5,6 @@ Constants
 import json
 from pathlib import Path
 
-import git
-
 from easy_infra import __project_name__
 
 CONFIG_FILE = Path(f"{__project_name__}.yml").absolute()

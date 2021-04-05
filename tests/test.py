@@ -3,17 +3,13 @@
 Test Functions
 """
 
-import json
 import os
 import sys
 from logging import basicConfig, getLogger
 from pathlib import Path
 
 import docker
-import git
-from yaml import YAMLError, safe_load
-from easy_infra import utils, constants, __project_name__
-
+from easy_infra import __project_name__, constants, utils
 
 # Globals
 CONFIG_FILE = Path(f"{__project_name__}.yml").absolute()

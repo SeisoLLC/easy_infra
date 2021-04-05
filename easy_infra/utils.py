@@ -4,12 +4,10 @@ from pathlib import Path
 
 import docker
 import requests
+from easy_infra import constants
 from jinja2 import Environment, FileSystemLoader
 from yaml import YAMLError, dump, safe_load
 
-from easy_infra import constants
-
-# TODO: Double check this works
 LOG = getLogger(__name__)
 CLIENT = docker.from_env()
 

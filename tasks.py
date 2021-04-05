@@ -10,10 +10,9 @@ from pathlib import Path
 
 import docker
 import git
-from invoke import task
-
 from easy_infra import __project_name__, constants, utils
-from tests import test
+from invoke import task
+from tests import test as run_test
 
 CWD = Path(".").absolute()
 REPO = git.Repo(CWD)
@@ -149,7 +148,7 @@ def build(c):  # pylint: disable=unused-argument
 
     # pylint: disable=redefined-outer-name
     for target in constants.TARGETS:
-        for tag in constants.TARGETS[target]["tags"]:
+        for tag in TARGETS[target]["tags"]:
             LOG.info("Building %s...", tag)
             CLIENT.images.build(
                 path=str(CWD), target=target, rm=True, tag=tag, buildargs=buildargs
@@ -165,25 +164,25 @@ def test(c):  # pylint: disable=unused-argument
     # pylint: disable=redefined-outer-name
     for target in constants.TARGETS:
         # Only test using the last tag for each target
-        image = constants.TARGETS[target]["tags"][-1]
+        image = TARGETS[target]["tags"][-1]
 
         LOG.info("Testing %s...", image)
         if target == "minimal":
-            test.run_terraform(image=image)
-            test.run_security(image=image)
+            run_test.run_terraform(image=image)
+            run_test.run_security(image=image)
         elif target == "az":
-            test.run_az_stage(image=image)
-            test.run_security(image=image)
+            run_test.run_az_stage(image=image)
+            run_test.run_security(image=image)
         elif target == "aws":
-            test.run_aws_stage(image=image)
-            test.run_security(image=image)
+            run_test.run_aws_stage(image=image)
+            run_test.run_security(image=image)
         elif target == "final":
-            test.version_commands(
+            run_test.version_commands(
                 image=image, volumes=default_volumes, working_dir=default_working_dir
             )
-            test.run_terraform(image=image)
-            test.run_cli(image=image)
-            test.run_security(image=image)
+            run_test.run_terraform(image=image)
+            run_test.run_cli(image=image)
+            run_test.run_security(image=image)
         else:
             LOG.error("Untested stage of %s", target)
 
@@ -193,7 +192,7 @@ def publish(c):  # pylint: disable=unused-argument
     """Publish easy_infra"""
     # pylint: disable=redefined-outer-name
     for target in constants.TARGETS:
-        for tag in constants.TARGETS[target]["tags"]:
+        for tag in TARGETS[target]["tags"]:
             repository = tag
             LOG.info("Pushing %s to docker hub...", repository)
             CLIENT.images.push(repository=repository)
