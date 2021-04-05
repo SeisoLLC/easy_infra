@@ -9,7 +9,7 @@ from logging import getLogger
 from pathlib import Path
 
 import docker
-from easy_infra import __project_name__, constants, utils
+from easy_infra import constants, utils
 
 # Globals
 CONFIG = utils.parse_config(config_file=constants.CONFIG_FILE)
