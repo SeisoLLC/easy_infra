@@ -10,7 +10,7 @@ from pathlib import Path
 
 import docker
 import git
-from easy_infra import __project_name__, constants, utils
+from easy_infra import __project_name__, __version__, constants, utils
 from invoke import task
 from tests import test as run_test
 
@@ -21,7 +21,6 @@ TESTS_PATH = CWD.joinpath("tests")
 LOG = getLogger(__project_name__)
 CLIENT = docker.from_env()
 CONFIG = utils.parse_config(config_file=constants.CONFIG_FILE)
-VERSION = CONFIG["version"]
 
 TARGETS = {}
 for target in constants.TARGETS:
@@ -29,13 +28,13 @@ for target in constants.TARGETS:
     if target == "final":
         TARGETS[target]["tags"] = [
             constants.IMAGE + ":" + COMMIT_HASH,
-            constants.IMAGE + ":" + VERSION,
+            constants.IMAGE + ":" + __version__,
             constants.IMAGE + ":latest",
         ]
     else:
         TARGETS[target]["tags"] = [
             constants.IMAGE + ":" + COMMIT_HASH + "-" + target,
-            constants.IMAGE + ":" + VERSION + "-" + target,
+            constants.IMAGE + ":" + __version__ + "-" + target,
             constants.IMAGE + ":" + "latest" + "-" + target,
         ]
 
@@ -137,7 +136,7 @@ def build(c):  # pylint: disable=unused-argument
     )
 
     buildargs = {
-        "VERSION": CONFIG["version"],
+        "VERSION": __version__,
         "COMMIT_HASH": COMMIT_HASH,
     }
     for command in CONFIG["commands"]:

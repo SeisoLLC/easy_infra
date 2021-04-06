@@ -42,4 +42,3 @@ commands:
   tfsec:
     version: v0.38.6
     version_command: tfsec --version
-version: 0.7.1-dirty
