@@ -13,15 +13,13 @@
    Home <self>
    Docker Images <Images/index>
    Terraform/index
-   AWS Cli <awscli/index>
+   AWS ClI <awscli/index>
    Azure CLI <az/index>
    Packer/index
    Ansible/index
    Testing/index
 
-Indices and tables
+Search
 ==================
 
-* :ref:`genindex`
-* :ref:`modindex`
 * :ref:`search`

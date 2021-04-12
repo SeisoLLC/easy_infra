@@ -6,7 +6,7 @@ of the program. As part of the terraform execution, security checks available fr
 
 Use Cases
 =========
-If you use Software Version Control to manage your Terraform IaC, consider executing ``terraform validate`` with 
+If you use Software Version Control (such as `git`) to manage your Terraform IaC, consider executing ``terraform validate`` with 
 easy_infra as a pipeline action on commit or pull request::
 
     docker run -v $(pwd):/tf seiso/easy_infra:latest-minimal terraform validate
@@ -23,6 +23,7 @@ If you're working with the same terraform code across multiple runs, you can lev
 
 Resources
 =========
+Configuring custom checks can be done by leveragin the robust Rego language, maintained by the, 
 Open Policy Agent (OPA) offers useful resources for cloud native infrastructure administrators.
 Their example Terraform workflow is available `here  <https://www.openpolicyagent.org/docs/latest/terraform/>`_.
 
