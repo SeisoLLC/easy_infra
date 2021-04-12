@@ -3,156 +3,32 @@
 Test Functions
 """
 
-import json
 import os
 import sys
-from logging import basicConfig, getLogger
+from logging import getLogger
 from pathlib import Path
 
 import docker
-import git
-from yaml import YAMLError, safe_load
-
-
-def parse_config(*, config_file: Path) -> dict:
-    """Parse the easy_infra config file"""
-    # Filter
-    suffix_whitelist = {".yml", ".yaml"}
-
-    if config_file.suffix not in suffix_whitelist:
-        LOG.error("Suffix for the config file %s is not allowed", config_file)
-        raise RuntimeError
-
-    try:
-        with open(config_file) as yaml_data:
-            config = safe_load(yaml_data)
-    except (
-        YAMLError,
-        FileNotFoundError,
-        PermissionError,
-        IsADirectoryError,
-        OSError,
-    ) as err:
-        LOG.error(
-            "The config file %s was unable to be loaded due to the following exception: %s",
-            config_file,
-            str(err),
-        )
-        # Raise if info or debug level logging
-        if LOG.getEffectiveLevel() <= 20:
-            raise err
-        sys.exit(1)
-
-    return config
-
+from easy_infra import constants, utils
 
 # Globals
-CONFIG_FILE = Path("easy_infra.yml").absolute()
-OUTPUT_FILE = Path("functions").absolute()
-CONFIG = parse_config(config_file=CONFIG_FILE)
-VERSION = CONFIG["version"]
+CONFIG = utils.parse_config(config_file=constants.CONFIG_FILE)
 CWD = Path(".").absolute()
 TESTS_PATH = CWD.joinpath("tests")
 
-LOG_FORMAT = json.dumps(
-    {
-        "timestamp": "%(asctime)s",
-        "namespace": "%(name)s",
-        "loglevel": "%(levelname)s",
-        "message": "%(message)s",
-    }
-)
-basicConfig(level="INFO", format=LOG_FORMAT)
-LOG = getLogger("easy_infra")
+LOG = getLogger(__name__)
 
-# git
-REPO = git.Repo(CWD)
-COMMIT_HASH = REPO.head.object.hexsha
-
-# Docker
 CLIENT = docker.from_env()
-IMAGE = "seiso/easy_infra"
-TARGETS = {
-    "minimal": {},
-    "aws": {},
-    "az": {},
-    "final": {},
-}
-for target in TARGETS:
-    if target == "final":
-        TARGETS[target]["tags"] = [
-            IMAGE + ":" + COMMIT_HASH,
-            IMAGE + ":" + VERSION,
-            IMAGE + ":latest",
-        ]
-    else:
-        TARGETS[target]["tags"] = [
-            IMAGE + ":" + COMMIT_HASH + "-" + target,
-            IMAGE + ":" + VERSION + "-" + target,
-            IMAGE + ":" + "latest" + "-" + target,
-        ]
 
 
-# easy_infra
-UNACCEPTABLE_VULNS = ["CRITICAL", "HIGH"]
-INFORMATIONAL_VULNS = ["UNKNOWN", "LOW", "MEDIUM"]
-
-
-def opinionated_docker_run(
-    *,
-    command: str,
-    image: str,
-    auto_remove: bool = False,
-    tty: bool = False,
-    detach: bool = True,
-    environment: dict = {},
-    volumes: dict = {},
-    working_dir: str = "/iac/",
-    expected_exit: int = 0,
-):
-    """Perform an opinionated docker run"""
-    container = CLIENT.containers.run(
-        auto_remove=auto_remove,
-        command=command,
-        detach=detach,
-        environment=environment,
-        image=image,
-        tty=tty,
-        volumes=volumes,
-        working_dir=working_dir,
-    )
-
-    if not auto_remove:
-        response = container.wait(condition="not-running")
-        response["logs"] = container.logs().decode("utf-8").strip().replace("\n", "  ")
-        container.remove()
-        if not is_status_expected(expected=expected_exit, response=response):
-            sys.exit(response["StatusCode"])
-
-
-def is_status_expected(*, expected: int, response: dict) -> bool:
-    """Check to see if the status code was expected"""
-    actual = response["StatusCode"]
-
-    if expected != actual:
-        LOG.error(
-            "Received an unexpected status code of %s; additional details: %s",
-            response["StatusCode"],
-            response["logs"],
-        )
-        return False
-
-    return True
-
-
-def test_version_commands(*, image: str, volumes: dict, working_dir: str):
+def version_commands(*, image: str, volumes: dict, working_dir: str):
     """Test the version commands listed in the config"""
     num_tests_ran = 0
     for command in CONFIG["commands"]:
         # Test the provided version commands
         if "version_command" in CONFIG["commands"][command]:
             command = "command " + CONFIG["commands"][command]["version_command"]
-            opinionated_docker_run(
+            utils.opinionated_docker_run(
                 image=image,
                 volumes=volumes,
                 working_dir=working_dir,
@@ -182,7 +58,7 @@ def exec_terraform(
             command,
             expected_exit,
         )
-        opinionated_docker_run(
+        utils.opinionated_docker_run(
             command=command,
             environment=environment,
             expected_exit=expected_exit,
@@ -194,7 +70,7 @@ def exec_terraform(
     return num_tests_ran
 
 
-def test_run_terraform(*, image: str):
+def run_terraform(*, image: str):
     """Run the terraform tests"""
     num_tests_ran = 0
     working_dir = "/iac/"
@@ -212,7 +88,7 @@ def test_run_terraform(*, image: str):
 
     # Ensure invalid configurations fail
     command = "terraform plan"
-    opinionated_docker_run(
+    utils.opinionated_docker_run(
         image=image,
         volumes=invalid_volumes,
         command=command,
@@ -533,58 +409,58 @@ def test_run_terraform(*, image: str):
     LOG.info("%s passed %d end to end terraform tests", image, num_tests_ran)
 
 
-def test_run_az_stage(*, image: str):
+def run_az_stage(*, image: str):
     """Run the az tests"""
     num_tests_ran = 0
 
     # Ensure a basic azure help command succeeds
     command = "az help"
-    opinionated_docker_run(image=image, command=command, expected_exit=0)
+    utils.opinionated_docker_run(image=image, command=command, expected_exit=0)
     num_tests_ran += 1
 
     # Ensure a basic aws help command fails
     command = "aws help"
-    opinionated_docker_run(image=image, command=command, expected_exit=127)
+    utils.opinionated_docker_run(image=image, command=command, expected_exit=127)
     num_tests_ran += 1
 
     LOG.info("%s passed %d integration tests", image, num_tests_ran)
 
 
-def test_run_aws_stage(*, image: str):
+def run_aws_stage(*, image: str):
     """Run the aws tests"""
     num_tests_ran = 0
 
     # Ensure a basic aws help command succeeds
     command = "aws help"
-    opinionated_docker_run(image=image, command=command, expected_exit=0)
+    utils.opinionated_docker_run(image=image, command=command, expected_exit=0)
     num_tests_ran += 1
 
     # Ensure a basic az help command fails
     command = "az help"
-    opinionated_docker_run(image=image, command=command, expected_exit=127)
+    utils.opinionated_docker_run(image=image, command=command, expected_exit=127)
     num_tests_ran += 1
 
     LOG.info("%s passed %d integration tests", image, num_tests_ran)
 
 
-def test_run_cli(*, image: str):
+def run_cli(*, image: str):
     """Run basic cli tests"""
     num_tests_ran = 0
 
     # Ensure a basic aws help command succeeds
     command = "aws help"
-    opinionated_docker_run(image=image, command=command, expected_exit=0)
+    utils.opinionated_docker_run(image=image, command=command, expected_exit=0)
     num_tests_ran += 1
 
     # Ensure a basic azure help command succeeds
     command = "az help"
-    opinionated_docker_run(image=image, command=command, expected_exit=0)
+    utils.opinionated_docker_run(image=image, command=command, expected_exit=0)
     num_tests_ran += 1
 
     LOG.info("%s passed %d integration tests", image, num_tests_ran)
 
 
-def test_run_security(*, image: str):
+def run_security(*, image: str):
     """Run the security tests"""
     temp_dir = TESTS_PATH.joinpath("tmp")
 
@@ -617,12 +493,12 @@ def test_run_security(*, image: str):
     # findings
     command = (
         "--quiet image --exit-code 0 --severity "
-        + ",".join(INFORMATIONAL_VULNS)
+        + ",".join(constants.INFORMATIONAL_VULNS)
         + " --format json --light --input "
         + working_dir
         + file_name
     )
-    opinionated_docker_run(
+    utils.opinionated_docker_run(
         image=scanner, command=command, volumes=volumes, expected_exit=0
     )
     num_tests_ran += 1
@@ -630,12 +506,12 @@ def test_run_security(*, image: str):
     # Ensure no high or critical vulnerabilities exist in the image
     command = (
         "--quiet image --exit-code 1 --severity "
-        + ",".join(UNACCEPTABLE_VULNS)
+        + ",".join(constants.UNACCEPTABLE_VULNS)
         + " --format json --light --input "
         + working_dir
         + file_name
     )
-    opinionated_docker_run(
+    utils.opinionated_docker_run(
         image=scanner, command=command, volumes=volumes, expected_exit=0
     )
     num_tests_ran += 1
