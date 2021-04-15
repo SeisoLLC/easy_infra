@@ -82,7 +82,7 @@ def update(c):  # pylint: disable=unused-argument
 def lint(c):  # pylint: disable=unused-argument
     """Lint easy_infra"""
     environment = {}
-    # Set the default aligned with CI
+    # Default to disabling the goat built-in terrascan
     environment["INPUT_DISABLE_TERRASCAN"] = "true"
 
     if REPO.is_dirty(untracked_files=True):

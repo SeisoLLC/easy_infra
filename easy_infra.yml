@@ -1,4 +1,21 @@
 ---
+_anchors:
+  security: &terraform-security
+    checkov:
+      command: checkov -d . --no-guide
+      description: directory scan
+    terrascan:
+      command: terrascan scan -i terraform -t all -d .
+      description: recursive scan
+    tfsec:
+      command: tfsec .
+      description: recursive scan
+  validation: &terraform-validation
+    - command: terraform init
+      description: initialization
+    - command: terraform validate
+      description: validation
+
 commands:
   ansible:
     version: 2.9.6+dfsg-1
@@ -16,27 +33,19 @@ commands:
     version: 1.7.0
     version_command: packer version
   terraform:
-    security:
-      checkov:
-        command: checkov -d . --no-guide
-        description: directory scan
-      terrascan:
-        command: terrascan scan -i terraform -t all -d .
-        description: recursive scan
-      tfsec:
-        command: tfsec .
-        description: recursive scan
-    validation:
-    - command: terraform init
-      description: initialization
-    - command: terraform validate
-      description: validation
+    security: *terraform-security
+    validation: *terraform-validation
     version: 0.14.7
     version_command: terraform version
   terrascan:
     version: v1.3.1
     version_command: terrascan version
   tfenv:
+    security: *terraform-security
+    validation: *terraform-validation
+    allow_filter:
+      - position: 0
+        match: exec
     version: v2.2.0
     version_command: tfenv --version
   tfsec:
