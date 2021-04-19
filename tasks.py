@@ -10,6 +10,7 @@ from pathlib import Path
 
 import docker
 import git
+from bumpversion.cli import main as bumpversion
 from easy_infra import __project_name__, __version__, constants, utils
 from invoke import task
 from tests import test as run_test
@@ -184,6 +185,20 @@ def test(c):  # pylint: disable=unused-argument
             run_test.run_security(image=image)
         else:
             LOG.error("Untested stage of %s", target)
+
+
+@task(pre=[test])
+def release(c, release_type):  # pylint: disable=unused-argument
+    """Make a new release of easy_infra"""
+    if REPO.head.is_detached:
+        LOG.error("In detached HEAD state, refusing to release")
+        sys.exit(1)
+
+    if release_type not in ["major", "minor", "patch"]:
+        LOG.error("Please provide a release type of major, minor, or patch")
+        sys.exit(1)
+
+    bumpversion([release_type])
 
 
 @task

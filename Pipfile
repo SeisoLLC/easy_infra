@@ -6,12 +6,13 @@ name = "pypi"
 [packages]
 
 [dev-packages]
-invoke = "*"
-requests = "*"
+bumpversion = "*"
 docker = "*"
-PyYAML = "*"
-Jinja2 = "*"
-GitPython = "*"
+gitpython = "*"
+invoke = "*"
+jinja2 = "*"
+pyyaml = "*"
+requests = "*"
 
 [requires]
 python_version = "3.9"
