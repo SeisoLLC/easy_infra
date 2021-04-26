@@ -13,7 +13,7 @@ easy_infra as a pipeline action on commit or pull request::
 
 You can also use easy_infra to deploy your infrastructure using ``terraform plan`` and ``terraform deploy``::
 
-    docker run -v $(pwd):/tf seiso/easy_infra:latest-minimal /bin/bash -c "terraform plan && terraform apply -auto-approve"
+    docker run -v $(pwd):/iac seiso/easy_infra:latest-minimal /bin/bash -c "terraform plan && terraform apply -auto-approve"
 
 Terraform Caching
 ------------------
