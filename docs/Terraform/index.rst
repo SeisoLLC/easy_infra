@@ -9,7 +9,7 @@ Use Cases
 If you use Software Version Control (such as `git`) to manage your Terraform IaC, consider executing ``terraform validate`` with 
 easy_infra as a pipeline action on commit or pull request::
 
-    docker run -v $(pwd):/tf seiso/easy_infra:latest-minimal terraform validate
+    docker run -v $(pwd):/iac seiso/easy_infra:latest-minimal terraform validate
 
 You can also use easy_infra to deploy your infrastructure using ``terraform plan`` and ``terraform deploy``::
 
