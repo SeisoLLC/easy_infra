@@ -1,7 +1,7 @@
 Terraform
 =========
 HashiCorp's Terraform is a tool for defining your Infrastructure as Code (IaC). The easy_infra project includes Terraform
-to support its use in CI/CD pipelines. You can use easy_infra to execute Terraform commands on an up-to-date version
+to support its use, both locally and in CI/CD pipelines. You can use easy_infra to execute Terraform commands, and
 of the program. As part of the terraform execution, security checks available from `Checkov <https://www.checkov.io/>`_, `tfsec <https://tfsec.dev/>`_, and `Terrascan <https://www.accurics.com/products/terrascan/>`_ are performed to assess your terraform code.
 
 Use Cases
