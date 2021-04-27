@@ -13,7 +13,7 @@
    Home <self>
    Docker Images <Images/index>
    Terraform/index
-   AWS ClI <awscli/index>
+   AWS CLI <awscli/index>
    Azure CLI <az/index>
    Packer/index
    Ansible/index
