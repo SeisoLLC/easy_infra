@@ -30,8 +30,6 @@ jobs:
         run: |
           python -m pip install --upgrade pipenv
           pipenv install --python ${{ matrix.python-version }} --dev
-      - name: Build the Docker images
-        run: pipenv run invoke build
       - name: Run tests
         run: pipenv run invoke test
   distribute:
