@@ -29,27 +29,18 @@ subsequent execution of `terraform`.
 While it's not suggested, if you'd like to disable this behavior you have some
 options:
 
-1. Set the `SKIP_TFSEC` environment variable to `true`.
+* Set the `SKIP_TFSEC` environment variable to `true`.
 
-    ```bash
-    docker run --env SKIP_TFSEC=true -v $(pwd):/iac seiso/easy_infra /bin/bash -c "terraform init && terraform apply"
-    ```
+```bash
+docker run --env SKIP_TFSEC=true -v $(pwd):/iac seiso/easy_infra /bin/bash -c "terraform init && terraform apply"
+```
 
-1. Pass the `--skip-tfsec` argument to specific `terraform` commands.  This
+* Pass the `--skip-tfsec` argument to specific `terraform` commands.  This
    argument is processed by easy_infra and removed prior to passing parameters
    to the `terraform` command.
 
-    ```bash
-    docker run -v $(pwd):/iac seiso/easy_infra /bin/bash -c "terraform --skip-tfsec init && terraform apply --skip-tfsec"
-    ```
-
-## Terraform Caching
-
-If you're working with the same terraform across multiple runs you can leverage
-the cache via the following:
-
 ```bash
-docker run -v $(pwd):/iac -v $(pwd)/plugin-cache:/root/.terraform.d/plugin-cache easy_infra:latest /bin/bash -c "terraform init; terraform version"
+docker run -v $(pwd):/iac seiso/easy_infra /bin/bash -c "terraform --skip-tfsec init && terraform apply --skip-tfsec"
 ```
 
 ## Contributing

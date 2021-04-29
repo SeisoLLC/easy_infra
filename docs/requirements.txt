@@ -1,0 +1,5 @@
+#
+# This file defines requirements used by readthedocs.io
+#
+
+m2r2==0.2.7
