@@ -118,7 +118,7 @@ FROM minimal AS aws
 ARG AWSCLI_VERSION
 # hadolint ignore=DL3013
 RUN python3 -m pip install --upgrade --no-cache-dir pip \
- && pip install --user --no-cache-dir awscli==${AWSCLI_VERSION}
+ && pip install --user --no-cache-dir git+git://github.com/aws/aws-cli.git#${AWSCLI_VERSION}
 
 # Add aws autocomplete
 RUN echo 'complete -C /root/.local/bin/aws_completer aws' >> ~/.bashrc
