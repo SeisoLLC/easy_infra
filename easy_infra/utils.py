@@ -86,6 +86,12 @@ def get_latest_release_from_github(*, repo: str) -> str:
     return response["tag_name"]
 
 
+def get_latest_tag_from_github(*, repo: str) -> str:
+    """Get the latest tag of a repo on github"""
+    response = requests.get(f"https://api.github.com/repos/{repo}/tags").json()
+    return response[0]["name"]
+
+
 def get_latest_release_from_pypi(*, package: str) -> str:
     """Get the latest release of a package on pypi"""
     response = requests.get(f"https://pypi.org/pypi/{package}/json").json()
