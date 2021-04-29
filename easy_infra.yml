@@ -1,4 +1,3 @@
----
 _anchors:
   security: &terraform-security
     checkov:
@@ -11,43 +10,42 @@ _anchors:
       command: tfsec .
       description: recursive scan
   validation: &terraform-validation
-    - command: terraform init
-      description: initialization
-    - command: terraform validate
-      description: validation
-
+  - command: terraform init
+    description: initialization
+  - command: terraform validate
+    description: validation
 commands:
   ansible:
     version: 2.9.6+dfsg-1
     version_command: ansible --version
   awscli:
-    version: 1.19.12
+    version: 1.19.60
     version_command: aws --version
   azure-cli:
-    version: 2.19.1-1~focal
+    version: 2.22.1-1~focal
     version_command: az version
   checkov:
-    version: 1.0.801
+    version: 2.0.87
     version_command: checkov --version
   packer:
-    version: 1.7.0
+    version: 1.7.2
     version_command: packer version
   terraform:
     security: *terraform-security
     validation: *terraform-validation
-    version: 0.14.7
+    version: 0.15.1
     version_command: terraform version
   terrascan:
     version: v1.3.1
     version_command: terrascan version
   tfenv:
+    allow_filter:
+    - match: exec
+      position: 0
     security: *terraform-security
     validation: *terraform-validation
-    allow_filter:
-      - position: 0
-        match: exec
-    version: v2.2.0
+    version: v2.2.1
     version_command: tfenv --version
   tfsec:
-    version: v0.38.6
+    version: v0.39.26
     version_command: tfsec --version
