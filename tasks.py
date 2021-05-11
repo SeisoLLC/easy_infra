@@ -224,6 +224,7 @@ def release(c):  # pylint: disable=unused-argument
 
     bumpversion(["--new-version", new_version, "unusedpart"])
 
+
 @task
 def publish(c):  # pylint: disable=unused-argument
     """Publish easy_infra"""
