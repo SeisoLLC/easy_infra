@@ -51,8 +51,12 @@ def update(c):  # pylint: disable=unused-argument
         version = utils.get_latest_release_from_apt(package=package)
         utils.update_config_file(thing=package, version=version)
 
-    for repo in constants.GITHUB_REPOS:
+    for repo in constants.GITHUB_REPOS_RELEASES:
         version = utils.get_latest_release_from_github(repo=repo)
+        utils.update_config_file(thing=repo, version=version)
+
+    for repo in constants.GITHUB_REPOS_TAGS:
+        version = utils.get_latest_tag_from_github(repo=repo)
         utils.update_config_file(thing=repo, version=version)
 
     for project in constants.HASHICORP_PROJECTS:

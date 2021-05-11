@@ -508,7 +508,7 @@ def run_security(*, image: str):
     )
     num_tests_ran += 1
 
-    # Ensure no high or critical vulnerabilities exist in the image
+    # Ensure no critical vulnerabilities exist in the image
     command = (
         "--quiet image --exit-code 1 --severity "
         + ",".join(constants.UNACCEPTABLE_VULNS)
