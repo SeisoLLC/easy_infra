@@ -4,4 +4,4 @@ easy_infra init
 __maintainer__ = "Seiso"
 __copyright__ = "(c) 2020 Seiso, LLC"
 __project_name__ = "easy_infra"
-__version__ = "2021.05.00"
+__version__ = "2021.05.01"
