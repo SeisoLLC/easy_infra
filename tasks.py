@@ -4,7 +4,9 @@ Task execution tool & library
 """
 
 import os
+import re
 import sys
+from datetime import datetime
 from logging import basicConfig, getLogger
 from pathlib import Path
 
@@ -192,17 +194,35 @@ def test(c):  # pylint: disable=unused-argument
 
 
 @task(pre=[test])
-def release(c, release_type):  # pylint: disable=unused-argument
+def release(c):  # pylint: disable=unused-argument
     """Make a new release of easy_infra"""
     if REPO.head.is_detached:
         LOG.error("In detached HEAD state, refusing to release")
         sys.exit(1)
 
-    if release_type not in ["major", "minor", "patch"]:
-        LOG.error("Please provide a release type of major, minor, or patch")
-        sys.exit(1)
+    # Get the current date info
+    date_info = datetime.now().strftime("%Y.%m")
 
-    bumpversion([release_type])
+    # Our CalVer pattern which works until year 2200, up to 100 releases a
+    # month (purposefully excludes builds)
+    pattern = re.compile(r"v2[0-1][0-9]{2}.(0[0-9]|1[0-2]).[0-9]{2}")
+
+    # Identify and set the increment
+    for tag in reversed(REPO.tags):
+        if pattern.fullmatch(tag.name):
+            latest_release = tag.name
+            break
+    else:
+        latest_release = None
+
+    if latest_release and date_info == latest_release[:7]:
+        increment = str(int(latest_release[8:]) + 1).zfill(2)
+    else:
+        increment = "01"
+
+    new_version = date_info + "." + increment
+
+    bumpversion(["--new-version", new_version, "unusedpart"])
 
 
 @task
