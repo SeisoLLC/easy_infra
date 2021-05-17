@@ -89,7 +89,7 @@ WORKDIR /iac
 COPY docker-entrypoint.sh /usr/local/bin/
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 
-FROM minimal AS  az
+FROM minimal AS az
 ARG AZURE_CLI_VERSION
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 # hadolint ignore=DL3008
@@ -114,19 +114,19 @@ RUN apt-get update \
  && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/*
 
 FROM minimal AS aws
-# pip installs
 ARG AWSCLI_VERSION
-# hadolint ignore=DL3013
-RUN python3 -m pip install --upgrade --no-cache-dir pip \
- && pip install --user --no-cache-dir git+git://github.com/aws/aws-cli.git#${AWSCLI_VERSION}
+RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-${AWSCLI_VERSION}.zip" -o "/tmp/awscliv2.zip" \
+ && unzip /tmp/awscliv2.zip -d /tmp \
+ && /tmp/aws/install \
+ && rm -rf /tmp/*
 
 # Add aws autocomplete
-RUN echo 'complete -C /root/.local/bin/aws_completer aws' >> ~/.bashrc
+RUN echo 'complete -C /usr/local/bin/aws_completer aws' >> ~/.bashrc
 
 FROM minimal AS final
 
 # AWS
-COPY --from=aws /root/.local /root/.local
+COPY --from=aws /usr/local/bin/aws* /usr/local/bin/
 COPY --from=aws /root/.bashrc /root/.bashrc
 
 # Azure
