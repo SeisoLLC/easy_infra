@@ -126,8 +126,7 @@ RUN echo 'complete -C /usr/local/bin/aws_completer aws' >> ~/.bashrc
 FROM minimal AS final
 
 # AWS
-COPY --from=aws /usr/local/bin/aws /usr/local/bin/aws
-COPY --from=aws /usr/local/bin/aws_completer /usr/local/bin/aws_completer
+COPY --from=aws /usr/local/bin/aws* /usr/local/bin/
 COPY --from=aws /root/.bashrc /root/.bashrc
 
 # Azure
