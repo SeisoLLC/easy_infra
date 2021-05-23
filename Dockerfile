@@ -117,7 +117,7 @@ FROM minimal AS aws
 ARG AWS_CLI_VERSION
 RUN curl -L https://awscli.amazonaws.com/awscli-exe-linux-x86_64-${AWS_CLI_VERSION}.zip -o /tmp/awscliv2.zip \
  && unzip /tmp/awscliv2.zip -d /tmp/ \
- && /tmp/aws/install \
+ && /tmp/aws/install --bin-dir /aws-cli-bin/ \
  && rm -rf /tmp/*
 
 # Add aws autocomplete
@@ -126,7 +126,8 @@ RUN echo 'complete -C /usr/local/bin/aws_completer aws' >> ~/.bashrc
 FROM minimal AS final
 
 # AWS
-COPY --from=aws /usr/local/bin/aws* /usr/local/bin/
+COPY --from=aws /aws-cli-bin/ /usr/local/bin/
+COPY --from=aws /usr/local/aws-cli/ /usr/local/aws-cli/
 COPY --from=aws /root/.bashrc /root/.bashrc
 
 # Azure
