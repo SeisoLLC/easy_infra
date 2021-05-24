@@ -25,7 +25,7 @@ LOG = getLogger(__project_name__)
 CLIENT = docker.from_env()
 CONFIG = utils.parse_config(config_file=constants.CONFIG_FILE)
 
-TARGETS = {}
+TARGETS: dict[str, dict[str, list[str]]] = {}
 for target in constants.TARGETS:
     TARGETS[target] = {}
     if target == "final":

@@ -154,7 +154,7 @@ def run_terraform(*, image: str):
     # Ensure insecure configurations fail due to checkov
     # Tests is a list of tuples containing the test environment, command, and
     # expected exit code
-    tests: list[tuple[dict, str, int]] = [
+    tests: list[tuple[dict, str, int]] = [  # type: ignore
         ({}, "terraform --skip-tfsec --skip-terrascan plan", 1),
         ({}, "tfenv exec --skip-tfsec --skip-terrascan plan", 1),
         (
@@ -192,7 +192,7 @@ def run_terraform(*, image: str):
     # Ensure insecure configurations fail due to terrascan
     # Tests is a list of tuples containing the test environment, command, and
     # expected exit code
-    tests: list[tuple[dict, str, int]] = [
+    tests: list[tuple[dict, str, int]] = [  # type: ignore
         ({}, "terraform --skip-tfsec --skip-checkov plan", 3),
         ({}, "tfenv exec --skip-tfsec --skip-checkov plan", 3),
         (
@@ -231,7 +231,7 @@ def run_terraform(*, image: str):
     # disabled
     # Tests is a list of tuples containing the test environment, command, and
     # expected exit code
-    tests: list[tuple[dict, str, int]] = [
+    tests: list[tuple[dict, str, int]] = [  # type: ignore
         ({"DISABLE_SECURITY": "true"}, "terraform init", 0),
         ({"DISABLE_SECURITY": "true"}, "tfenv exec init", 0),
         (
@@ -296,7 +296,7 @@ def run_terraform(*, image: str):
     # Ensure secure configurations pass
     # Tests is a list of tuples containing the test environment, command, and
     # expected exit code
-    tests: list[tuple[dict, str, int]] = [
+    tests: list[tuple[dict, str, int]] = [  # type: ignore
         ({}, "terraform init", 0),
         ({}, "tfenv exec init", 0),
         (
