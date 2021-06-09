@@ -30,13 +30,11 @@ for target in constants.TARGETS:
     TARGETS[target] = {}
     if target == "final":
         TARGETS[target]["tags"] = [
-            constants.IMAGE + ":" + COMMIT_HASH,
             constants.IMAGE + ":" + __version__,
             constants.IMAGE + ":latest",
         ]
     else:
         TARGETS[target]["tags"] = [
-            constants.IMAGE + ":" + COMMIT_HASH + "-" + target,
             constants.IMAGE + ":" + __version__ + "-" + target,
             constants.IMAGE + ":" + "latest" + "-" + target,
         ]
@@ -154,11 +152,16 @@ def build(c):  # pylint: disable=unused-argument
 
     # pylint: disable=redefined-outer-name
     for target in constants.TARGETS:
-        for tag in TARGETS[target]["tags"]:
-            LOG.info("Building %s...", tag)
-            CLIENT.images.build(
-                path=str(CWD), target=target, rm=True, tag=tag, buildargs=buildargs
-            )
+        first_image = TARGETS[target]["tags"][0]
+
+        LOG.info("Building %s...", first_image)
+        image = CLIENT.images.build(
+            path=str(CWD), target=target, rm=True, tag=first_image, buildargs=buildargs
+        )[0]
+
+        for tag in TARGETS[target]["tags"][1:]:
+            LOG.info("Tagging %s...", tag)
+            image.tag(constants.IMAGE, tag=tag.split(":")[-1])
 
 
 @task(pre=[lint, build])
