@@ -212,10 +212,10 @@ def release(c):  # pylint: disable=unused-argument
         if pattern.fullmatch(tag.name):
             latest_release = tag.name
             break
-        else:
-            latest_release = None
+    else:
+        latest_release = None
 
-    if date_info == latest_release[1:8]:
+    if latest_release and date_info == latest_release[1:8]:
         increment = str(int(latest_release[9:]) + 1).zfill(2)
     else:
         increment = "01"
