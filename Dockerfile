@@ -3,19 +3,6 @@ ARG FROM_IMAGE_TAG=20.04
 
 FROM "${FROM_IMAGE}":"${FROM_IMAGE_TAG}" AS minimal
 
-ARG VERSION
-ARG COMMIT_HASH
-
-LABEL org.opencontainers.image.authors="Jon Zeolla"
-LABEL org.opencontainers.image.licenses="BSD-3-Clause"
-LABEL org.opencontainers.image.vendor="Seiso"
-LABEL org.opencontainers.image.version="${VERSION}"
-LABEL org.opencontainers.image.title="easy_infra"
-LABEL org.opencontainers.image.description="This is a docker container that simplifies and secures Infrastructure as Code deployments"
-LABEL org.opencontainers.image.url="https://seisollc.com"
-LABEL org.opencontainers.image.source="https://github.com/SeisoLLC/easy_infra"
-LABEL org.opencontainers.image.revision="${COMMIT_HASH}"
-
 # apt-get installs
 ARG ANSIBLE_VERSION
 ENV DEBIAN_FRONTEND=noninteractive
@@ -34,6 +21,7 @@ RUN apt-get update \
                                                python3 \
                                                python3-pip \
                                                time \
+                                               tini \
                                                unzip \
  && apt-get clean autoclean \
  && apt-get -y autoremove \
@@ -87,7 +75,20 @@ RUN echo 'source ${BASH_ENV}' >> ~/.bashrc
 
 WORKDIR /iac
 COPY docker-entrypoint.sh /usr/local/bin/
-ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+ENTRYPOINT ["tini", "-g", "--", "/usr/local/bin/docker-entrypoint.sh"]
+
+ARG VERSION
+ARG COMMIT_HASH
+
+LABEL org.opencontainers.image.authors="Jon Zeolla"
+LABEL org.opencontainers.image.licenses="BSD-3-Clause"
+LABEL org.opencontainers.image.vendor="Seiso"
+LABEL org.opencontainers.image.version="${VERSION}"
+LABEL org.opencontainers.image.title="easy_infra"
+LABEL org.opencontainers.image.description="This is a docker container that simplifies and secures Infrastructure as Code deployments"
+LABEL org.opencontainers.image.url="https://seisollc.com"
+LABEL org.opencontainers.image.source="https://github.com/SeisoLLC/easy_infra"
+LABEL org.opencontainers.image.revision="${COMMIT_HASH}"
 
 FROM minimal AS az
 ARG AZURE_CLI_VERSION
