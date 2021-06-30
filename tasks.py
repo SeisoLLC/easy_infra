@@ -196,7 +196,7 @@ def test(c):  # pylint: disable=unused-argument
             LOG.error("Untested stage of %s", target)
 
 
-@task(pre=[test])
+@task
 def release(c):  # pylint: disable=unused-argument
     """Make a new release of easy_infra"""
     if REPO.head.is_detached:
@@ -218,8 +218,8 @@ def release(c):  # pylint: disable=unused-argument
     else:
         latest_release = None
 
-    if latest_release and date_info == latest_release[:7]:
-        increment = str(int(latest_release[8:]) + 1).zfill(2)
+    if latest_release and date_info == latest_release[1:8]:
+        increment = str(int(latest_release[9:]) + 1).zfill(2)
     else:
         increment = "01"
 
