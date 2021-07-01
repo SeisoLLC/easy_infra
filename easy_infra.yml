@@ -3,6 +3,9 @@ _anchors:
     checkov:
       command: checkov -d . --no-guide
       description: directory scan
+    kics:
+      command: kics scan --type Terraform --queries-path ${KICS_QUERIES_PATH} --path .
+      description: directory scan
     terrascan:
       command: terrascan scan -i terraform -t all -d .
       description: recursive scan
@@ -16,6 +19,13 @@ _anchors:
     description: validation
 commands:
   ansible:
+    aliases:
+    - ansible
+    - ansible-playbook
+    security:
+      kics:
+        command: kics scan --type Ansible --queries-path ${KICS_QUERIES_PATH} --path .
+        description: directory scan
     version: 2.9.6+dfsg-1
     version_command: ansible --version
   aws-cli:
@@ -27,6 +37,9 @@ commands:
   checkov:
     version: 2.0.257
     version_command: checkov --version
+  kics:
+    version: v1.3.4
+    version_command: kics version
   packer:
     version: 1.7.3
     version_command: packer version

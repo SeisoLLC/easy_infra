@@ -1,0 +1,14 @@
+---
+# Modified version of
+# https://docs.ansible.com/ansible/2.9/modules/rds_instance_module.html
+
+- name: Create a DB instance using the default AWS KMS encryption key
+  rds_instance:
+    id: test-encrypted-db
+    state: present
+    engine: mariadb
+    storage_encrypted: False
+    db_instance_class: db.t2.medium
+    username: "{{ username }}"
+    password: "{{ password }}"
+    allocated_storage: "{{ allocated_storage }}"
