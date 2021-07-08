@@ -19,24 +19,24 @@ commands:
     version: 2.9.6+dfsg-1
     version_command: ansible --version
   aws-cli:
-    version: 2.2.3
+    version: 2.2.17
     version_command: aws --version
   azure-cli:
-    version: 2.23.0-1~focal
+    version: 2.26.0-1~focal
     version_command: az version
   checkov:
-    version: 2.0.135
+    version: 2.0.257
     version_command: checkov --version
   packer:
-    version: 1.7.2
+    version: 1.7.3
     version_command: packer version
   terraform:
     security: *id001
     validation: *id002
-    version: 0.15.3
+    version: 1.0.2
     version_command: terraform version
   terrascan:
-    version: v1.3.1
+    version: v1.8.0
     version_command: terrascan version
   tfenv:
     allow_filter:
@@ -47,5 +47,5 @@ commands:
     version: v2.2.2
     version_command: tfenv --version
   tfsec:
-    version: v0.39.32
+    version: v0.42.3
     version_command: tfsec --version
