@@ -15,7 +15,6 @@ import git
 from bumpversion.cli import main as bumpversion
 from easy_infra import __project_name__, __version__, constants, utils
 from invoke import task
-
 from tests import test as run_test
 
 CWD = Path(".").absolute()
