@@ -165,9 +165,20 @@ def build(_c, debug=False):
         first_image = TARGETS[target]["tags"][0]
 
         LOG.info("Building %s...", first_image)
-        image = CLIENT.images.build(
-            path=str(CWD), target=target, rm=True, tag=first_image, buildargs=buildargs
-        )[0]
+        try:
+            image = CLIENT.images.build(
+                path=str(CWD), target=target, rm=True, tag=first_image, buildargs=buildargs
+            )[0]
+        except docker.errors.BuildError as build_err:
+            LOG.exception("Failed to build target %s, retrieving and logging the more detailed build error...", target)
+            iterator = iter(build_err.build_log)
+            while not finished:
+                try:
+                    item = next(iterator)
+                    LOG.error("%s", item)
+                except StopIteration:
+                    finished = True
+
 
         for tag in TARGETS[target]["tags"][1:]:
             LOG.info("Tagging %s...", tag)
