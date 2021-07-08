@@ -15,6 +15,7 @@ m2r2 = "*"
 pyyaml = "*"
 requests = "*"
 sphinx = "*"
+six = "*"  # Pending docker/docker-py#2842
 
 [requires]
 python_version = "3.9"
