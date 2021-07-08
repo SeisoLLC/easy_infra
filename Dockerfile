@@ -139,6 +139,9 @@ RUN echo 'complete -C /usr/local/bin/aws_completer aws' >> /home/easy_infra/.bas
 USER easy_infra
 
 
+USER easy_infra
+
+
 FROM minimal AS final
 
 # AWS
