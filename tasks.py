@@ -43,6 +43,24 @@ for target in constants.TARGETS:
 basicConfig(level=constants.LOG_DEFAULT, format=constants.LOG_FORMAT)
 
 
+def log_build_log(*, build_err: docker.errors.BuildError) -> None:
+    """Log the docker build log"""
+    iterator = iter(build_err.build_log)
+    finished = False
+    while not finished:
+        try:
+            item = next(iterator)
+            if "stream" in item:
+                if item["stream"] != "\n":
+                    LOG.error("%s", item["stream"].strip())
+            elif "errorDetail" in item:
+                LOG.error("%s", item["errorDetail"])
+            else:
+                LOG.error("%s", item)
+        except StopIteration:
+            finished = True
+
+
 # Tasks
 @task
 def update(_c, debug=False):
@@ -177,14 +195,7 @@ def build(_c, debug=False):
                 "Failed to build target %s, retrieving and logging the more detailed build error...",
                 target,
             )
-            iterator = iter(build_err.build_log)
-            finished = False
-            while not finished:
-                try:
-                    item = next(iterator)
-                    LOG.error("%s", item)
-                except StopIteration:
-                    finished = True
+            log_build_log(build_err=build_err)
             sys.exit(1)
 
         for tag in TARGETS[target]["tags"][1:]:
