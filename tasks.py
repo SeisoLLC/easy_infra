@@ -45,8 +45,11 @@ basicConfig(level=constants.LOG_DEFAULT, format=constants.LOG_FORMAT)
 
 # Tasks
 @task
-def update(c):  # pylint: disable=unused-argument
+def update(_c, debug=False):
     """Update the core components of easy_infra"""
+    if debug:
+        getLogger().setLevel("DEBUG")
+
     for package in constants.APT_PACKAGES:
         version = utils.get_latest_release_from_apt(package=package)
         utils.update_config_file(thing=package, version=version)
@@ -84,8 +87,11 @@ def update(c):  # pylint: disable=unused-argument
 
 
 @task
-def lint(c):  # pylint: disable=unused-argument
+def lint(_c, debug=False):
     """Lint easy_infra"""
+    if debug:
+        getLogger().setLevel("DEBUG")
+
     environment = {}
     # Default to disabling the goat built-in terrascan
     environment["INPUT_DISABLE_TERRASCAN"] = "true"
@@ -132,8 +138,11 @@ def lint(c):  # pylint: disable=unused-argument
 
 
 @task
-def build(c):  # pylint: disable=unused-argument
+def build(_c, debug=False):
     """Build easy_infra"""
+    if debug:
+        getLogger().setLevel("DEBUG")
+
     utils.render_jinja2(
         template_file=constants.JINJA2_FILE,
         config=CONFIG,
@@ -155,9 +164,28 @@ def build(c):  # pylint: disable=unused-argument
         first_image = TARGETS[target]["tags"][0]
 
         LOG.info("Building %s...", first_image)
-        image = CLIENT.images.build(
-            path=str(CWD), target=target, rm=True, tag=first_image, buildargs=buildargs
-        )[0]
+        try:
+            image = CLIENT.images.build(
+                path=str(CWD),
+                target=target,
+                rm=True,
+                tag=first_image,
+                buildargs=buildargs,
+            )[0]
+        except docker.errors.BuildError as build_err:
+            LOG.exception(
+                "Failed to build target %s, retrieving and logging the more detailed build error...",
+                target,
+            )
+            iterator = iter(build_err.build_log)
+            finished = False
+            while not finished:
+                try:
+                    item = next(iterator)
+                    LOG.error("%s", item)
+                except StopIteration:
+                    finished = True
+            sys.exit(1)
 
         for tag in TARGETS[target]["tags"][1:]:
             LOG.info("Tagging %s...", tag)
@@ -165,8 +193,11 @@ def build(c):  # pylint: disable=unused-argument
 
 
 @task(pre=[lint, build])
-def test(c):  # pylint: disable=unused-argument
+def test(_c, debug=False):
     """Test easy_infra"""
+    if debug:
+        getLogger().setLevel("DEBUG")
+
     default_working_dir = "/iac/"
     default_volumes = {TESTS_PATH: {"bind": default_working_dir, "mode": "ro"}}
 
@@ -197,8 +228,11 @@ def test(c):  # pylint: disable=unused-argument
 
 
 @task
-def release(c):  # pylint: disable=unused-argument
+def release(_c, debug=False):
     """Make a new release of easy_infra"""
+    if debug:
+        getLogger().setLevel("DEBUG")
+
     if REPO.head.is_detached:
         LOG.error("In detached HEAD state, refusing to release")
         sys.exit(1)
@@ -229,8 +263,11 @@ def release(c):  # pylint: disable=unused-argument
 
 
 @task
-def publish(c):  # pylint: disable=unused-argument
+def publish(_c, debug=False):
     """Publish easy_infra"""
+    if debug:
+        getLogger().setLevel("DEBUG")
+
     # pylint: disable=redefined-outer-name
     for target in constants.TARGETS:
         for tag in TARGETS[target]["tags"]:
@@ -241,8 +278,11 @@ def publish(c):  # pylint: disable=unused-argument
 
 
 @task
-def clean(c):  # pylint: disable=unused-argument
+def clean(_c, debug=False):
     """Clean up local easy_infra artifacts"""
+    if debug:
+        getLogger().setLevel("DEBUG")
+
     temp_dir = TESTS_PATH.joinpath("tmp")
 
     for tarball in temp_dir.glob("*.tar"):
