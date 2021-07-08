@@ -131,6 +131,17 @@ def opinionated_docker_run(
     expected_exit: int = 0,
 ):
     """Perform an opinionated docker run"""
+    LOG.debug(
+        "Invoking CLIENT.containers.run() with the following arguments: auto_remove=%s, command=%s, detach=%s, environment=%s, image=%s, tty=%s, volumes=%s, working_dir=%s",
+        auto_remove,
+        command,
+        detach,
+        environment,
+        image,
+        tty,
+        volumes,
+        working_dir,
+    )
     container = CLIENT.containers.run(
         auto_remove=auto_remove,
         command=command,
