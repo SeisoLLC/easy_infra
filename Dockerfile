@@ -58,10 +58,10 @@ ARG TERRAFORM_VERSION
 ARG TFENV_VERSION
 COPY --chown=easy_infra:easy_infra .terraformrc /home/easy_infra/
 ENV PATH="/home/easy_infra/.tfenv/bin:${PATH}"
-# hadolint ignore=SC2016,DL3003
+# hadolint ignore=SC1091
 RUN git clone https://github.com/tfutils/tfenv.git /home/easy_infra/.tfenv --depth 1 --branch ${TFENV_VERSION} \
- && echo 'PATH=/home/easy_infra/.tfenv/bin:${PATH}' >> /home/easy_infra/.bashrc \
- && . /home/easy_infra/.bashrc \
+ && echo "PATH=/home/easy_infra/.tfenv/bin:${PATH}" >> /home/easy_infra/.bashrc \
+ && source /home/easy_infra/.bashrc \
  && mkdir -p /home/easy_infra/.terraform.d/plugin-cache \
  && tfenv install ${TERRAFORM_VERSION} \
  && tfenv use ${TERRAFORM_VERSION} \
@@ -81,8 +81,7 @@ RUN python3 -m pip install --upgrade --no-cache-dir pip \
 # setup functions
 COPY --chown=easy_infra:easy_infra functions /functions
 ENV BASH_ENV=/functions
-# hadolint ignore=SC2016
-RUN echo 'source ${BASH_ENV}' >> /home/easy_infra/.bashrc
+RUN echo "source ${BASH_ENV}" >> /home/easy_infra/.bashrc
 
 WORKDIR /iac
 COPY --chown=easy_infra:easy_infra docker-entrypoint.sh /usr/local/bin/
