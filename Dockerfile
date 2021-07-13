@@ -43,9 +43,9 @@ RUN curl -L https://github.com/liamg/tfsec/releases/download/${TFSEC_VERSION}/tf
  && chmod 0755 /usr/local/bin/terrascan \
  && chown root: /usr/local/bin/terrascan \
  && groupadd --gid 53150 -r easy_infra \
- && useradd -r -g easy_infra -s "$(which bash)" --create-home --uid 53150 easy_infra
+ && useradd -r -g easy_infra -s "$(which bash)" --create-home --uid 53150 easy_infra \
+ && su easy_infra -c terrascan init
 USER easy_infra
-RUN terrascan init
 
 # git installs
 ARG TERRAFORM_VERSION
