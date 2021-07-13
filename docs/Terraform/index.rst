@@ -19,7 +19,7 @@ Terraform Caching
 ------------------
 If you're working with the same terraform code across multiple runs, you can leverage the cache::
 
-    docker run -v $(pwd):/iac -v $(pwd)/plugin-cache:/root/.terraform.d/plugin-cache easy_infra:latest-minimal /bin/bash -c "terraform init; terraform validate"
+    docker run -v $(pwd):/iac -v $(pwd)/plugin-cache:/home/easy_infra/.terraform.d/plugin-cache easy_infra:latest-minimal /bin/bash -c "terraform init; terraform validate"
 
 Resources
 =========

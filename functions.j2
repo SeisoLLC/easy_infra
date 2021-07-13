@@ -46,7 +46,7 @@ function process_command_exit_status() {
   # multiple runs of the provided command by timestamping the touch file
   if [[ ! "${-}" =~ .*i.* ]]; then
     # If there are any spaces in the provided command, replace them with _s
-    date +%s > "/${command// /_}_complete"
+    date +%s > "/tmp/${command// /_}_complete"
   fi
 
   return "${exit_status}"
@@ -117,14 +117,14 @@ function {{ command }}() {
     {%- for validation in commands[command]["validation"] %}
     # If the initialization was already run successfully in an non-interactive
     # shell, don't run it again
-    if [[ -r "/{{ validation.command | replace(" ", "_") }}_complete" ]]; then
-      _feedback INFO "Skipping \`{{ validation.command }}\` because it was already run on $(date -d @"$(cat /{{ validation.command | replace(" ", "_") }}_complete)")"
+    if [[ -r "/tmp/{{ validation.command | replace(" ", "_") }}_complete" ]]; then
+      _feedback INFO "Skipping \`{{ validation.command }}\` because it was already run on $(date -d @"$(cat /tmp/{{ validation.command | replace(" ", "_") }}_complete)")"
     else
-      command {{ validation.command }} &>/{{ validation.command | replace(" ", "_") }}_output
+      command {{ validation.command }} &>/tmp/{{ validation.command | replace(" ", "_") }}_output
       process_command_exit_status "${?}" "{{ validation.command }}" "{{ validation.description }}"
       return=${?}
       if [[ ${return:-1} != 0 ]]; then
-        cat /{{ validation.command | replace(" ", "_") }}_output
+        cat /tmp/{{ validation.command | replace(" ", "_") }}_output
         return "${return}"
       fi
     fi
@@ -149,15 +149,15 @@ function {{ command }}() {
     _feedback WARNING "Skipping {{ tool }} due to the {{ '${' }}{{ tool }}_skip_env_var} environment variable value"
   # If the security scan was already run successfully in an non-interactive
   # shell, don't run it again
-  elif [[ -r "/{{ tool }}_complete" ]]; then
-    _feedback INFO "Skipping {{ tool }} because it was already run on $(date -d @"$(cat /{{ tool }}_complete)")"
+  elif [[ -r "/tmp/{{ tool }}_complete" ]]; then
+    _feedback INFO "Skipping {{ tool }} because it was already run on $(date -d @"$(cat /tmp/{{ tool }}_complete)")"
   # Otherwise, run the security tool
   else
-    {{ commands[command]["security"][tool].command }} &>/{{ tool }}_output
+    {{ commands[command]["security"][tool].command }} &>/tmp/{{ tool }}_output
     process_command_exit_status "${?}" "{{ tool }}" "{{ commands[command]["security"][tool].description }}"
     return=${?}
     if [[ ${return:-1} != 0 ]]; then
-      cat /{{ tool }}_output
+      cat /tmp/{{ tool }}_output
       return ${return}
     fi
   fi

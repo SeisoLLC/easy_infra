@@ -75,6 +75,8 @@ def run_terraform(*, image: str):
     num_tests_ran = 0
     working_dir = "/iac/"
     environment = {"TF_DATA_DIR": "/tmp"}
+    tests_test_dir = TESTS_PATH
+    tests_volumes = {tests_test_dir: {"bind": working_dir, "mode": "ro"}}
     invalid_test_dir = TESTS_PATH.joinpath("terraform/invalid")
     invalid_volumes = {invalid_test_dir: {"bind": working_dir, "mode": "rw"}}
     tfsec_test_dir = TESTS_PATH.joinpath("terraform/tfsec")
@@ -86,8 +88,20 @@ def run_terraform(*, image: str):
     secure_config_dir = TESTS_PATH.joinpath("terraform/secure")
     secure_volumes = {secure_config_dir: {"bind": working_dir, "mode": "rw"}}
 
+    # Base tests
+    command = "./test.sh"
+    LOG.debug("Running test.sh")
+    utils.opinionated_docker_run(
+        image=image,
+        volumes=tests_volumes,
+        command=command,
+        expected_exit=0,
+    )
+    num_tests_ran += 1
+
     # Ensure invalid configurations fail
     command = "terraform plan"
+    LOG.debug("Testing invalid terraform configurations")
     utils.opinionated_docker_run(
         image=image,
         volumes=invalid_volumes,
@@ -149,6 +163,7 @@ def run_terraform(*, image: str):
         ),
     ]
 
+    LOG.debug("Testing tfsec against insecure terraform")
     num_tests_ran += exec_terraform(tests=tests, volumes=tfsec_volumes, image=image)
 
     # Ensure insecure configurations fail due to checkov
@@ -187,6 +202,7 @@ def run_terraform(*, image: str):
         ),
     ]
 
+    LOG.debug("Testing checkov against insecure terraform")
     num_tests_ran += exec_terraform(tests=tests, volumes=checkov_volumes, image=image)
 
     # Ensure insecure configurations fail due to terrascan
@@ -225,6 +241,7 @@ def run_terraform(*, image: str):
         ),
     ]
 
+    LOG.debug("Testing terrascan against insecure terraform")
     num_tests_ran += exec_terraform(tests=tests, volumes=terrascan_volumes, image=image)
 
     # Ensure insecure configurations still succeed when security checks are
@@ -291,6 +308,7 @@ def run_terraform(*, image: str):
         #     commands are passed through bash
     ]
 
+    LOG.debug("Testing terraform with security disabled")
     num_tests_ran += exec_terraform(tests=tests, volumes=terrascan_volumes, image=image)
 
     # Ensure secure configurations pass
@@ -321,6 +339,7 @@ def run_terraform(*, image: str):
         ),
     ]
 
+    LOG.debug("Testing secure terraform configurations")
     num_tests_ran += exec_terraform(tests=tests, volumes=secure_volumes, image=image)
 
     # Run base interactive tests
@@ -338,7 +357,8 @@ def run_terraform(*, image: str):
     test_interactive_container.exec_run(
         cmd='/bin/bash -ic "terraform validate"', tty=True
     )
-    files = ["/tfsec_complete", "/terrascan_complete", "/checkov_complete"]
+    files = ["/tmp/tfsec_complete", "/tmp/terrascan_complete", "/tmp/checkov_complete"]
+    LOG.debug("Testing interactive terraform commands")
     for file in files:
         # attempt is a tuple of (exit_code, output)
         attempt = test_interactive_container.exec_run(cmd=f"ls {file}")
@@ -366,7 +386,8 @@ def run_terraform(*, image: str):
     test_noninteractive_container.exec_run(
         cmd='/bin/bash -c "terraform validate"', tty=False
     )
-    files = ["/tfsec_complete", "/terrascan_complete", "/checkov_complete"]
+    files = ["/tmp/tfsec_complete", "/tmp/terrascan_complete", "/tmp/checkov_complete"]
+    LOG.debug("Testing non-interactive terraform commands")
     for file in files:
         # attempt is a tuple of (exit_code, output)
         attempt = test_noninteractive_container.exec_run(cmd=f"ls {file}", tty=False)
@@ -398,7 +419,8 @@ def run_terraform(*, image: str):
     test_noninteractive_container.exec_run(
         cmd='/bin/bash -c "terraform version"', tty=False
     )
-    files = ["/tfsec_complete", "/terrascan_complete", "/checkov_complete"]
+    files = ["/tmp/tfsec_complete", "/tmp/terrascan_complete", "/tmp/checkov_complete"]
+    LOG.debug("Testing non-interactive terraform version")
     for file in files:
         # attempt is a tuple of (exit_code, output)
         attempt = test_noninteractive_container.exec_run(cmd=f"ls {file}", tty=False)
@@ -492,7 +514,7 @@ def run_security(*, image: str):
     volumes = {temp_dir: {"bind": working_dir, "mode": "ro"}}
 
     num_tests_ran = 0
-    scanner = "aquasec/trivy:latest"
+    scanner = "aquasec/trivy:0.18.3"
 
     # Provide debug information about unknown, low, and medium severity
     # findings

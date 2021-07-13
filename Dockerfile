@@ -27,7 +27,7 @@ RUN apt-get update \
  && apt-get -y autoremove \
  && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/*
 
-# binary downloads
+# binary downloads and user creation
 ARG TFSEC_VERSION
 ARG PACKER_VERSION
 ARG TERRASCAN_VERSION
@@ -41,16 +41,20 @@ RUN curl -L https://github.com/liamg/tfsec/releases/download/${TFSEC_VERSION}/tf
  && tar -xvf /usr/local/bin/terrascan.tar.gz -C /usr/local/bin/ terrascan \
  && rm -f /usr/local/bin/terrascan.tar.gz \
  && chmod 0755 /usr/local/bin/terrascan \
- && terrascan init
+ && chown root: /usr/local/bin/terrascan \
+ && groupadd --gid 53150 -r easy_infra \
+ && useradd -r -g easy_infra -s "$(which bash)" --create-home --uid 53150 easy_infra \
+ && su easy_infra -c terrascan init
+USER easy_infra
 
 # git installs
 ARG TERRAFORM_VERSION
 ARG TFENV_VERSION
-COPY .terraformrc /root/
-ENV PATH="/root/.tfenv/bin:${PATH}"
+COPY --chown=easy_infra:easy_infra .terraformrc /home/easy_infra/
+ENV PATH="/home/easy_infra/.tfenv/bin:${PATH}"
 # hadolint ignore=SC2016,DL3003
 RUN git clone https://github.com/tfutils/tfenv.git ~/.tfenv \
- && echo 'PATH=/root/.tfenv/bin:${PATH}' >> ~/.bashrc \
+ && echo 'PATH=/home/easy_infra/.tfenv/bin:${PATH}' >> ~/.bashrc \
  && . ~/.bashrc \
  && cd ~/.tfenv \
  && git checkout ${TFENV_VERSION} \
@@ -62,19 +66,19 @@ RUN git clone https://github.com/tfutils/tfenv.git ~/.tfenv \
 
 # pip installs
 ARG CHECKOV_VERSION
-ENV PATH="/root/.local/bin:${PATH}"
+ENV PATH="/home/easy_infra/.local/bin:${PATH}"
 # hadolint ignore=DL3013
 RUN python3 -m pip install --upgrade --no-cache-dir pip \
  && pip install --user --no-cache-dir checkov==${CHECKOV_VERSION}
 
 # setup functions
-COPY functions /functions
+COPY --chown=easy_infra:easy_infra functions /functions
 ENV BASH_ENV=/functions
 # hadolint ignore=SC2016
 RUN echo 'source ${BASH_ENV}' >> ~/.bashrc
 
 WORKDIR /iac
-COPY docker-entrypoint.sh /usr/local/bin/
+COPY --chown=easy_infra:easy_infra docker-entrypoint.sh /usr/local/bin/
 ENTRYPOINT ["tini", "-g", "--", "/usr/local/bin/docker-entrypoint.sh"]
 
 ARG VERSION
@@ -90,7 +94,9 @@ LABEL org.opencontainers.image.url="https://seisollc.com"
 LABEL org.opencontainers.image.source="https://github.com/SeisoLLC/easy_infra"
 LABEL org.opencontainers.image.revision="${COMMIT_HASH}"
 
+
 FROM minimal AS az
+USER root
 ARG AZURE_CLI_VERSION
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 # hadolint ignore=DL3008
@@ -114,7 +120,11 @@ RUN apt-get update \
  && apt-get -y autoremove \
  && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/*
 
+USER easy_infra
+
+
 FROM minimal AS aws
+USER root
 ARG AWS_CLI_VERSION
 RUN curl -L https://awscli.amazonaws.com/awscli-exe-linux-x86_64-${AWS_CLI_VERSION}.zip -o /tmp/awscliv2.zip \
  && unzip /tmp/awscliv2.zip -d /tmp/ \
@@ -124,17 +134,24 @@ RUN curl -L https://awscli.amazonaws.com/awscli-exe-linux-x86_64-${AWS_CLI_VERSI
  && rm -rf /tmp/*
 
 # Add aws autocomplete
-RUN echo 'complete -C /usr/local/bin/aws_completer aws' >> ~/.bashrc
+RUN echo 'complete -C /usr/local/bin/aws_completer aws' >> /home/easy_infra/.bashrc
+
+USER easy_infra
+
 
 FROM minimal AS final
 
 # AWS
-COPY --from=aws /usr/local/aws-cli/ /usr/local/aws-cli/
-COPY --from=aws /aws-cli-bin/ /usr/local/bin/
-COPY --from=aws /root/.bashrc /root/.bashrc
+COPY --from=aws --chown=easy_infra:easy_infra /usr/local/aws-cli/ /usr/local/aws-cli/
+COPY --from=aws --chown=easy_infra:easy_infra /aws-cli-bin/ /usr/local/bin/
+COPY --from=aws --chown=easy_infra:easy_infra /home/easy_infra/.bashrc /home/easy_infra/.bashrc
+
+# Workaround due to moby/moby#37965 and docker-py BuildKit support is pending
+# docker/docker-py#2230
+RUN true
 
 # Azure
-COPY --from=az /opt/az /opt/az
-COPY --from=az /usr/bin/az /usr/bin/az
-COPY --from=az /etc/apt/trusted.gpg.d/microsoft.gpg /etc/apt/trusted.gpg.d/microsoft.gpg
-COPY --from=az /etc/apt/sources.list.d/azure-cli.list /etc/apt/sources.list.d/azure-cli.list
+COPY --from=az --chown=easy_infra:easy_infra /opt/az /opt/az
+COPY --from=az --chown=easy_infra:easy_infra /usr/bin/az /usr/bin/az
+COPY --from=az --chown=easy_infra:easy_infra /etc/apt/trusted.gpg.d/microsoft.gpg /etc/apt/trusted.gpg.d/microsoft.gpg
+COPY --from=az --chown=easy_infra:easy_infra /etc/apt/sources.list.d/azure-cli.list /etc/apt/sources.list.d/azure-cli.list
