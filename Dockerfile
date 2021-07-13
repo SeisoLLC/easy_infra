@@ -59,17 +59,16 @@ ARG TFENV_VERSION
 COPY --chown=easy_infra:easy_infra .terraformrc /home/easy_infra/
 ENV PATH="/home/easy_infra/.tfenv/bin:${PATH}"
 # hadolint ignore=SC2016,DL3003
-RUN git clone https://github.com/tfutils/tfenv.git /home/easy_infra/.tfenv \
+RUN git clone https://github.com/tfutils/tfenv.git /home/easy_infra/.tfenv --depth 1 --branch ${TFENV_VERSION} \
  && echo 'PATH=/home/easy_infra/.tfenv/bin:${PATH}' >> /home/easy_infra/.bashrc \
  && . /home/easy_infra/.bashrc \
- && cd /home/easy_infra/.tfenv \
- && git checkout ${TFENV_VERSION} \
  && mkdir -p /home/easy_infra/.terraform.d/plugin-cache \
  && tfenv install ${TERRAFORM_VERSION} \
  && tfenv use ${TERRAFORM_VERSION} \
  && rm -rf /home/easy_infra/.tfenv/.git \
  && command terraform -install-autocomplete \
- && git clone https://github.com/checkmarx/kics.git /home/easy_infra/.kics --depth 1 --branch ${KICS_VERSION}
+ && git clone https://github.com/checkmarx/kics.git /home/easy_infra/.kics --depth 1 --branch ${KICS_VERSION} \
+ && rm -rf /home/easy_infra/.kics/.git
 ENV KICS_QUERIES_PATH="/home/easy_infra/.kics/assets/queries"
 
 # pip installs
