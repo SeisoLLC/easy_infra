@@ -42,9 +42,10 @@ RUN curl -L https://github.com/liamg/tfsec/releases/download/${TFSEC_VERSION}/tf
  && rm -f /usr/local/bin/terrascan.tar.gz \
  && chmod 0755 /usr/local/bin/terrascan \
  && chown root: /usr/local/bin/terrascan \
- && terrascan init \
  && groupadd --gid 53150 -r easy_infra \
- && useradd -r -g easy_infra -s "$(which bash)" --create-home --uid 53150 easy_infra
+ && useradd -r -g easy_infra -s "$(which bash)" --create-home --uid 53150 easy_infra \
+ && su easy_infra \
+ && terrascan init
 USER easy_infra
 
 # git installs
@@ -134,7 +135,7 @@ RUN curl -L https://awscli.amazonaws.com/awscli-exe-linux-x86_64-${AWS_CLI_VERSI
  && rm -rf /tmp/*
 
 # Add aws autocomplete
-RUN echo 'complete -C /usr/local/bin/aws_completer aws' >> ~/.bashrc
+RUN echo 'complete -C /usr/local/bin/aws_completer aws' >> /home/easy_infra/.bashrc
 
 USER easy_infra
 
