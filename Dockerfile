@@ -44,8 +44,7 @@ RUN curl -L https://github.com/liamg/tfsec/releases/download/${TFSEC_VERSION}/tf
  && chown root: /usr/local/bin/terrascan \
  && groupadd --gid 53150 -r easy_infra \
  && useradd -r -g easy_infra -s "$(which bash)" --create-home --uid 53150 easy_infra \
- && su easy_infra \
- && terrascan init
+ && su easy_infra -c terrascan init
 USER easy_infra
 
 # git installs
