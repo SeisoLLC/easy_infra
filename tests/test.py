@@ -34,14 +34,14 @@ def version_arguments(*, image: str, volumes: dict, working_dir: str):
             aliases = [command]
 
         for alias in aliases:
-            command = (
+            docker_command = (
                 f'command {alias} {CONFIG["commands"][command]["version_argument"]}'
             )
             utils.opinionated_docker_run(
                 image=image,
                 volumes=volumes,
                 working_dir=working_dir,
-                command=command,
+                command=docker_command,
                 expected_exit=0,
             )
             num_tests_ran += 1
