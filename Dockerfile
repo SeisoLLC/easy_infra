@@ -52,6 +52,7 @@ RUN curl -L https://github.com/checkmarx/kics/releases/download/${KICS_VERSION}/
  && useradd -r -g easy_infra -s "$(which bash)" --create-home --uid 53150 easy_infra \
  && su easy_infra -c "terrascan init"
 USER easy_infra
+WORKDIR /home/easy_infra
 
 # git installs
 ARG TERRAFORM_VERSION
