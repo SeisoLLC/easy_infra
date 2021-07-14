@@ -554,7 +554,11 @@ def run_ansible(*, image: str):
     # expected exit code
     tests: list[tuple[dict, str, int]] = [
         ({}, "ansible-playbook insecure.yml --check", 50),
-        ({}, "ansible-playbook --skip-kics insecure.yml --check", 0),
+        (
+            {},
+            "ansible-playbook --skip-kics insecure.yml --check",
+            4,
+        ),  # Exits 4 because insecure.yml is not a valid Play
         (
             {},
             "SKIP_KICS=true ansible-playbook insecure.yml --check",
@@ -565,7 +569,7 @@ def run_ansible(*, image: str):
             {},
             '/usr/bin/env bash -c "SKIP_KICS=true ansible-playbook insecure.yml --check"',
             0,
-        ),
+        ),  # Exits 4 because insecure.yml is not a valid Play
         (
             {},
             '/usr/bin/env bash -c "ansible-playbook insecure.yml --check || true"',
@@ -584,7 +588,7 @@ def run_ansible(*, image: str):
         (
             {"SKIP_TERRASCAN": "tRuE", "SKIP_CHECKOV": "FaLsE", "SKIP_KICS": "Unknown"},
             "ansible-playbook insecure.yml --check",
-            1,
+            50,
         ),  # checkov and terrascan are purposefully irrelevant for ansible
     ]
 
