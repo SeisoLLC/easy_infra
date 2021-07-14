@@ -40,6 +40,37 @@ def version_commands(*, image: str, volumes: dict, working_dir: str):
     LOG.info("%s passed %d integration tests", image, num_tests_ran)
 
 
+def check_for_files(
+    *,
+    container: docker.models.containers.Container,
+    files: list,
+    expected_to_exist: bool,
+) -> int:
+    """
+    Check for the provided list of files in the provided container and return
+    0 for any failures, or the number of correctly found files
+    """
+    successful_tests = 0
+
+    for file in files:
+        # attempt is a tuple of (exit_code, output)
+        attempt = container.exec_run(cmd=f"ls {file}")
+        if (expected_to_exist and attempt[0] != 0) or (
+            not expected_to_exist and attempt[0] == 0
+        ):
+            container.kill()
+            if expected_to_exist:
+                LOG.error("Found the file %s when it was not expected", file)
+            elif not expected_to_exist:
+                LOG.error("Didn't find the file %s when it was expected", file)
+            return 0
+        successful_tests += 1
+
+    container.kill()
+
+    return successful_tests
+
+
 def exec_tests(
     *,
     tests: list[tuple[dict, str, int]],
@@ -433,19 +464,16 @@ def run_terraform(*, image: str):
         "/tmp/kics_complete",
     ]
     LOG.debug("Testing interactive terraform commands")
-    for file in files:
-        # attempt is a tuple of (exit_code, output)
-        attempt = test_interactive_container.exec_run(cmd=f"ls {file}")
-        if attempt[0] == 0:
-            test_interactive_container.kill()
-            LOG.error("Found the file %s when it was not expected", file)
-            sys.exit(1)
-        num_tests_ran += 1
+    if (
+        num_successful_tests := check_for_files(
+            container=test_interactive_container, files=files, expected_to_exist=False
+        )
+    ) == 0:
+        sys.exit(1)
 
-    # Cleanup
-    test_interactive_container.kill()
+    num_tests_ran += num_successful_tests
 
-    # Run base non-interactive tests
+    # Run base non-interactive tests for terraform
     test_noninteractive_container = CLIENT.containers.run(
         image=image,
         detach=True,
@@ -467,21 +495,14 @@ def run_terraform(*, image: str):
         "/tmp/kics_complete",
     ]
     LOG.debug("Testing non-interactive terraform commands")
-    for file in files:
-        # attempt is a tuple of (exit_code, output)
-        attempt = test_noninteractive_container.exec_run(cmd=f"ls {file}", tty=False)
-        if attempt[0] != 0:
-            test_noninteractive_container.kill()
-            LOG.error(
-                "Received an unexpected status code of %s; additional details: %s",
-                attempt[0],
-                attempt[1].decode("UTF-8").replace("\n", " ").strip(),
-            )
-            sys.exit(attempt[0])
-        num_tests_ran += 1
+    if (
+        num_successful_tests := check_for_files(
+            container=test_noninteractive_container, files=files, expected_to_exist=True
+        )
+    ) == 0:
+        sys.exit(1)
 
-    # Cleanup
-    test_noninteractive_container.kill()
+    num_tests_ran += num_successful_tests
 
     # Run terraform version non-interactive test
     test_noninteractive_container = CLIENT.containers.run(
@@ -505,17 +526,16 @@ def run_terraform(*, image: str):
         "/tmp/kics_complete",
     ]
     LOG.debug("Testing non-interactive terraform version")
-    for file in files:
-        # attempt is a tuple of (exit_code, output)
-        attempt = test_noninteractive_container.exec_run(cmd=f"ls {file}", tty=False)
-        if attempt[0] == 0:
-            test_interactive_container.kill()
-            LOG.error("Found the file %s when it was not expected", file)
-            sys.exit(1)
-        num_tests_ran += 1
+    if (
+        num_successful_tests := check_for_files(
+            container=test_noninteractive_container,
+            files=files,
+            expected_to_exist=False,
+        )
+    ) == 0:
+        sys.exit(1)
 
-    # Cleanup
-    test_noninteractive_container.kill()
+    num_tests_ran += num_successful_tests
 
     LOG.info("%s passed %d end to end terraform tests", image, num_tests_ran)
 
@@ -587,19 +607,17 @@ def run_ansible(*, image: str):
     files = [
         "/tmp/kics_complete",
     ]
-    for file in files:
-        # attempt is a tuple of (exit_code, output)
-        attempt = test_interactive_container.exec_run(cmd=f"ls {file}")
-        if attempt[0] == 0:
-            test_interactive_container.kill()
-            LOG.error("Found the file %s when it was not expected", file)
-            sys.exit(1)
-        num_tests_ran += 1
+    LOG.debug("Testing interactive ansible-playbook commands")
+    if (
+        num_successful_tests := check_for_files(
+            container=test_interactive_container, files=files, expected_to_exist=False
+        )
+    ) == 0:
+        sys.exit(1)
 
-    # Cleanup
-    test_interactive_container.kill()
+    num_tests_ran += num_successful_tests
 
-    # Run base non-interactive tests
+    # Run base non-interactive tests for ansible
     test_noninteractive_container = CLIENT.containers.run(
         image=image,
         detach=True,
@@ -616,21 +634,15 @@ def run_ansible(*, image: str):
     files = [
         "/tmp/kics_complete",
     ]
-    for file in files:
-        # attempt is a tuple of (exit_code, output)
-        attempt = test_noninteractive_container.exec_run(cmd=f"ls {file}", tty=False)
-        if attempt[0] != 0:
-            test_noninteractive_container.kill()
-            LOG.error(
-                "Received an unexpected status code of %s; additional details: %s",
-                attempt[0],
-                attempt[1].decode("UTF-8").replace("\n", " ").strip(),
-            )
-            sys.exit(attempt[0])
-        num_tests_ran += 1
+    LOG.debug("Testing non-interactive ansible-playbook commands")
+    if (
+        num_successful_tests := check_for_files(
+            container=test_noninteractive_container, files=files, expected_to_exist=True
+        )
+    ) == 0:
+        sys.exit(1)
 
-    # Cleanup
-    test_noninteractive_container.kill()
+    num_tests_ran += num_successful_tests
 
     # Run ansible-playbook version non-interactive test
     test_noninteractive_container = CLIENT.containers.run(
@@ -649,17 +661,17 @@ def run_ansible(*, image: str):
     files = [
         "/tmp/kics_complete",
     ]
-    for file in files:
-        # attempt is a tuple of (exit_code, output)
-        attempt = test_noninteractive_container.exec_run(cmd=f"ls {file}", tty=False)
-        if attempt[0] == 0:
-            test_interactive_container.kill()
-            LOG.error("Found the file %s when it was not expected", file)
-            sys.exit(1)
-        num_tests_ran += 1
+    LOG.debug("Testing non-interactive ansible-playbook version command")
+    if (
+        num_successful_tests := check_for_files(
+            container=test_noninteractive_container,
+            files=files,
+            expected_to_exist=False,
+        )
+    ) == 0:
+        sys.exit(1)
 
-    # Cleanup
-    test_noninteractive_container.kill()
+    num_tests_ran += num_successful_tests
 
     LOG.info("%s passed %d end to end ansible-playbook tests", image, num_tests_ran)
 
