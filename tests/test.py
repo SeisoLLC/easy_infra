@@ -80,6 +80,54 @@ def check_for_files(
     return successful_tests
 
 
+def run_path_check(*, image: str) -> None:
+    """Wrapper to run check_paths"""
+    check_paths(interactive=True, image=image)
+    check_paths(interactive=False, image=image)
+
+
+def check_paths(*, interactive: bool, image: str) -> int:
+    """
+    Check all of the commands in easy_infra.yml to ensure they are in the
+    easy_infra user's PATH. Return 0 for any failures, or the number of
+    correctly found files
+    """
+    container = CLIENT.containers.run(
+        image=image,
+        detach=True,
+        auto_remove=False,
+        tty=True,
+    )
+
+    # All commands should be in the PATH of the easy_infra user
+    LOG.debug("Testing the easy_infra user's PATH when interactive is %s", interactive)
+    num_successful_tests = 0
+    for command in CONFIG["commands"]:
+        if "aliases" in CONFIG["commands"][command]:
+            aliases = CONFIG["commands"][command]["aliases"]
+        else:
+            aliases = [command]
+
+        for alias in aliases:
+            if interactive:
+                attempt = container.exec_run(
+                    cmd=f'/bin/bash -ic "which {alias}"', tty=True
+                )
+            else:
+                attempt = container.exec_run(
+                    cmd=f'/bin/bash -c "which {alias}"',
+                )
+            if attempt[0] != 0:
+                LOG.error("%s is not in the easy_infra PATH", alias)
+                container.kill()
+                sys.exit(1)
+
+            num_successful_tests += 1
+
+    container.kill()
+    LOG.info("%s passed all %d path tests", image, num_successful_tests)
+
+
 def exec_tests(
     *,
     tests: list[tuple[dict, str, int]],
@@ -460,28 +508,6 @@ def run_terraform(*, image: str):
         volumes=secure_volumes,
         environment=environment,
     )
-
-    # All interactive commands should be in the PATH of the easy_infra user
-    LOG.debug("Testing the easy_infra user's PATH")
-    num_successful_tests = 0
-    for command in CONFIG["commands"]:
-        if "aliases" in CONFIG["commands"][command]:
-            aliases = CONFIG["commands"][command]["aliases"]
-        else:
-            aliases = [command]
-
-        for alias in aliases:
-            attempt = test_interactive_container.exec_run(
-                cmd=f'/bin/bash -ic "which {alias}"', tty=True
-            )
-            if attempt[0] != 0:
-                LOG.error("%s is not in the easy_infra PATH", alias)
-                test_interactive_container.kill()
-                sys.exit(1)
-
-            num_successful_tests += 1
-
-    num_tests_ran += num_successful_tests
 
     # Running an interactive terraform command should not cause the creation of
     # the following files
