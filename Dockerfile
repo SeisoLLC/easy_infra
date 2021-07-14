@@ -79,10 +79,11 @@ ENV PATH="/home/easy_infra/.local/bin:${PATH}"
 RUN python3 -m pip install --upgrade --no-cache-dir pip \
  && pip install --user --no-cache-dir checkov==${CHECKOV_VERSION}
 
-# setup functions
+# misc setup
 COPY --chown=easy_infra:easy_infra functions /functions
 ENV BASH_ENV=/functions
-RUN echo "source ${BASH_ENV}" >> /home/easy_infra/.bashrc
+RUN echo "source ${BASH_ENV}" >> /home/easy_infra/.bashrc \
+ && mkdir /home/easy_infra/.ansible
 
 WORKDIR /iac
 COPY --chown=easy_infra:easy_infra docker-entrypoint.sh /usr/local/bin/
@@ -139,11 +140,8 @@ RUN curl -L https://awscli.amazonaws.com/awscli-exe-linux-x86_64-${AWS_CLI_VERSI
  # Required for the *-aws images to be functional
  && ln -sf /aws-cli-bin/* /usr/local/bin/ \
  && rm -rf /tmp/* \
- && su easy_infra -c "ansible-galaxy collection install amazon.aws"
-
-# Add aws autocomplete
-RUN echo 'complete -C /usr/local/bin/aws_completer aws' >> /home/easy_infra/.bashrc
-
+ && su easy_infra -c "ansible-galaxy collection install amazon.aws" \
+ && echo 'complete -C /usr/local/bin/aws_completer aws' >> /home/easy_infra/.bashrc
 USER easy_infra
 
 

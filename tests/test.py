@@ -25,9 +25,18 @@ def version_arguments(*, image: str, volumes: dict, working_dir: str):
     """Test the version arguments listed in the config"""
     num_tests_ran = 0
     for command in CONFIG["commands"]:
-        # Test the provided version commands
-        if "version_argument" in CONFIG["commands"][command]:
-            command = "command " + CONFIG["commands"][command]["version_argument"]
+        if "version_argument" not in CONFIG["commands"][command]:
+            continue
+
+        if "aliases" in CONFIG["commands"][command]:
+            aliases = CONFIG["commands"][command]["aliases"]
+        else:
+            aliases = [command]
+
+        for alias in aliases:
+            command = (
+                f'command {alias} {CONFIG["commands"][command]["version_argument"]}'
+            )
             utils.opinionated_docker_run(
                 image=image,
                 volumes=volumes,
