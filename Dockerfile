@@ -60,7 +60,7 @@ COPY --chown=easy_infra:easy_infra .terraformrc /home/easy_infra/
 ENV PATH="/home/easy_infra/.tfenv/bin:${PATH}"
 # hadolint ignore=SC1091
 RUN git clone https://github.com/tfutils/tfenv.git /home/easy_infra/.tfenv --depth 1 --branch ${TFENV_VERSION} \
- && echo "PATH=/home/easy_infra/.tfenv/bin:${PATH}" >> /home/easy_infra/.bashrc \
+ && echo "export PATH=/home/easy_infra/.tfenv/bin:${PATH}" >> /home/easy_infra/.bashrc \
  && source /home/easy_infra/.bashrc \
  && mkdir -p /home/easy_infra/.terraform.d/plugin-cache \
  && tfenv install ${TERRAFORM_VERSION} \
