@@ -451,7 +451,7 @@ def run_terraform(*, image: str):
     LOG.debug("Testing secure terraform configurations")
     num_tests_ran += exec_tests(tests=tests, volumes=secure_volumes, image=image)
 
-    # Run base interactive tests
+    # Run base interactive terraform tests
     test_interactive_container = CLIENT.containers.run(
         image=image,
         detach=True,
@@ -460,6 +460,28 @@ def run_terraform(*, image: str):
         volumes=secure_volumes,
         environment=environment,
     )
+
+    # All interactive commands should be in the PATH of the easy_infra user
+    LOG.debug("Testing the easy_infra user's PATH")
+    num_successful_tests = 0
+    for command in CONFIG["commands"]:
+        if "aliases" in CONFIG["commands"][command]:
+            aliases = CONFIG["commands"][command]["aliases"]
+        else:
+            aliases = [command]
+
+        for alias in aliases:
+            attempt = test_interactive_container.exec_run(
+                cmd=f'/bin/bash -ic "which {alias}"', tty=True
+            )
+            if attempt[0] != 0:
+                LOG.error("%s is not in the easy_infra PATH", alias)
+                test_interactive_container.kill()
+                sys.exit(1)
+
+            num_successful_tests += 1
+
+    num_tests_ran += num_successful_tests
 
     # Running an interactive terraform command should not cause the creation of
     # the following files
