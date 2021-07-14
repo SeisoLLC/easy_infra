@@ -203,8 +203,7 @@ def build(_c, debug=False):
             image.tag(constants.IMAGE, tag=tag.split(":")[-1])
 
 
-# TODO: Re-add lint
-@task(pre=[build])
+@task(pre=[lint, build])
 def test(_c, debug=False):
     """Test easy_infra"""
     if debug:
