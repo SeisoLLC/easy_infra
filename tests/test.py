@@ -82,8 +82,13 @@ def check_for_files(
 
 def run_path_check(*, image: str) -> None:
     """Wrapper to run check_paths"""
-    check_paths(interactive=True, image=image)
-    check_paths(interactive=False, image=image)
+    for interactive in [True, False]:
+        num_successful_tests = check_paths(interactive=interactive, image=image)
+        if num_successful_tests > 0:
+            LOG.info("%s passed all %d path tests", image, num_successful_tests)
+        else:
+            LOG.error("%s failed a path test", image)
+            sys.exit(1)
 
 
 def check_paths(*, interactive: bool, image: str) -> int:
@@ -120,12 +125,12 @@ def check_paths(*, interactive: bool, image: str) -> int:
             if attempt[0] != 0:
                 LOG.error("%s is not in the easy_infra PATH", alias)
                 container.kill()
-                sys.exit(1)
+                return 0
 
             num_successful_tests += 1
 
     container.kill()
-    LOG.info("%s passed all %d path tests", image, num_successful_tests)
+    return num_successful_tests
 
 
 def exec_tests(
