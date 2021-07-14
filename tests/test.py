@@ -568,7 +568,7 @@ def run_ansible(*, image: str):
         (
             {},
             '/usr/bin/env bash -c "SKIP_KICS=true ansible-playbook insecure.yml --check"',
-            0,
+            4,
         ),  # Exits 4 because insecure.yml is not a valid Play
         (
             {},
