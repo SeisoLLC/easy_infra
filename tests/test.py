@@ -21,13 +21,13 @@ LOG = getLogger(__name__)
 CLIENT = docker.from_env()
 
 
-def version_commands(*, image: str, volumes: dict, working_dir: str):
-    """Test the version commands listed in the config"""
+def version_arguments(*, image: str, volumes: dict, working_dir: str):
+    """Test the version arguments listed in the config"""
     num_tests_ran = 0
     for command in CONFIG["commands"]:
         # Test the provided version commands
-        if "version_command" in CONFIG["commands"][command]:
-            command = "command " + CONFIG["commands"][command]["version_command"]
+        if "version_argument" in CONFIG["commands"][command]:
+            command = "command " + CONFIG["commands"][command]["version_argument"]
             utils.opinionated_docker_run(
                 image=image,
                 volumes=volumes,
@@ -60,9 +60,9 @@ def check_for_files(
         ):
             container.kill()
             if expected_to_exist:
-                LOG.error("Found the file %s when it was not expected", file)
-            elif not expected_to_exist:
                 LOG.error("Didn't find the file %s when it was expected", file)
+            elif not expected_to_exist:
+                LOG.error("Found the file %s when it was not expected", file)
             return 0
         successful_tests += 1
 

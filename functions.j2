@@ -53,7 +53,7 @@ function process_command_exit_status() {
 }
 
 {# Macro to be used by the loops below #}
-{% macro function(function, tools, allow_filter, version_command, validations, security_tools) %}
+{% macro function(function, tools, allow_filter, version_argument, validations, security_tools) %}
 function {{ function }}() {
   arguments=("${@}")
   easy_infra_{{ function | replace("-", "_") }}_tools=({% for tool in tools %}{{ tool | replace("-", "_") }}{% if not loop.last %} {% endif %}{% endfor %})
@@ -95,7 +95,7 @@ function {{ function }}() {
   # Methods to skip **all** security tools for {{ function }}
   DISABLE_SECURITY="${DISABLE_SECURITY:-false}"
 
-  if [[ "${FUNCNAME[0]} ${1}" == "{{ version_command }}" ]]; then
+  if [[ "${1}" == "{{ version_argument }}" ]]; then
     _feedback INFO "Detected version check, skipping security checks for {{ function }}"
     # Allow piping of the version command into other commands
     command "${FUNCNAME[0]}" "${arguments[@]}"
@@ -170,9 +170,9 @@ function {{ function }}() {
 {# Loop through each provided command (or aliases, if they are set) to be wrapped and make a single wrapper function for it -#}
 {% for command in commands if commands[command]["security"] -%}
 {% for alias in commands[command]["aliases"] -%}
-{{ function(alias, commands[command]["security"], commands[command]["allow_filter"], commands[command]["version_command"], commands[command]["validation"], commands[command]["security"]) }}
+{{ function(alias, commands[command]["security"], commands[command]["allow_filter"], commands[command]["version_argument"], commands[command]["validation"], commands[command]["security"]) }}
 {% else %}
-{{ function(command, commands[command]["security"], commands[command]["allow_filter"], commands[command]["version_command"], commands[command]["validation"], commands[command]["security"]) }}
+{{ function(command, commands[command]["security"], commands[command]["allow_filter"], commands[command]["version_argument"], commands[command]["validation"], commands[command]["security"]) }}
 {% endfor %}
 {%- endfor -%}
 
