@@ -77,7 +77,8 @@ ARG CHECKOV_VERSION
 ENV PATH="/home/easy_infra/.local/bin:${PATH}"
 # hadolint ignore=DL3013
 RUN python3 -m pip install --upgrade --no-cache-dir pip \
- && pip install --user --no-cache-dir checkov==${CHECKOV_VERSION}
+ && pip install --user --no-cache-dir checkov==${CHECKOV_VERSION} \
+ && echo "export PATH=/home/easy_infra/.local/bin:${PATH}" >> /home/easy_infra/.bashrc \
 
 # misc setup
 COPY --chown=easy_infra:easy_infra functions /functions
