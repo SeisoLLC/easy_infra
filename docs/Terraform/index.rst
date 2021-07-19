@@ -33,7 +33,7 @@ plan`` and ``terraform deploy``::
     docker run -v $(pwd):/iac seiso/easy_infra:latest-minimal /bin/bash -c "terraform plan && terraform apply -auto-approve"
 
 Terraform Caching
-=================
+------------------
 
 If you're working with the same terraform code across multiple runs, you can
 leverage the cache::
