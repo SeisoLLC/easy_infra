@@ -18,7 +18,7 @@ minimal, aws, az, and latest
 
 
 Use Cases
-=========
+---------
 
 If you use Software Version Control (such as ``git``) to manage your Ansible IaC,
 consider executing ``ansible-playbook EXAMPLE.yml --check`` with easy_infra as
@@ -28,7 +28,7 @@ a pipeline action on commit or pull request::
 
 
 Resources
-=========
+---------
 
 Configuring custom checks can be done by leveraging the robust Rego language,
 maintained by the, Open Policy Agent (OPA) offers useful resources for cloud
