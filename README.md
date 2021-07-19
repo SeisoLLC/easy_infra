@@ -40,11 +40,10 @@ What `easy_infra` does in this case is:
 
 ### Learning mode
 
-There is also a learning mode you can enable, which runs all of the security
-tooling and prints it output, but suppresses the exit codes of any injected
-validation or security tooling to allow the provided commands to run.  This can
-be configured by setting the `LEARNING_MODE` environment variable to `true`
-like this:
+The learning mode suppresses the exit codes of any injected validation or
+security tooling, ensuring the provided commands will run.  This can be
+configured by setting the `LEARNING_MODE` environment variable to `true`, for
+instance:
 
 ```bash
 docker run -e LEARNING_MODE=true -v $(pwd):/iac seiso/easy_infra terraform apply -auto-approve
@@ -52,9 +51,8 @@ docker run -e LEARNING_MODE=true -v $(pwd):/iac seiso/easy_infra terraform apply
 
 ### Disabling security
 
-It's also possible to bypass the security checks, either entirely or
-individually, using `easy_infra` specific command line arguments or environment
-variables.
+The injected security tooling can be disabled entirely or individually, using
+`easy_infra`-specific command line arguments or environment variables.
 
 | Environment variable | Default | Result                         |
 |----------------------|---------|--------------------------------|
