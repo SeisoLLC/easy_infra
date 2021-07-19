@@ -123,7 +123,9 @@ function {{ function }}() {
       return=${?}
       if [[ ${return:-1} != 0 ]]; then
         cat /tmp/{{ validation.command | replace(" ", "_") }}_output
-        return "${return}"
+        if [[ "${LEARNING_MODE,,}" != "true" ]]; then
+          return "${return}"
+        fi
       fi
     fi
     {%- endfor -%}
@@ -156,7 +158,9 @@ function {{ function }}() {
     return=${?}
     if [[ ${return:-1} != 0 ]]; then
       cat /tmp/{{ tool | replace("-", "_") }}_output
-      return ${return}
+      if [[ "${LEARNING_MODE,,}" != "true" ]]; then
+        return ${return}
+      fi
     fi
   fi
   {%- endfor %}
