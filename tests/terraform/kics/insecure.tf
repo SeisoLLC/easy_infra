@@ -15,7 +15,9 @@ data "aws_ami" "ubuntu" {
 }
 
 resource "aws_instance" "web" {
-  # TODO: Does this fail KICS?  Which check is expected?
+  # Fails KICS due to high severity finding
+  # 5a2486aa-facf-477d-a5c1-b010789459ce ("EC2 Instance should not have a public
+  # IP address.")
   ami           = data.aws_ami.ubuntu.id
   instance_type = "t3.micro"
 
