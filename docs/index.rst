@@ -11,13 +11,8 @@
    :caption: Contents:
 
    Home <self>
-   Docker Images <Images/index>
    Terraform/index
-   AWS CLI <awscli/index>
-   Azure CLI <az/index>
-   Packer/index
    Ansible/index
-   Testing/index
 
 Search
 ==================
