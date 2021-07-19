@@ -25,7 +25,12 @@ LOG_FORMAT = json.dumps(
 )
 
 APT_PACKAGES = {"ansible", "azure-cli"}
-GITHUB_REPOS_RELEASES = {"tfutils/tfenv", "tfsec/tfsec", "accurics/terrascan"}
+GITHUB_REPOS_RELEASES = {
+    "tfutils/tfenv",
+    "tfsec/tfsec",
+    "accurics/terrascan",
+    "checkmarx/kics",
+}
 GITHUB_REPOS_TAGS = {"aws/aws-cli"}
 PYTHON_PACKAGES = {"checkov"}
 HASHICORP_PROJECTS = {"terraform", "packer"}

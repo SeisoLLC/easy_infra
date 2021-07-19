@@ -21,18 +21,27 @@ LOG = getLogger(__name__)
 CLIENT = docker.from_env()
 
 
-def version_commands(*, image: str, volumes: dict, working_dir: str):
-    """Test the version commands listed in the config"""
+def version_arguments(*, image: str, volumes: dict, working_dir: str):
+    """Test the version arguments listed in the config"""
     num_tests_ran = 0
     for command in CONFIG["commands"]:
-        # Test the provided version commands
-        if "version_command" in CONFIG["commands"][command]:
-            command = "command " + CONFIG["commands"][command]["version_command"]
+        if "version_argument" not in CONFIG["commands"][command]:
+            continue
+
+        if "aliases" in CONFIG["commands"][command]:
+            aliases = CONFIG["commands"][command]["aliases"]
+        else:
+            aliases = [command]
+
+        for alias in aliases:
+            docker_command = (
+                f'command {alias} {CONFIG["commands"][command]["version_argument"]}'
+            )
             utils.opinionated_docker_run(
                 image=image,
                 volumes=volumes,
                 working_dir=working_dir,
-                command=command,
+                command=docker_command,
                 expected_exit=0,
             )
             num_tests_ran += 1
@@ -40,13 +49,97 @@ def version_commands(*, image: str, volumes: dict, working_dir: str):
     LOG.info("%s passed %d integration tests", image, num_tests_ran)
 
 
-def exec_terraform(
+def check_for_files(
+    *,
+    container: docker.models.containers.Container,
+    files: list,
+    expected_to_exist: bool,
+) -> int:
+    """
+    Check for the provided list of files in the provided container and return
+    0 for any failures, or the number of correctly found files
+    """
+    successful_tests = 0
+
+    for file in files:
+        # attempt is a tuple of (exit_code, output)
+        attempt = container.exec_run(cmd=f"ls {file}")
+        if (expected_to_exist and attempt[0] != 0) or (
+            not expected_to_exist and attempt[0] == 0
+        ):
+            container.kill()
+            if expected_to_exist:
+                LOG.error("Didn't find the file %s when it was expected", file)
+            elif not expected_to_exist:
+                LOG.error("Found the file %s when it was not expected", file)
+            return 0
+        successful_tests += 1
+
+    container.kill()
+
+    return successful_tests
+
+
+def run_path_check(*, image: str) -> None:
+    """Wrapper to run check_paths"""
+    for interactive in [True, False]:
+        num_successful_tests = check_paths(interactive=interactive, image=image)
+        if num_successful_tests > 0:
+            LOG.info("%s passed all %d path tests", image, num_successful_tests)
+        else:
+            LOG.error("%s failed a path test", image)
+            sys.exit(1)
+
+
+def check_paths(*, interactive: bool, image: str) -> int:
+    """
+    Check all of the commands in easy_infra.yml to ensure they are in the
+    easy_infra user's PATH. Return 0 for any failures, or the number of
+    correctly found files
+    """
+    container = CLIENT.containers.run(
+        image=image,
+        detach=True,
+        auto_remove=False,
+        tty=True,
+    )
+
+    # All commands should be in the PATH of the easy_infra user
+    LOG.debug("Testing the easy_infra user's PATH when interactive is %s", interactive)
+    num_successful_tests = 0
+    for command in CONFIG["commands"]:
+        if "aliases" in CONFIG["commands"][command]:
+            aliases = CONFIG["commands"][command]["aliases"]
+        else:
+            aliases = [command]
+
+        for alias in aliases:
+            if interactive:
+                attempt = container.exec_run(
+                    cmd=f'/bin/bash -ic "which {alias}"', tty=True
+                )
+            else:
+                attempt = container.exec_run(
+                    cmd=f'/bin/bash -c "which {alias}"',
+                )
+            if attempt[0] != 0:
+                LOG.error("%s is not in the easy_infra PATH", alias)
+                container.kill()
+                return 0
+
+            num_successful_tests += 1
+
+    container.kill()
+    return num_successful_tests
+
+
+def exec_tests(
     *,
     tests: list[tuple[dict, str, int]],
     volumes: dict,
     image: str,
 ) -> int:
-    """Execute the provided terraform tests and return a count of tests run"""
+    """Execute the provided tests and return a count of tests run"""
     num_tests_ran = 0
     config_dir = list(volumes.keys())[0]
     working_dir = volumes[config_dir]["bind"]
@@ -85,6 +178,8 @@ def run_terraform(*, image: str):
     checkov_volumes = {checkov_test_dir: {"bind": working_dir, "mode": "rw"}}
     terrascan_test_dir = TESTS_PATH.joinpath("terraform/terrascan")
     terrascan_volumes = {terrascan_test_dir: {"bind": working_dir, "mode": "rw"}}
+    kics_config_dir = TESTS_PATH.joinpath("terraform/kics")
+    kics_volumes = {kics_config_dir: {"bind": working_dir, "mode": "rw"}}
     secure_config_dir = TESTS_PATH.joinpath("terraform/secure")
     secure_volumes = {secure_config_dir: {"bind": working_dir, "mode": "rw"}}
 
@@ -115,134 +210,201 @@ def run_terraform(*, image: str):
     # Tests is a list of tuples containing the test environment, command, and
     # expected exit code
     tests: list[tuple[dict, str, int]] = [
-        ({}, "terraform --skip-checkov --skip-terrascan plan", 1),
-        ({}, "tfenv exec --skip-checkov --skip-terrascan plan", 1),
+        ({}, "terraform --skip-checkov --skip-terrascan --skip-kics plan", 1),
+        ({}, "tfenv exec --skip-checkov --skip-kics --skip-terrascan plan", 1),
         (
             {},
-            "SKIP_CHECKOV=true SKIP_TERRASCAN=true terraform plan",
+            "SKIP_KICS=true SKIP_CHECKOV=true SKIP_TERRASCAN=true terraform plan",
             127,
         ),  # Not supported; prepended variables do not work unless the
         #     commands are passed through bash
         (
             {},
-            '/usr/bin/env bash -c "SKIP_CHECKOV=true SKIP_TERRASCAN=true terraform plan"',
+            '/usr/bin/env bash -c "SKIP_KICS=true SKIP_CHECKOV=true SKIP_TERRASCAN=true terraform plan"',
             1,
         ),
         (
-            {"SKIP_CHECKOV": "true"},
+            {"SKIP_CHECKOV": "true", "SKIP_KICS": "true"},
             '/usr/bin/env bash -c "SKIP_TERRASCAN=true terraform plan || true"',
             0,
         ),
         (
             {"SKIP_CHECKOV": "true"},
-            '/usr/bin/env bash -c "SKIP_TERRASCAN=true terraform plan || true && false"',
+            '/usr/bin/env bash -c "SKIP_KICS=true SKIP_TERRASCAN=true terraform plan || true && false"',
             1,
         ),
         (
-            {"SKIP_CHECKOV": "true"},
+            {"SKIP_CHECKOV": "true", "SKIP_KICS": "true"},
             '/usr/bin/env bash -c "SKIP_TERRASCAN=true terraform plan || false"',
             1,
         ),
-        ({"SKIP_CHECKOV": "true"}, "terraform --skip-terrascan plan", 1),
-        ({"SKIP_TERRASCAN": "TRUE"}, "terraform --skip-checkov plan", 1),
-        ({"SKIP_TERRASCAN": "True", "SKIP_CHECKOV": "TrUe"}, "terraform plan", 1),
+        ({"SKIP_CHECKOV": "true"}, "terraform --skip-kics --skip-terrascan plan", 1),
         (
-            {"SKIP_TERRASCAN": "tRuE", "SKIP_CHECKOV": "FaLsE"},
-            "terraform --skip-checkov plan --skip-terrascan",
+            {"SKIP_TERRASCAN": "TRUE", "SKIP_KICS": "True"},
+            "terraform --skip-checkov plan",
+            1,
+        ),
+        ({"SKIP_KICS": "True"}, "terraform --skip-terrascan --skip-checkov plan", 1),
+        (
+            {"SKIP_TERRASCAN": "True", "SKIP_CHECKOV": "TrUe", "SKIP_KICS": "tRuE"},
+            "terraform plan",
             1,
         ),
         (
-            {"SKIP_TERRASCAN": "tRuE", "SKIP_TFSEC": "false"},
-            "terraform --skip-checkov plan --skip-terrascan",
+            {"SKIP_TERRASCAN": "tRuE", "SKIP_CHECKOV": "FaLsE", "SKIP_KICS": "Unknown"},
+            "terraform --skip-checkov plan --skip-terrascan --skip-kics",
+            1,
+        ),
+        (
+            {"SKIP_KICS": "TRUE", "SKIP_TERRASCAN": "tRuE", "SKIP_TFSEC": "false"},
+            "terraform --skip-checkov --skip-kics plan --skip-terrascan",
             1,
         ),
         (
             {},
-            '/usr/bin/env bash -c "terraform --skip-checkov --skip-terrascan plan || true"',
+            '/usr/bin/env bash -c "terraform --skip-kics --skip-checkov --skip-terrascan plan || true"',
             0,
         ),
     ]
 
     LOG.debug("Testing tfsec against insecure terraform")
-    num_tests_ran += exec_terraform(tests=tests, volumes=tfsec_volumes, image=image)
+    num_tests_ran += exec_tests(tests=tests, volumes=tfsec_volumes, image=image)
 
     # Ensure insecure configurations fail due to checkov
     # Tests is a list of tuples containing the test environment, command, and
     # expected exit code
     tests: list[tuple[dict, str, int]] = [  # type: ignore
-        ({}, "terraform --skip-tfsec --skip-terrascan plan", 1),
-        ({}, "tfenv exec --skip-tfsec --skip-terrascan plan", 1),
+        ({}, "terraform --skip-kics --skip-tfsec --skip-terrascan plan", 1),
+        ({}, "tfenv exec --skip-tfsec --skip-kics --skip-terrascan plan", 1),
         (
             {},
-            '/usr/bin/env bash -c "SKIP_TFSEC=true SKIP_TERRASCAN=true terraform plan"',
+            '/usr/bin/env bash -c "SKIP_TFSEC=true SKIP_KICS=true SKIP_TERRASCAN=true terraform plan"',
             1,
         ),
         (
-            {"SKIP_TFSEC": "true"},
+            {"SKIP_TFSEC": "true", "SKIP_KICS": "true"},
             '/usr/bin/env bash -c "SKIP_TERRASCAN=true terraform plan || true"',
             0,
         ),
         (
             {"SKIP_TFSEC": "true"},
-            '/usr/bin/env bash -c "SKIP_TERRASCAN=true terraform plan || true && false"',
+            '/usr/bin/env bash -c "SKIP_TERRASCAN=true SKIP_KICS=true terraform plan || true && false"',
             1,
         ),
         (
-            {"SKIP_TFSEC": "true"},
+            {"SKIP_TFSEC": "true", "SKIP_KICS": "TRUE"},
             '/usr/bin/env bash -c "SKIP_TERRASCAN=true terraform plan || false"',
             1,
         ),
-        ({"SKIP_TFSEC": "true"}, "terraform plan --skip-terrascan", 1),
-        ({"SKIP_TERRASCAN": "true"}, "terraform --skip-tfsec plan", 1),
-        ({"SKIP_TFSEC": "true"}, "terraform --skip-tfsec plan --skip-terrascan", 1),
         (
-            {"SKIP_TERRASCAN": "true", "SKIP_TFSEC": "true"},
-            "terraform --skip-tfsec plan --skip-terrascan",
+            {"SKIP_TFSEC": "true", "SKIP_KICS": "true"},
+            "terraform plan --skip-terrascan",
+            1,
+        ),
+        (
+            {"SKIP_TERRASCAN": "true", "SKIP_KICS": "true"},
+            "terraform --skip-tfsec plan",
+            1,
+        ),
+        (
+            {"SKIP_TFSEC": "true", "SKIP_KICS": "true"},
+            "terraform --skip-tfsec --skip-kics plan --skip-terrascan",
+            1,
+        ),
+        (
+            {"SKIP_TERRASCAN": "true", "SKIP_KICS": "true", "SKIP_TFSEC": "true"},
+            "terraform --skip-tfsec plan --skip-terrascan --skip-kics",
             1,
         ),
     ]
 
     LOG.debug("Testing checkov against insecure terraform")
-    num_tests_ran += exec_terraform(tests=tests, volumes=checkov_volumes, image=image)
+    num_tests_ran += exec_tests(tests=tests, volumes=checkov_volumes, image=image)
 
     # Ensure insecure configurations fail due to terrascan
     # Tests is a list of tuples containing the test environment, command, and
     # expected exit code
     tests: list[tuple[dict, str, int]] = [  # type: ignore
-        ({}, "terraform --skip-tfsec --skip-checkov plan", 3),
-        ({}, "tfenv exec --skip-tfsec --skip-checkov plan", 3),
+        ({}, "terraform --skip-tfsec --skip-kics --skip-checkov plan", 3),
+        ({}, "tfenv exec --skip-tfsec --skip-kics --skip-checkov plan", 3),
         (
             {},
-            '/usr/bin/env bash -c "SKIP_TFSEC=true SKIP_CHECKOV=true terraform plan"',
+            '/usr/bin/env bash -c "SKIP_TFSEC=true SKIP_KICS=true SKIP_CHECKOV=true terraform plan"',
             3,
         ),
         (
             {},
-            '/usr/bin/env bash -c "SKIP_TFSEC=true SKIP_CHECKOV=true terraform plan || true"',
+            '/usr/bin/env bash -c "SKIP_TFSEC=true SKIP_KICS=true SKIP_CHECKOV=true terraform plan || true"',
             0,
         ),
         (
             {},
-            '/usr/bin/env bash -c "SKIP_TFSEC=true SKIP_CHECKOV=true terraform plan || true && false"',
+            '/usr/bin/env bash -c "SKIP_TFSEC=true SKIP_CHECKOV=true SKIP_KICS=true terraform plan || true && false"',
             1,
         ),
         (
             {},
-            '/usr/bin/env bash -c "SKIP_TFSEC=true SKIP_CHECKOV=true terraform plan || false"',
+            '/usr/bin/env bash -c "SKIP_TFSEC=true SKIP_CHECKOV=true SKIP_KICS=true terraform plan || false"',
             1,
         ),
-        ({"SKIP_CHECKOV": "true"}, "terraform plan --skip-tfsec", 3),
-        ({"SKIP_TFSEC": "true"}, "terraform plan --skip-checkov", 3),
-        ({"SKIP_CHECKOV": "true", "SKIP_TFSEC": "true"}, "terraform plan", 3),
+        ({"SKIP_CHECKOV": "true"}, "terraform plan --skip-tfsec --skip-kics", 3),
+        ({"SKIP_TFSEC": "true"}, "terraform --skip-kics plan --skip-checkov", 3),
         (
-            {"SKIP_CHECKOV": "true", "SKIP_TFSEC": "true"},
-            "terraform plan --skip-checkov --skip-tfsec",
+            {"SKIP_CHECKOV": "true", "SKIP_TFSEC": "true", "SKIP_KICS": "true"},
+            "terraform plan",
+            3,
+        ),
+        (
+            {"SKIP_CHECKOV": "true", "SKIP_TFSEC": "true", "SKIP_KICS": "true"},
+            "terraform plan --skip-checkov --skip-tfsec --skip-kics",
             3,
         ),
     ]
 
     LOG.debug("Testing terrascan against insecure terraform")
-    num_tests_ran += exec_terraform(tests=tests, volumes=terrascan_volumes, image=image)
+    num_tests_ran += exec_tests(tests=tests, volumes=terrascan_volumes, image=image)
+
+    # Ensure insecure configurations fail due to kics
+    # Tests is a list of tuples containing the test environment, command, and
+    # expected exit code
+    tests: list[tuple[dict, str, int]] = [  # type: ignore
+        ({}, "terraform --skip-tfsec --skip-terrascan --skip-checkov plan", 50),
+        ({}, "tfenv exec --skip-tfsec --skip-terrascan --skip-checkov plan", 50),
+        (
+            {},
+            '/usr/bin/env bash -c "SKIP_TFSEC=true SKIP_TERRASCAN=true SKIP_CHECKOV=true terraform plan"',
+            50,
+        ),
+        (
+            {},
+            '/usr/bin/env bash -c "SKIP_TFSEC=true SKIP_TERRASCAN=true SKIP_CHECKOV=true terraform plan || true"',
+            0,
+        ),
+        (
+            {},
+            '/usr/bin/env bash -c "SKIP_TFSEC=true SKIP_CHECKOV=true SKIP_TERRASCAN=true terraform plan || true && false"',
+            1,
+        ),
+        (
+            {},
+            '/usr/bin/env bash -c "SKIP_TFSEC=true SKIP_CHECKOV=true SKIP_TERRASCAN=true terraform plan || false"',
+            1,
+        ),
+        ({"SKIP_CHECKOV": "true"}, "terraform plan --skip-tfsec --skip-terrascan", 50),
+        ({"SKIP_TFSEC": "true"}, "terraform --skip-terrascan plan --skip-checkov", 50),
+        (
+            {"SKIP_CHECKOV": "true", "SKIP_TFSEC": "true", "SKIP_TERRASCAN": "true"},
+            "terraform plan",
+            50,
+        ),
+        (
+            {"SKIP_CHECKOV": "true", "SKIP_TFSEC": "true", "SKIP_TERRASCAN": "true"},
+            "terraform plan --skip-checkov --skip-tfsec --skip-terrascan",
+            50,
+        ),
+    ]
+
+    num_tests_ran += exec_tests(tests=tests, volumes=kics_volumes, image=image)
 
     # Ensure insecure configurations still succeed when security checks are
     # disabled
@@ -309,7 +471,7 @@ def run_terraform(*, image: str):
     ]
 
     LOG.debug("Testing terraform with security disabled")
-    num_tests_ran += exec_terraform(tests=tests, volumes=terrascan_volumes, image=image)
+    num_tests_ran += exec_tests(tests=tests, volumes=terrascan_volumes, image=image)
 
     # Ensure secure configurations pass
     # Tests is a list of tuples containing the test environment, command, and
@@ -340,9 +502,9 @@ def run_terraform(*, image: str):
     ]
 
     LOG.debug("Testing secure terraform configurations")
-    num_tests_ran += exec_terraform(tests=tests, volumes=secure_volumes, image=image)
+    num_tests_ran += exec_tests(tests=tests, volumes=secure_volumes, image=image)
 
-    # Run base interactive tests
+    # Run base interactive terraform tests
     test_interactive_container = CLIENT.containers.run(
         image=image,
         detach=True,
@@ -357,21 +519,23 @@ def run_terraform(*, image: str):
     test_interactive_container.exec_run(
         cmd='/bin/bash -ic "terraform validate"', tty=True
     )
-    files = ["/tmp/tfsec_complete", "/tmp/terrascan_complete", "/tmp/checkov_complete"]
+    files = [
+        "/tmp/tfsec_complete",
+        "/tmp/terrascan_complete",
+        "/tmp/checkov_complete",
+        "/tmp/kics_complete",
+    ]
     LOG.debug("Testing interactive terraform commands")
-    for file in files:
-        # attempt is a tuple of (exit_code, output)
-        attempt = test_interactive_container.exec_run(cmd=f"ls {file}")
-        if attempt[0] == 0:
-            test_interactive_container.kill()
-            LOG.error("Found the file %s when it was not expected", file)
-            sys.exit(1)
-        num_tests_ran += 1
+    if (
+        num_successful_tests := check_for_files(
+            container=test_interactive_container, files=files, expected_to_exist=False
+        )
+    ) == 0:
+        sys.exit(1)
 
-    # Cleanup
-    test_interactive_container.kill()
+    num_tests_ran += num_successful_tests
 
-    # Run base non-interactive tests
+    # Run base non-interactive tests for terraform
     test_noninteractive_container = CLIENT.containers.run(
         image=image,
         detach=True,
@@ -386,23 +550,21 @@ def run_terraform(*, image: str):
     test_noninteractive_container.exec_run(
         cmd='/bin/bash -c "terraform validate"', tty=False
     )
-    files = ["/tmp/tfsec_complete", "/tmp/terrascan_complete", "/tmp/checkov_complete"]
+    files = [
+        "/tmp/tfsec_complete",
+        "/tmp/terrascan_complete",
+        "/tmp/checkov_complete",
+        "/tmp/kics_complete",
+    ]
     LOG.debug("Testing non-interactive terraform commands")
-    for file in files:
-        # attempt is a tuple of (exit_code, output)
-        attempt = test_noninteractive_container.exec_run(cmd=f"ls {file}", tty=False)
-        if attempt[0] != 0:
-            test_noninteractive_container.kill()
-            LOG.error(
-                "Received an unexpected status code of %s; additional details: %s",
-                attempt[0],
-                attempt[1].decode("UTF-8").replace("\n", " ").strip(),
-            )
-            sys.exit(attempt[0])
-        num_tests_ran += 1
+    if (
+        num_successful_tests := check_for_files(
+            container=test_noninteractive_container, files=files, expected_to_exist=True
+        )
+    ) == 0:
+        sys.exit(1)
 
-    # Cleanup
-    test_noninteractive_container.kill()
+    num_tests_ran += num_successful_tests
 
     # Run terraform version non-interactive test
     test_noninteractive_container = CLIENT.containers.run(
@@ -419,21 +581,165 @@ def run_terraform(*, image: str):
     test_noninteractive_container.exec_run(
         cmd='/bin/bash -c "terraform version"', tty=False
     )
-    files = ["/tmp/tfsec_complete", "/tmp/terrascan_complete", "/tmp/checkov_complete"]
+    files = [
+        "/tmp/tfsec_complete",
+        "/tmp/terrascan_complete",
+        "/tmp/checkov_complete",
+        "/tmp/kics_complete",
+    ]
     LOG.debug("Testing non-interactive terraform version")
-    for file in files:
-        # attempt is a tuple of (exit_code, output)
-        attempt = test_noninteractive_container.exec_run(cmd=f"ls {file}", tty=False)
-        if attempt[0] == 0:
-            test_interactive_container.kill()
-            LOG.error("Found the file %s when it was not expected", file)
-            sys.exit(1)
-        num_tests_ran += 1
+    if (
+        num_successful_tests := check_for_files(
+            container=test_noninteractive_container,
+            files=files,
+            expected_to_exist=False,
+        )
+    ) == 0:
+        sys.exit(1)
 
-    # Cleanup
-    test_noninteractive_container.kill()
+    num_tests_ran += num_successful_tests
 
     LOG.info("%s passed %d end to end terraform tests", image, num_tests_ran)
+
+
+def run_ansible(*, image: str):
+    """Run the ansible-playbook tests"""
+    num_tests_ran = 0
+    working_dir = "/iac/"
+    kics_config_dir = TESTS_PATH.joinpath("ansible/kics")
+    kics_volumes = {kics_config_dir: {"bind": working_dir, "mode": "rw"}}
+    secure_config_dir = TESTS_PATH.joinpath("ansible/secure")
+    secure_volumes = {secure_config_dir: {"bind": working_dir, "mode": "rw"}}
+
+    # Ensure insecure configurations fail due to kics
+    # Tests is a list of tuples containing the test environment, command, and
+    # expected exit code
+    tests: list[tuple[dict, str, int]] = [
+        ({}, "ansible-playbook insecure.yml --check", 50),
+        (
+            {},
+            "ansible-playbook --skip-kics insecure.yml --check",
+            4,
+        ),  # Exits 4 because insecure.yml is not a valid Play
+        (
+            {},
+            "SKIP_KICS=true ansible-playbook insecure.yml --check",
+            127,
+        ),  # Not supported; prepended variables do not work unless the
+        #     commands are passed through bash
+        (
+            {},
+            '/usr/bin/env bash -c "SKIP_KICS=true ansible-playbook insecure.yml --check"',
+            4,
+        ),  # Exits 4 because insecure.yml is not a valid Play
+        (
+            {},
+            '/usr/bin/env bash -c "ansible-playbook insecure.yml --check || true"',
+            0,
+        ),
+        (
+            {},
+            '/usr/bin/env bash -c "SKIP_TFSEC=true ansible-playbook insecure.yml --check || true && false"',
+            1,
+        ),  # tfsec is purposefully irrelevant for ansible
+        (
+            {"SKIP_CHECKOV": "true", "SKIP_TERRASCAN": "true"},
+            '/usr/bin/env bash -c "ansible-playbook insecure.yml --check || false"',
+            1,
+        ),  # checkov and terrascan are purposefully irrelevant for ansible
+        (
+            {"SKIP_TERRASCAN": "tRuE", "SKIP_CHECKOV": "FaLsE", "SKIP_KICS": "Unknown"},
+            "ansible-playbook insecure.yml --check",
+            50,
+        ),  # checkov and terrascan are purposefully irrelevant for ansible
+    ]
+
+    num_tests_ran += exec_tests(tests=tests, volumes=kics_volumes, image=image)
+
+    # Run base interactive tests
+    test_interactive_container = CLIENT.containers.run(
+        image=image,
+        detach=True,
+        auto_remove=False,
+        tty=True,
+        volumes=secure_volumes,
+    )
+
+    # Running an interactive ansible-playbook command should not cause the creation of
+    # the following files
+    test_interactive_container.exec_run(
+        cmd='/bin/bash -ic "ansible-playbook secure.yml --check"', tty=True
+    )
+    files = [
+        "/tmp/kics_complete",
+    ]
+    LOG.debug("Testing interactive ansible-playbook commands")
+    if (
+        num_successful_tests := check_for_files(
+            container=test_interactive_container, files=files, expected_to_exist=False
+        )
+    ) == 0:
+        sys.exit(1)
+
+    num_tests_ran += num_successful_tests
+
+    # Run base non-interactive tests for ansible
+    test_noninteractive_container = CLIENT.containers.run(
+        image=image,
+        detach=True,
+        auto_remove=False,
+        tty=True,
+        volumes=secure_volumes,
+    )
+
+    # Running a non-interactive ansible-playbook command should cause the creation of
+    # the following files
+    test_noninteractive_container.exec_run(
+        cmd='/bin/bash -c "ansible-playbook secure.yml --check"', tty=False
+    )
+    files = [
+        "/tmp/kics_complete",
+    ]
+    LOG.debug("Testing non-interactive ansible-playbook commands")
+    if (
+        num_successful_tests := check_for_files(
+            container=test_noninteractive_container, files=files, expected_to_exist=True
+        )
+    ) == 0:
+        sys.exit(1)
+
+    num_tests_ran += num_successful_tests
+
+    # Run ansible-playbook version non-interactive test
+    test_noninteractive_container = CLIENT.containers.run(
+        image=image,
+        detach=True,
+        auto_remove=False,
+        tty=True,
+        volumes=secure_volumes,
+    )
+
+    # Running a non-interactive ansible-playbook version (or any other supported
+    # "version" argument) should NOT cause the creation of the following files
+    test_noninteractive_container.exec_run(
+        cmd='/bin/bash -c "ansible-playbook --version"', tty=False
+    )
+    files = [
+        "/tmp/kics_complete",
+    ]
+    LOG.debug("Testing non-interactive ansible-playbook version command")
+    if (
+        num_successful_tests := check_for_files(
+            container=test_noninteractive_container,
+            files=files,
+            expected_to_exist=False,
+        )
+    ) == 0:
+        sys.exit(1)
+
+    num_tests_ran += num_successful_tests
+
+    LOG.info("%s passed %d end to end ansible-playbook tests", image, num_tests_ran)
 
 
 def run_az_stage(*, image: str):

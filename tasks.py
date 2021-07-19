@@ -220,6 +220,7 @@ def test(_c, debug=False):
         LOG.info("Testing %s...", image)
         if target == "minimal":
             run_test.run_terraform(image=image)
+            run_test.run_ansible(image=image)
             run_test.run_security(image=image)
         elif target == "az":
             run_test.run_az_stage(image=image)
@@ -228,10 +229,12 @@ def test(_c, debug=False):
             run_test.run_aws_stage(image=image)
             run_test.run_security(image=image)
         elif target == "final":
-            run_test.version_commands(
+            run_test.run_path_check(image=image)
+            run_test.version_arguments(
                 image=image, volumes=default_volumes, working_dir=default_working_dir
             )
             run_test.run_terraform(image=image)
+            run_test.run_ansible(image=image)
             run_test.run_cli(image=image)
             run_test.run_security(image=image)
         else:

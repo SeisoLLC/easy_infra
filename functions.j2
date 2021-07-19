@@ -52,13 +52,11 @@ function process_command_exit_status() {
   return "${exit_status}"
 }
 
-
-{# Loop through each provided command to be wrapped and make a single wrapper function for it -#}
-{% for command in commands -%}
-{%- if commands[command]["security"] is defined -%}
-function {{ command }}() {
+{# Macro to be used by the loops below #}
+{% macro function(function, tools, allow_filter, version_argument, validations, security_tools) %}
+function {{ function }}() {
   arguments=("${@}")
-  easy_infra_{{ command }}_tools=({% for tool in commands[command]["security"] %}{{ tool }}{% if not loop.last %} {% endif %}{% endfor %})
+  easy_infra_{{ function | replace("-", "_") }}_tools=({% for tool in tools %}{{ tool | replace("-", "_") }}{% if not loop.last %} {% endif %}{% endfor %})
 
   # If an argument was provided which adjusts the easy_infra runtime, set a
   # related variable and remove that argument from the arguments array
@@ -68,7 +66,7 @@ function {{ command }}() {
       security_skipped="argument"
     fi
 
-    for tool in "${easy_infra_{{ command }}_tools[@]}"; do
+    for tool in "${easy_infra_{{ function | replace("-", "_") }}_tools[@]}"; do
       if [[ "${arguments[i],,}" == "--skip-${tool}" ]]; then
         unset 'arguments[i]'
         declare "${tool}_skipped=argument"
@@ -76,11 +74,11 @@ function {{ command }}() {
     done
   done
 
-{% if commands[command]["allow_filter"] is defined %}
+{% if allow_filter is defined %}
   # Apply the allow filters after easy_infra specific arguments have been
   # removed
   for i in "${!arguments[@]}"; do
-{%- for filter in commands[command]["allow_filter"] %}
+{%- for filter in allow_filter %}
     if [[ "${i}" == "{{ filter['position'] }}" && "${arguments[i]}" == "{{ filter['match'] }}" ]]; then
       hit="true"
     fi
@@ -94,27 +92,27 @@ function {{ command }}() {
   done
 {%- endif %}
 
-  # Methods to skip **all** security tools for {{ command }}
+  # Methods to skip **all** security tools for {{ function }}
   DISABLE_SECURITY="${DISABLE_SECURITY:-false}"
 
-  if [[ "${FUNCNAME[0]} ${1}" == "{{ commands[command]["version_command"] }}" ]]; then
-    _feedback INFO "Detected version check, skipping security checks for {{ command }}"
+  if [[ "${1}" == "{{ version_argument }}" ]]; then
+    _feedback INFO "Detected version check, skipping security checks for {{ function }}"
     # Allow piping of the version command into other commands
     command "${FUNCNAME[0]}" "${arguments[@]}"
     return $?
   elif [[ "${security_skipped:-false}" == "argument" ]]; then
-    _feedback WARNING "Skipping all security checks for {{ command }} due to the --disable-security argument"
+    _feedback WARNING "Skipping all security checks for {{ function }} due to the --disable-security argument"
     unset 'security_skipped'
     command "${FUNCNAME[0]}" "${arguments[@]}"
     return $?
   elif [[ "${DISABLE_SECURITY,,}" == "true" ]]; then
-    _feedback WARNING "Skipping all security checks for {{ command }} due to the DISABLE_SECURITY environment variable value"
+    _feedback WARNING "Skipping all security checks for {{ function }} due to the DISABLE_SECURITY environment variable value"
     command "${FUNCNAME[0]}" "${arguments[@]}"
     return $?
-{%- if commands[command]["validation"] is defined %}
+{%- if validations is defined %}
   else
     ## Validate the input prior to running security tooling
-    {%- for validation in commands[command]["validation"] %}
+    {%- for validation in validations %}
     # If the initialization was already run successfully in an non-interactive
     # shell, don't run it again
     if [[ -r "/tmp/{{ validation.command | replace(" ", "_") }}_complete" ]]; then
@@ -134,30 +132,30 @@ function {{ command }}() {
 
   ## Setup the per-tool security integrations
   {#- For each command being wrapped, loop through each security tool and apply tool-specific skips based on env vars/arguments #}
-  {%- for tool in commands[command]["security"] %}
-  {{ tool }}_skip_argument="--skip-{{ tool }}"
-  {{ tool }}_upper=$(echo "{{ tool }}" | tr '[:lower:]' '[:upper:]')
-  {{ tool }}_skip_env_var="SKIP_{{ '${' }}{{ tool }}_upper}"
-  declare "SKIP_{{ '${' }}{{ tool }}_upper}={{ '${' }}!{{ tool }}_skip_env_var:-false}"
+  {%- for tool in security_tools %}
+  {{ tool | replace("-", "_") }}_skip_argument="--skip-{{ tool | replace("-", "_") }}"
+  {{ tool | replace("-", "_") }}_upper=$(echo "{{ tool | replace("-", "_") }}" | tr '[:lower:]' '[:upper:]')
+  {{ tool | replace("-", "_") }}_skip_env_var="SKIP_{{ '${' }}{{ tool | replace("-", "_") }}_upper}"
+  declare "SKIP_{{ '${' }}{{ tool | replace("-", "_") }}_upper}={{ '${' }}!{{ tool | replace("-", "_") }}_skip_env_var:-false}"
 
-  ## Methods to skip {{ tool }}
-  if [[ "{{ '${' }}{{ tool }}_skipped:-false}" == "argument" ]]; then
-    _feedback WARNING "Skipping {{ tool }} due to {{ '${' }}{{ tool }}_skip_argument}"
-    unset '{{ tool }}_skipped'
+  ## Methods to skip {{ tool | replace("-", "_") }}
+  if [[ "{{ '${' }}{{ tool | replace("-", "_") }}_skipped:-false}" == "argument" ]]; then
+    _feedback WARNING "Skipping {{ tool | replace("-", "_") }} due to {{ '${' }}{{ tool | replace("-", "_") }}_skip_argument}"
+    unset '{{ tool | replace("-", "_") }}_skipped'
   # If the "skip" environment variable was set to true, skip the security scan
-  elif [[ "${!{{ tool }}_skip_env_var,,}" == "true" ]]; then
-    _feedback WARNING "Skipping {{ tool }} due to the {{ '${' }}{{ tool }}_skip_env_var} environment variable value"
+  elif [[ "${!{{ tool | replace("-", "_") }}_skip_env_var,,}" == "true" ]]; then
+    _feedback WARNING "Skipping {{ tool | replace("-", "_") }} due to the {{ '${' }}{{ tool | replace("-", "_") }}_skip_env_var} environment variable value"
   # If the security scan was already run successfully in an non-interactive
   # shell, don't run it again
-  elif [[ -r "/tmp/{{ tool }}_complete" ]]; then
-    _feedback INFO "Skipping {{ tool }} because it was already run on $(date -d @"$(cat /tmp/{{ tool }}_complete)")"
+  elif [[ -r "/tmp/{{ tool | replace("-", "_") }}_complete" ]]; then
+    _feedback INFO "Skipping {{ tool | replace("-", "_") }} because it was already run on $(date -d @"$(cat /tmp/{{ tool | replace("-", "_") }}_complete)")"
   # Otherwise, run the security tool
   else
-    {{ commands[command]["security"][tool].command }} &>/tmp/{{ tool }}_output
-    process_command_exit_status "${?}" "{{ tool }}" "{{ commands[command]["security"][tool].description }}"
+    {{ security_tools[tool].command }} &>/tmp/{{ tool | replace("-", "_") }}_output
+    process_command_exit_status "${?}" "{{ tool | replace("-", "_") }}" "{{ security_tools[tool].description }}"
     return=${?}
     if [[ ${return:-1} != 0 ]]; then
-      cat /tmp/{{ tool }}_output
+      cat /tmp/{{ tool | replace("-", "_") }}_output
       return ${return}
     fi
   fi
@@ -167,6 +165,14 @@ function {{ command }}() {
   # are removed
   command "${FUNCNAME[0]}" "${arguments[@]}"
 }
+{% endmacro %}
 
-{% endif -%}
+{# Loop through each provided command (or aliases, if they are set) to be wrapped and make a single wrapper function for it -#}
+{% for command in commands if commands[command]["security"] -%}
+{% for alias in commands[command]["aliases"] -%}
+{{ function(alias, commands[command]["security"], commands[command]["allow_filter"], commands[command]["version_argument"], commands[command]["validation"], commands[command]["security"]) }}
+{% else %}
+{{ function(command, commands[command]["security"], commands[command]["allow_filter"], commands[command]["version_argument"], commands[command]["validation"], commands[command]["security"]) }}
+{% endfor %}
 {%- endfor -%}
+

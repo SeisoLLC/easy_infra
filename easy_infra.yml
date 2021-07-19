@@ -3,6 +3,9 @@ _anchors:
     checkov:
       command: checkov -d . --no-guide
       description: directory scan
+    kics:
+      command: kics scan --type Terraform --queries-path ${KICS_QUERIES_PATH} --path .
+      description: directory scan
     terrascan:
       command: terrascan scan -i terraform -t all -d .
       description: recursive scan
@@ -16,28 +19,42 @@ _anchors:
     description: validation
 commands:
   ansible:
+    aliases:
+    - ansible
+    - ansible-playbook
+    security:
+      kics:
+        command: kics scan --type Ansible --queries-path ${KICS_QUERIES_PATH} --path .
+        description: directory scan
     version: 2.9.6+dfsg-1
-    version_command: ansible --version
+    version_argument: --version
   aws-cli:
+    aliases:
+    - aws
     version: 2.2.17
-    version_command: aws --version
+    version_argument: --version
   azure-cli:
+    aliases:
+    - az
     version: 2.26.0-1~focal
-    version_command: az version
+    version_argument: version
   checkov:
     version: 2.0.257
-    version_command: checkov --version
+    version_argument: --version
+  kics:
+    version: v1.3.4
+    version_argument: version
   packer:
     version: 1.7.3
-    version_command: packer version
+    version_argument: version
   terraform:
     security: *id001
     validation: *id002
     version: 1.0.2
-    version_command: terraform version
+    version_argument: version
   terrascan:
     version: v1.8.0
-    version_command: terrascan version
+    version_argument: version
   tfenv:
     allow_filter:
     - match: exec
@@ -45,7 +62,7 @@ commands:
     security: *id001
     validation: *id002
     version: v2.2.2
-    version_command: tfenv --version
+    version_argument: --version
   tfsec:
     version: v0.42.3
-    version_command: tfsec --version
+    version_argument: --version
