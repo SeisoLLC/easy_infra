@@ -71,7 +71,7 @@ The injected security tooling can be disabled entirely or individually, using
 | `--skip-terrascan`\*   | Disable Terrascan            | `terraform --skip-terrascan validate`                     |
 | `--skip-tfsec`\*       | Disable tfsec                | `terraform --skip-tfsec validate`                         |
 
-* This argument is processed by easy_infra and removed prior to passing
+\* This argument is processed by easy_infra and removed prior to passing
 parameters to the Terraform or Ansible commands.
 
 ## Contributing
