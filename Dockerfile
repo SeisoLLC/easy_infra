@@ -37,7 +37,7 @@ RUN curl -L https://github.com/checkmarx/kics/releases/download/${KICS_VERSION}/
  && rm -f /usr/local/bin/kics.tar.gz \
  && chmod 0755 /usr/local/bin/kics \
  && chown root: /usr/local/bin/kics \
- && curl -L https://github.com/liamg/tfsec/releases/download/${TFSEC_VERSION}/tfsec-linux-amd64 -o /usr/local/bin/tfsec \
+ && curl -L https://github.com/aquasecurity/tfsec/releases/download/${TFSEC_VERSION}/tfsec-linux-amd64 -o /usr/local/bin/tfsec \
  && chmod 0755 /usr/local/bin/tfsec \
  && curl -L https://releases.hashicorp.com/packer/${PACKER_VERSION}/packer_${PACKER_VERSION}_linux_amd64.zip -o /usr/local/bin/packer.zip \
  && unzip /usr/local/bin/packer.zip -d /usr/local/bin/ \
