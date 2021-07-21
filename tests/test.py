@@ -3,6 +3,7 @@
 Test Functions
 """
 
+import copy
 import os
 import sys
 from logging import getLogger
@@ -206,6 +207,20 @@ def run_terraform(*, image: str):
     )
     num_tests_ran += 1
 
+    # Test informational mode on an invalid configuration
+    command = "terraform validate"
+    LOG.debug("Testing informational mode on an invalid configuration")
+    informational_environment = copy.deepcopy(environment)
+    informational_environment["LEARNING_MODE"] = "true"
+    utils.opinionated_docker_run(
+        image=image,
+        volumes=invalid_volumes,
+        command=command,
+        environment=informational_environment,
+        expected_exit=1,  # This still fails terraform validate
+    )
+    num_tests_ran += 1
+
     # Ensure insecure configurations fail due to tfsec
     # Tests is a list of tuples containing the test environment, command, and
     # expected exit code
@@ -265,6 +280,21 @@ def run_terraform(*, image: str):
             '/usr/bin/env bash -c "terraform --skip-kics --skip-checkov --skip-terrascan plan || true"',
             0,
         ),
+        (
+            {
+                "LEARNING_MODE": "TrUe",
+                "SKIP_KICS": "TRUE",
+                "SKIP_TERRASCAN": "tRuE",
+                "SKIP_TFSEC": "false",
+            },
+            "terraform --skip-checkov --skip-kics validate --skip-terrascan",
+            0,
+        ),
+        (
+            {"LEARNING_MODE": "TRUE"},
+            '/usr/bin/env bash -c "terraform --skip-kics --skip-checkov --skip-terrascan validate"',
+            0,
+        ),
     ]
 
     LOG.debug("Testing tfsec against insecure terraform")
@@ -316,6 +346,16 @@ def run_terraform(*, image: str):
             "terraform --skip-tfsec plan --skip-terrascan --skip-kics",
             1,
         ),
+        (
+            {"LEARNING_MODE": "tRuE", "SKIP_TFSEC": "true", "SKIP_KICS": "TRUE"},
+            '/usr/bin/env bash -c "SKIP_TERRASCAN=true terraform validate"',
+            0,
+        ),
+        (
+            {"LEARNING_MODE": "tRuE", "SKIP_TFSEC": "true", "SKIP_KICS": "true"},
+            "terraform validate --skip-terrascan",
+            0,
+        ),
     ]
 
     LOG.debug("Testing checkov against insecure terraform")
@@ -359,6 +399,16 @@ def run_terraform(*, image: str):
             "terraform plan --skip-checkov --skip-tfsec --skip-kics",
             3,
         ),
+        (
+            {},
+            '/usr/bin/env bash -c "LEARNING_MODE=true SKIP_TFSEC=true SKIP_CHECKOV=true SKIP_KICS=true terraform validate"',
+            0,
+        ),
+        (
+            {"LEARNING_MODE": "true", "SKIP_CHECKOV": "true"},
+            "terraform validate --skip-tfsec --skip-kics",
+            0,
+        ),
     ]
 
     LOG.debug("Testing terrascan against insecure terraform")
@@ -401,6 +451,16 @@ def run_terraform(*, image: str):
             {"SKIP_CHECKOV": "true", "SKIP_TFSEC": "true", "SKIP_TERRASCAN": "true"},
             "terraform plan --skip-checkov --skip-tfsec --skip-terrascan",
             50,
+        ),
+        (
+            {},
+            '/usr/bin/env bash -c "LEARNING_MODE=true SKIP_TFSEC=true SKIP_CHECKOV=true SKIP_TERRASCAN=true terraform validate"',
+            0,
+        ),
+        (
+            {"LEARNING_MODE": "true", "SKIP_CHECKOV": "true"},
+            "terraform validate --skip-tfsec --skip-terrascan",
+            0,
         ),
     ]
 
@@ -652,6 +712,16 @@ def run_ansible(*, image: str):
             "ansible-playbook insecure.yml --check",
             50,
         ),  # checkov and terrascan are purposefully irrelevant for ansible
+        (
+            {},
+            '/usr/bin/env bash -c "LEARNING_MODE=true ansible-playbook insecure.yml --check"',
+            4,
+        ),  # Exits 4 because insecure.yml is not a valid Play
+        (
+            {"LEARNING_MODE": "true"},
+            "ansible-playbook insecure.yml --check",
+            4,
+        ),  # Exits 4 because insecure.yml is not a valid Play
     ]
 
     num_tests_ran += exec_tests(tests=tests, volumes=kics_volumes, image=image)
