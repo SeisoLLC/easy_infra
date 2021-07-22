@@ -33,11 +33,13 @@ What `easy_infra` does in this case is:
 
 1. Perform `terraform` validation, specifically `terraform init && terraform
    validate`
-1. Run `terraform` security tools serially, and in alphabetical order
+1. Run `terraform` security tools\* serially, and in alphabetical order
    (`checkov`, `kics`, `terrascan`, and then `tfsec`).
 1. Run the provided `terraform` command, assuming the provided configurations
    were confirmed as valid and did not fail any of the security policy
    validation.
+
+\* In the minimal images, only KICS is available
 
 ### Learning mode
 
