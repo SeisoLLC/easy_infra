@@ -13,9 +13,15 @@ if [ "$#" -eq 0 ]; then
   if [ -x "$(which az)" ]; then
     echo -e "azure-cli\t $(command az version | jq -r '.["azure-cli"]')" &
   fi
-  echo -e "terraform\t $(command terraform version | head -1 | awk -F' ' '{print $2}' | sed 's/^v//')" &
-  echo -e "packer\t\t $(command packer --version)" &
-  echo -e "ansible\t\t $(command ansible --version | head -1 | awk -F' ' '{print $2}')" &
+  if [ -x "$(which terraform)" ]; then
+    echo -e "terraform\t $(command terraform version | head -1 | awk -F' ' '{print $2}' | sed 's/^v//')" &
+  fi
+  if [ -x "$(which ansible)" ]; then
+    echo -e "ansible\t\t $(command ansible --version | head -1 | awk -F' ' '{print $2}')" &
+  fi
+  if [ -x "$(which packer)" ]; then
+    echo -e "packer\t\t $(command packer --version)" &
+  fi
   wait
 
   exec bash
