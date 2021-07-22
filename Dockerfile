@@ -140,7 +140,7 @@ RUN curl -L https://releases.hashicorp.com/packer/${PACKER_VERSION}/packer_${PAC
  && curl -L https://github.com/aquasecurity/tfsec/releases/download/${TFSEC_VERSION}/tfsec-linux-amd64 -o /usr/local/bin/tfsec \
  && chmod 0755 /usr/local/bin/tfsec \
  && python3 -m pip install --upgrade --no-cache-dir pip \
- && pip install --user --no-cache-dir checkov==${CHECKOV_VERSION} \
+ && su - easy_infra -c "pip install --user --no-cache-dir checkov==${CHECKOV_VERSION}" \
  && echo "export PATH=/home/easy_infra/.local/bin:${PATH}" >> /home/easy_infra/.bashrc
 USER easy_infra
 
