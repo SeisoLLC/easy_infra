@@ -233,7 +233,7 @@ def test(_c, debug=False):
             run_test.version_arguments(
                 image=image, volumes=default_volumes, working_dir=default_working_dir
             )
-            run_test.run_terraform(image=image)
+            run_test.run_terraform(image=image, final=True)
             run_test.run_ansible(image=image)
             run_test.run_cli(image=image)
             run_test.run_security(image=image)
