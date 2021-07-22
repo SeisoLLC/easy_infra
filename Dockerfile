@@ -9,6 +9,7 @@ ARG KICS_VERSION
 ARG TERRAFORM_VERSION
 ARG TFENV_VERSION
 ENV KICS_QUERIES_PATH="/home/easy_infra/.kics/assets/queries"
+ENV PATH="/home/easy_infra/.local/bin:${PATH}"
 ARG DEBIAN_FRONTEND="noninteractive"
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 # hadolint ignore=DL3008,SC1091
@@ -39,11 +40,12 @@ RUN apt-get update \
  && useradd -r -g easy_infra -s "$(which bash)" --create-home --uid 53150 easy_infra \
  && su easy_infra -c "git clone https://github.com/tfutils/tfenv.git /home/easy_infra/.tfenv --depth 1 --branch ${TFENV_VERSION}" \
  && rm -rf /home/easy_infra/.tfenv/.git \
- && echo "export PATH=/home/easy_infra/.tfenv/bin:\${PATH}" >> /home/easy_infra/.bashrc \
+ && su easy_infra -c "mkdir -p /home/easy_infra/.local/bin/" \
+ && ln -s /home/easy_infra/.tfenv/bin/* /home/easy_infra/.local/bin \
  && su easy_infra -c "mkdir -p /home/easy_infra/.terraform.d/plugin-cache" \
- && su - easy_infra -c "/home/easy_infra/.tfenv/bin/tfenv install ${TERRAFORM_VERSION}" \
- && su - easy_infra -c "/home/easy_infra/.tfenv/bin/tfenv use ${TERRAFORM_VERSION}" \
- && su - easy_infra -c "/home/easy_infra/.tfenv/bin/terraform -install-autocomplete" \
+ && su - easy_infra -c "tfenv install ${TERRAFORM_VERSION}" \
+ && su - easy_infra -c "tfenv use ${TERRAFORM_VERSION}" \
+ && su - easy_infra -c "terraform -install-autocomplete" \
  && su easy_infra -c "git clone https://github.com/checkmarx/kics.git /home/easy_infra/.kics --depth 1 --branch ${KICS_VERSION}" \
  && rm -rf /home/easy_infra/.kics/.git \
  && echo "source /functions" >> /home/easy_infra/.bashrc \
@@ -141,7 +143,6 @@ RUN curl -L https://releases.hashicorp.com/packer/${PACKER_VERSION}/packer_${PAC
  && pip install --user --no-cache-dir checkov==${CHECKOV_VERSION} \
  && echo "export PATH=/home/easy_infra/.local/bin:${PATH}" >> /home/easy_infra/.bashrc
 USER easy_infra
-ENV PATH="/home/easy_infra/.local/bin:${PATH}"
 
 # AWS
 COPY --from=aws --chown=easy_infra:easy_infra /usr/local/aws-cli/ /usr/local/aws-cli/
