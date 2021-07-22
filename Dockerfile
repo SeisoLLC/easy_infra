@@ -46,7 +46,7 @@ RUN apt-get update \
  && su - easy_infra -c "/home/easy_infra/.tfenv/bin/terraform -install-autocomplete" \
  && su easy_infra -c "git clone https://github.com/checkmarx/kics.git /home/easy_infra/.kics --depth 1 --branch ${KICS_VERSION}" \
  && rm -rf /home/easy_infra/.kics/.git \
- && echo "source ${BASH_ENV}" >> /home/easy_infra/.bashrc \
+ && echo "source /functions" >> /home/easy_infra/.bashrc \
  && su easy_infra -c "mkdir /home/easy_infra/.ansible" \
  && rm -rf /var/log/* /var/cache/debconf/*-old
 USER easy_infra
