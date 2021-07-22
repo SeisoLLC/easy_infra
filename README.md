@@ -52,6 +52,15 @@ instance:
 docker run -e LEARNING_MODE=true -v $(pwd):/iac seiso/easy_infra terraform apply -auto-approve
 ```
 
+### Debugging
+
+If you'd like to enable debug logs at runtime, pass an environment variable of
+`LOG_LEVEL` with a value of `DEBUG`, such as:
+
+```bash
+docker run -e LOG_LEVEL=DEBUG -v $(pwd):/iac seiso/easy_infra terraform validate
+```
+
 ### Disabling security
 
 The injected security tooling can be disabled entirely or individually, using

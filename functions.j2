@@ -6,6 +6,7 @@
 # Color code lookups
 ERROR='\033[0;31m'
 WARNING='\033[0;33m'
+DEBUG='\033[0;36m'
 INFO='\033[0m'
 DEFAULT='\033[0m'
 
@@ -15,16 +16,13 @@ function _feedback() {
   color="${1}"
   case "${1}" in
     ERROR)
-      # echo to stderr with the appropriate coloring, reset the color back to
-      # the default when done
+      # echo to stderr with the appropriate coloring
       >&2 echo -e "${!color}${1}:  ${2}${DEFAULT}" ;;
     WARNING)
-      # echo to stderr with the appropriate coloring, reset the color back to
-      # the default when done
+      # echo to stderr with the appropriate coloring
       >&2 echo -e "${!color}${1}:  ${2}${DEFAULT}" ;;
     *)
-      # echo to stdout with the appropriate coloring, reset the color back to
-      # the default when done
+      # echo to stdout with the appropriate coloring
       echo -e "${!color}${1}:  ${2}${DEFAULT}" ;;
   esac
 }
@@ -125,6 +123,8 @@ function {{ function }}() {
         cat /tmp/{{ validation.command | replace(" ", "_") }}_output
         if [[ "${LEARNING_MODE,,}" != "true" ]]; then
           return "${return}"
+        elif [[ "${LOG_LEVEL,,}" == "debug" ]]; then
+          _feedback DEBUG "Learning mode enabled, not returning {{ validation.command }}'s exit code of ${return}"
         fi
       fi
     fi
@@ -161,8 +161,12 @@ function {{ function }}() {
         cat /tmp/{{ tool | replace("-", "_") }}_output
         if [[ "${LEARNING_MODE,,}" != "true" ]]; then
           return ${return}
+        elif [[ "${LOG_LEVEL,,}" == "debug" ]]; then
+          _feedback DEBUG "Learning mode enabled, not returning {{ tool }}'s exit code of ${return}"
         fi
       fi
+    elif [[ "${LOG_LEVEL,,}" == "debug" ]]; then
+      _feedback DEBUG "Did not run {{ tool }} because it was either not in the path or is not executable"
     fi
   fi
   {%- endfor %}
