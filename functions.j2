@@ -6,7 +6,8 @@
 # Color code lookups
 ERROR='\033[0;31m'
 WARNING='\033[0;33m'
-INFO='\033[0m'
+DEBUGGING='\033[0;36m'
+INFORMATIONAL='\033[0m'
 DEFAULT='\033[0m'
 
 
@@ -15,16 +16,13 @@ function _feedback() {
   color="${1}"
   case "${1}" in
     ERROR)
-      # echo to stderr with the appropriate coloring, reset the color back to
-      # the default when done
+      # echo to stderr with the appropriate coloring
       >&2 echo -e "${!color}${1}:  ${2}${DEFAULT}" ;;
     WARNING)
-      # echo to stderr with the appropriate coloring, reset the color back to
-      # the default when done
+      # echo to stderr with the appropriate coloring
       >&2 echo -e "${!color}${1}:  ${2}${DEFAULT}" ;;
     *)
-      # echo to stdout with the appropriate coloring, reset the color back to
-      # the default when done
+      # echo to stdout with the appropriate coloring
       echo -e "${!color}${1}:  ${2}${DEFAULT}" ;;
   esac
 }
@@ -39,7 +37,7 @@ function process_command_exit_status() {
   if [[ "${exit_status}" != 0 ]]; then
     _feedback ERROR "Failed ${command} ${description}"
   else
-    _feedback INFO "Passed ${command} ${description}"
+    _feedback INFORMATIONAL "Passed ${command} ${description}"
   fi
 
   # If the shell is not interactive ("i" is not in the $- variable), skip
@@ -96,7 +94,7 @@ function {{ function }}() {
   DISABLE_SECURITY="${DISABLE_SECURITY:-false}"
 
   if [[ "${1}" == "{{ version_argument }}" ]]; then
-    _feedback INFO "Detected version check, skipping security checks for {{ function }}"
+    _feedback INFORMATIONAL "Detected version check, skipping security checks for {{ function }}"
     # Allow piping of the version command into other commands
     command "${FUNCNAME[0]}" "${arguments[@]}"
     return $?
@@ -116,7 +114,7 @@ function {{ function }}() {
     # If the initialization was already run successfully in an non-interactive
     # shell, don't run it again
     if [[ -r "/tmp/{{ validation.command | replace(" ", "_") }}_complete" ]]; then
-      _feedback INFO "Skipping \`{{ validation.command }}\` because it was already run on $(date -d @"$(cat /tmp/{{ validation.command | replace(" ", "_") }}_complete)")"
+      _feedback INFORMATIONAL "Skipping \`{{ validation.command }}\` because it was already run on $(date -d @"$(cat /tmp/{{ validation.command | replace(" ", "_") }}_complete)")"
     else
       command {{ validation.command }} &>/tmp/{{ validation.command | replace(" ", "_") }}_output
       process_command_exit_status "${?}" "{{ validation.command }}" "{{ validation.description }}"
@@ -125,6 +123,8 @@ function {{ function }}() {
         cat /tmp/{{ validation.command | replace(" ", "_") }}_output
         if [[ "${LEARNING_MODE,,}" != "true" ]]; then
           return "${return}"
+        elif [[ "${LOG_LEVEL,,}" == "debug" ]]; then
+          _feedback DEBUGGING "Learning mode enabled, not returning {{ validation.command }}'s exit code of ${return}"
         fi
       fi
     fi
@@ -150,7 +150,7 @@ function {{ function }}() {
   # If the security scan was already run successfully in an non-interactive
   # shell, don't run it again
   elif [[ -r "/tmp/{{ tool | replace("-", "_") }}_complete" ]]; then
-    _feedback INFO "Skipping {{ tool | replace("-", "_") }} because it was already run on $(date -d @"$(cat /tmp/{{ tool | replace("-", "_") }}_complete)")"
+    _feedback INFORMATIONAL "Skipping {{ tool | replace("-", "_") }} because it was already run on $(date -d @"$(cat /tmp/{{ tool | replace("-", "_") }}_complete)")"
   # Otherwise, attempt to run the security tool
   else
     if [[ -x $(which {{ tool }}) ]]; then
@@ -161,8 +161,12 @@ function {{ function }}() {
         cat /tmp/{{ tool | replace("-", "_") }}_output
         if [[ "${LEARNING_MODE,,}" != "true" ]]; then
           return ${return}
+        elif [[ "${LOG_LEVEL,,}" == "debug" ]]; then
+          _feedback DEBUGGING "Learning mode enabled, not returning {{ tool }}'s exit code of ${return}"
         fi
       fi
+    elif [[ "${LOG_LEVEL,,}" == "debug" ]]; then
+      _feedback DEBUGGING "Did not run {{ tool }} because it was either not in the path or is not executable"
     fi
   fi
   {%- endfor %}
