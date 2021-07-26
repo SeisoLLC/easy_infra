@@ -51,7 +51,7 @@ function process_command_exit_status() {
 }
 
 {# Macro to be used by the loops below #}
-{% macro function(function, tools, allow_filter, version_argument, validations, security_tools, customizations) %}
+{% macro function(function, tools, allow_filter, version_argument, validations, security_tools) %}
 function {{ function }}() {
   arguments=("${@}")
   easy_infra_{{ function | replace("-", "_") }}_tools=({% for tool in tools %}{{ tool | replace("-", "_") }}{% if not loop.last %} {% endif %}{% endfor %})
@@ -162,7 +162,7 @@ function {{ function }}() {
       fi
       {%- endfor %}
       {%- endif %}
-      eval '${security_tool_command} &>/tmp/{{ security_tool | replace("-", "_") }}_output'
+      eval "${security_tool_command} &>/tmp/{{ security_tool | replace("-", "_") }}_output"
       process_command_exit_status "${?}" "{{ security_tool | replace("-", "_") }}" "{{ security_tools[security_tool].description }}"
       return=${?}
       if [[ ${return:-1} != 0 ]]; then
