@@ -18,6 +18,7 @@ the provided IaC against the defined security policy.
 Terraform security is included in all of the ``easy_infra`` tags, including
 minimal, aws, az, and latest
 
+
 Use Cases
 ---------
 
@@ -32,6 +33,13 @@ plan`` and ``terraform deploy``::
 
     docker run -v $(pwd):/iac seiso/easy_infra:latest-minimal /bin/bash -c "terraform plan && terraform apply -auto-approve"
 
+Customizing KICS
+^^^^^^^^^^^^^^^^
+
+| Environment variable | Result                                    | Example                                                                       |
+|----------------------|-------------------------------------------|-------------------------------------------------------------------------------|
+| ``KICS_QUERIES``     | Passes the value to ``--include-queries`` | ``4728cd65-a20c-49da-8b31-9c08b423e4db,46883ce1-dc3e-4b17-9195-c6a601624c73`` |
+
 Terraform Caching
 ^^^^^^^^^^^^^^^^^
 
@@ -39,6 +47,34 @@ If you're working with the same terraform code across multiple runs, you can
 leverage the cache::
 
     docker run -v $(pwd):/iac -v $(pwd)/plugin-cache:/home/easy_infra/.terraform.d/plugin-cache easy_infra:latest-minimal /bin/bash -c "terraform init; terraform validate"
+
+Disabling Security
+^^^^^^^^^^^^^^^^^^
+
+The injected security tooling can be disabled entirely or individually, using
+``easy_infra``-specific command line arguments or environment variables.
+
+| Environment variable | Default   | Result                        |
+|----------------------|-----------|-------------------------------|
+| ``DISABLE_SECURITY`` | ``false`` | Disables all security tooling |
+| ``SKIP_CHECKOV``     | ``false`` | Disables Checkov\*            |
+| ``SKIP_KICS``        | ``false`` | Disables KICS                 |
+| ``SKIP_TERRASCAN``   | ``false`` | Disables Terrascan\*          |
+| ``SKIP_TFSEC``       | ``false`` | Disables tfsec\*              |
+
+| Parameter               | Result                       | Example                                                     |
+|-------------------------|------------------------------|-------------------------------------------------------------|
+| ``--disable-security``  | Disable all security tooling | ``ansible-playbook --disable-security example.yml --check`` |
+| ``--skip-checkov``\**   | Disable Checkov              | ``terraform --skip-checkov validate``                       |
+| ``--skip-kics``         | Disable KICS                 | ``terraform --skip-kics validate``                          |
+| ``--skip-terrascan``\** | Disable Terrascan            | ``terraform --skip-terrascan validate``                     |
+| ``--skip-tfsec``\**     | Disable tfsec                | ``terraform --skip-tfsec validate``                         |
+
+
+\* In the minimal images, only KICS is available
+\** This argument is processed by easy_infra and removed prior to passing
+parameters to the Terraform or Ansible commands.
+
 
 Resources
 ---------

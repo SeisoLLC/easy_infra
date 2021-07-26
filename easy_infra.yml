@@ -5,6 +5,8 @@ _anchors:
       description: directory scan
     kics:
       command: kics scan --type Terraform --queries-path ${KICS_QUERIES_PATH} --path .
+      customizations:
+        KICS_QUERIES: --include-queries
       description: directory scan
     terrascan:
       command: terrascan scan -i terraform -t all -d .
@@ -25,6 +27,8 @@ commands:
     security:
       kics:
         command: kics scan --type Ansible --queries-path ${KICS_QUERIES_PATH} --path .
+        customizations:
+          KICS_QUERIES: --include-queries
         description: directory scan
     version: 2.9.6+dfsg-1
     version_argument: --version
