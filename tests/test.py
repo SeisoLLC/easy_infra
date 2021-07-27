@@ -326,7 +326,7 @@ def run_terraform(*, image: str, final: bool = False):
                 "KICS_QUERIES": "4728cd65-a20c-49da-8b31-9c08b423e4db,46883ce1-dc3e-4b17-9195-c6a601624c73",  # Purposefully doesn't apply to kics_volumes
                 "DISABLE_SECURITY": "true",
             },
-            "terraform validate",
+            "terraform plan",
             0,
         ),
         (
@@ -334,7 +334,7 @@ def run_terraform(*, image: str, final: bool = False):
                 "KICS_QUERIES": "5a2486aa-facf-477d-a5c1-b010789459ce",  # Would normally fail due to kics_volumes
                 "DISABLE_SECURITY": "true",
             },
-            "terraform validate",
+            "terraform plan",
             0,
         ),
     ]
@@ -400,6 +400,11 @@ def run_terraform(*, image: str, final: bool = False):
         (
             {"KICS_QUERIES": "5a2486aa-facf-477d-a5c1-b010789459ce"},
             "terraform validate",
+            1,
+        ),
+        (
+            {},
+            '/usr/bin/env bash -c "KICS_QUERIES=5a2486aa-facf-477d-a5c1-b010789459ce terraform validate"',
             1,
         ),
     ]
@@ -760,12 +765,17 @@ def run_ansible(*, image: str):
         ),  # Exits 4 because insecure.yml is not a valid Play
         (
             {"KICS_QUERIES": "c3b9f7b0-f5a0-49ec-9cbc-f1e346b7274d"},
-            "terraform validate",
+            "ansible-playbook insecure.yml --check",
             4,
         ),  # Exits with 4 because insecure.yml is not a valid Play, and the provided insecure playbook does not apply to the included queries
         (
             {"KICS_QUERIES": "7dfb316c-a6c2-454d-b8a2-97f147b0c0ff"},
             "ansible-playbook insecure.yml --check",
+            1,
+        ),
+        (
+            {},
+            "/usr/bin/env bash -c 'KICS_QUERIES=7dfb316c-a6c2-454d-b8a2-97f147b0c0ff ansible-playbook insecure.yml --check'",
             1,
         ),
     ]
