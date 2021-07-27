@@ -57,26 +57,26 @@ Disabling Security
 The injected security tooling can be disabled entirely or individually, using
 ``easy_infra``-specific command line arguments or environment variables.
 
-| Environment variable | Default   | Result                        |
-|----------------------|-----------|-------------------------------|
-| ``DISABLE_SECURITY`` | ``false`` | Disables all security tooling |
-| ``SKIP_CHECKOV``     | ``false`` | Disables Checkov\*            |
-| ``SKIP_KICS``        | ``false`` | Disables KICS                 |
-| ``SKIP_TERRASCAN``   | ``false`` | Disables Terrascan\*          |
-| ``SKIP_TFSEC``       | ``false`` | Disables tfsec\*              |
+| Environment variable | Default   | Result                                                     |
+|----------------------|-----------|------------------------------------------------------------|
+| ``DISABLE_SECURITY`` | ``false`` | Disables all security tooling (Not just Terraform-related) |
+| ``SKIP_CHECKOV``     | ``false`` | Disables Checkov\*                                         |
+| ``SKIP_KICS``        | ``false`` | Disables KICS                                              |
+| ``SKIP_TERRASCAN``   | ``false`` | Disables Terrascan\*                                       |
+| ``SKIP_TFSEC``       | ``false`` | Disables tfsec\*                                           |
 
-| Parameter               | Result                       | Example                                                     |
-|-------------------------|------------------------------|-------------------------------------------------------------|
-| ``--disable-security``  | Disable all security tooling | ``ansible-playbook --disable-security example.yml --check`` |
-| ``--skip-checkov``\**   | Disable Checkov              | ``terraform --skip-checkov validate``                       |
-| ``--skip-kics``         | Disable KICS                 | ``terraform --skip-kics validate``                          |
-| ``--skip-terrascan``\** | Disable Terrascan            | ``terraform --skip-terrascan validate``                     |
-| ``--skip-tfsec``\**     | Disable tfsec                | ``terraform --skip-tfsec validate``                         |
+| Parameter               | Result                       | Example                                   |
+|-------------------------|------------------------------|-------------------------------------------|
+| ``--disable-security``  | Disable all security tooling | ``terraform validate --disable-security`` |
+| ``--skip-checkov``\**   | Disable Checkov              | ``terraform --skip-checkov validate``     |
+| ``--skip-kics``         | Disable KICS                 | ``terraform validate --skip-kics``        |
+| ``--skip-terrascan``\** | Disable Terrascan            | ``terraform --skip-terrascan validate``   |
+| ``--skip-tfsec``\**     | Disable tfsec                | ``terraform --skip-tfsec validate``       |
 
 
 \* In the minimal images, only KICS is available
 \** This argument is processed by easy_infra and removed prior to passing
-parameters to the Terraform or Ansible commands.
+parameters to Terraform commands.
 
 
 Resources
