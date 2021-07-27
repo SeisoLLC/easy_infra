@@ -779,12 +779,12 @@ def run_ansible(*, image: str):
         (
             {"KICS_QUERIES": "7dfb316c-a6c2-454d-b8a2-97f147b0c0ff"},
             "ansible-playbook insecure.yml --check",
-            1,
+            50,
         ),
         (
             {},
             "/usr/bin/env bash -c 'KICS_QUERIES=7dfb316c-a6c2-454d-b8a2-97f147b0c0ff ansible-playbook insecure.yml --check'",
-            1,
+            50,
         ),
     ]
 
