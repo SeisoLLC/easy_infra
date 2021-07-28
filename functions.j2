@@ -134,39 +134,47 @@ function {{ function }}() {
 
   ## Setup the per-tool security integrations
   {#- For each command being wrapped, loop through each security tool and apply tool-specific skips based on env vars/arguments #}
-  {%- for tool in security_tools %}
-  {{ tool | replace("-", "_") }}_skip_argument="--skip-{{ tool | replace("-", "_") }}"
-  {{ tool | replace("-", "_") }}_upper=$(echo "{{ tool | replace("-", "_") }}" | tr '[:lower:]' '[:upper:]')
-  {{ tool | replace("-", "_") }}_skip_env_var="SKIP_{{ '${' }}{{ tool | replace("-", "_") }}_upper}"
-  declare "SKIP_{{ '${' }}{{ tool | replace("-", "_") }}_upper}={{ '${' }}!{{ tool | replace("-", "_") }}_skip_env_var:-false}"
+  {%- for security_tool in security_tools %}
+  {{ security_tool | replace("-", "_") }}_skip_argument="--skip-{{ security_tool | replace("-", "_") }}"
+  {{ security_tool | replace("-", "_") }}_upper=$(echo "{{ security_tool | replace("-", "_") }}" | tr '[:lower:]' '[:upper:]')
+  {{ security_tool | replace("-", "_") }}_skip_env_var="SKIP_{{ '${' }}{{ security_tool | replace("-", "_") }}_upper}"
+  declare "SKIP_{{ '${' }}{{ security_tool | replace("-", "_") }}_upper}={{ '${' }}!{{ security_tool | replace("-", "_") }}_skip_env_var:-false}"
 
-  ## Methods to skip {{ tool | replace("-", "_") }}
-  if [[ "{{ '${' }}{{ tool | replace("-", "_") }}_skipped:-false}" == "argument" ]]; then
-    _feedback WARNING "Skipping {{ tool | replace("-", "_") }} due to {{ '${' }}{{ tool | replace("-", "_") }}_skip_argument}"
-    unset '{{ tool | replace("-", "_") }}_skipped'
+  ## Methods to skip {{ security_tool | replace("-", "_") }}
+  if [[ "{{ '${' }}{{ security_tool | replace("-", "_") }}_skipped:-false}" == "argument" ]]; then
+    _feedback WARNING "Skipping {{ security_tool | replace("-", "_") }} due to {{ '${' }}{{ security_tool | replace("-", "_") }}_skip_argument}"
+    unset '{{ security_tool | replace("-", "_") }}_skipped'
   # If the "skip" environment variable was set to true, skip the security scan
-  elif [[ "${!{{ tool | replace("-", "_") }}_skip_env_var,,}" == "true" ]]; then
-    _feedback WARNING "Skipping {{ tool | replace("-", "_") }} due to the {{ '${' }}{{ tool | replace("-", "_") }}_skip_env_var} environment variable value"
+  elif [[ "${!{{ security_tool | replace("-", "_") }}_skip_env_var,,}" == "true" ]]; then
+    _feedback WARNING "Skipping {{ security_tool | replace("-", "_") }} due to the {{ '${' }}{{ security_tool | replace("-", "_") }}_skip_env_var} environment variable value"
   # If the security scan was already run successfully in an non-interactive
   # shell, don't run it again
-  elif [[ -r "/tmp/{{ tool | replace("-", "_") }}_complete" ]]; then
-    _feedback INFORMATIONAL "Skipping {{ tool | replace("-", "_") }} because it was already run on $(date -d @"$(cat /tmp/{{ tool | replace("-", "_") }}_complete)")"
+  elif [[ -r "/tmp/{{ security_tool | replace("-", "_") }}_complete" ]]; then
+    _feedback INFORMATIONAL "Skipping {{ security_tool | replace("-", "_") }} because it was already run on $(date -d @"$(cat /tmp/{{ security_tool | replace("-", "_") }}_complete)")"
   # Otherwise, attempt to run the security tool
   else
-    if [[ -x $(which {{ tool }}) ]]; then
-      {{ security_tools[tool].command }} &>/tmp/{{ tool | replace("-", "_") }}_output
-      process_command_exit_status "${?}" "{{ tool | replace("-", "_") }}" "{{ security_tools[tool].description }}"
+    if [[ -x $(which {{ security_tool }}) ]]; then
+      security_tool_command='{{ security_tools[security_tool].command }}'
+      {%- if security_tools[security_tool]["customizations"] is defined %}
+      {%- for env_var, argument in security_tools[security_tool]["customizations"].items() %}
+      if [[ -v {{ env_var }} ]]; then
+        security_tool_command+=' {{ argument }} "{{ '${' }}{{ env_var }}{{ '}' }}"'
+      fi
+      {%- endfor %}
+      {%- endif %}
+      eval "${security_tool_command} &>/tmp/{{ security_tool | replace("-", "_") }}_output"
+      process_command_exit_status "${?}" "{{ security_tool | replace("-", "_") }}" "{{ security_tools[security_tool].description }}"
       return=${?}
       if [[ ${return:-1} != 0 ]]; then
-        cat /tmp/{{ tool | replace("-", "_") }}_output
+        cat /tmp/{{ security_tool | replace("-", "_") }}_output
         if [[ "${LEARNING_MODE,,}" != "true" ]]; then
           return ${return}
         elif [[ "${LOG_LEVEL,,}" == "debug" ]]; then
-          _feedback DEBUGGING "Learning mode enabled, not returning {{ tool }}'s exit code of ${return}"
+          _feedback DEBUGGING "Learning mode enabled, not returning {{ security_tool }}'s exit code of ${return}"
         fi
       fi
     elif [[ "${LOG_LEVEL,,}" == "debug" ]]; then
-      _feedback DEBUGGING "Did not run {{ tool }} because it was either not in the path or is not executable"
+      _feedback DEBUGGING "Did not run {{ security_tool }} because it was either not in the path or is not executable"
     fi
   fi
   {%- endfor %}

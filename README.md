@@ -20,6 +20,8 @@ into `/iac` and pass your command, such as `terraform validate`, as such:
 docker run -v $(pwd):/iac seiso/easy_infra terraform validate
 ```
 
+To learn more, check out [our documentation](https://easy_infra.readthedocs.io/).
+
 ## Secure by default
 
 This container provides security features by default.  Deploying an environment
@@ -60,30 +62,6 @@ If you'd like to enable debug logs at runtime, pass an environment variable of
 ```bash
 docker run -e LOG_LEVEL=DEBUG -v $(pwd):/iac seiso/easy_infra terraform validate
 ```
-
-### Disabling security
-
-The injected security tooling can be disabled entirely or individually, using
-`easy_infra`-specific command line arguments or environment variables.
-
-| Environment variable | Default | Result                         |
-|----------------------|---------|--------------------------------|
-| `DISABLE_SECURITY`   | `false` | Disables all security tooling  |
-| `SKIP_CHECKOV`       | `false` | Disables Checkov               |
-| `SKIP_KICS`          | `false` | Disables KICS                  |
-| `SKIP_TERRASCAN`     | `false` | Disables Terrascan             |
-| `SKIP_TFSEC`         | `false` | Disables tfsec                 |
-
-| Parameter              | Result                       | Example                                                   |
-|------------------------|------------------------------|-----------------------------------------------------------|
-| `--disable-security`\* | Disable all security tooling | `ansible-playbook --disable-security example.yml --check` |
-| `--skip-checkov`\*     | Disable Checkov              | `terraform --skip-checkov validate`                       |
-| `--skip-kics`\*        | Disable KICS                 | `terraform --skip-kics validate`                          |
-| `--skip-terrascan`\*   | Disable Terrascan            | `terraform --skip-terrascan validate`                     |
-| `--skip-tfsec`\*       | Disable tfsec                | `terraform --skip-tfsec validate`                         |
-
-\* This argument is processed by easy_infra and removed prior to passing
-parameters to the Terraform or Ansible commands.
 
 ## Contributing
 

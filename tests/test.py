@@ -247,6 +247,13 @@ def run_terraform(*, image: str, final: bool = False):
             '/usr/bin/env bash -c "terraform init && terraform validate && terraform plan && terraform validate && false"',
             1,
         ),
+        (
+            {
+                "KICS_QUERIES": "4728cd65-a20c-49da-8b31-9c08b423e4db,46883ce1-dc3e-4b17-9195-c6a601624c73"
+            },
+            "terraform init",
+            0,
+        ),
     ]
 
     LOG.debug("Testing secure terraform configurations")
@@ -314,10 +321,26 @@ def run_terraform(*, image: str, final: bool = False):
             127,
         ),  # Not supported; prepended variables do not work unless the
         #     commands are passed through bash
+        (
+            {
+                "KICS_QUERIES": "4728cd65-a20c-49da-8b31-9c08b423e4db,46883ce1-dc3e-4b17-9195-c6a601624c73",  # Purposefully doesn't apply to kics_volumes
+                "DISABLE_SECURITY": "true",
+            },
+            "terraform init",
+            0,
+        ),
+        (
+            {
+                "KICS_QUERIES": "5a2486aa-facf-477d-a5c1-b010789459ce",  # Would normally fail due to kics_volumes
+                "DISABLE_SECURITY": "true",
+            },
+            "terraform init",
+            0,
+        ),
     ]
 
     LOG.debug("Testing terraform with security disabled")
-    num_tests_ran += exec_tests(tests=tests, volumes=terrascan_volumes, image=image)
+    num_tests_ran += exec_tests(tests=tests, volumes=kics_volumes, image=image)
 
     # Ensure insecure configurations fail due to kics
     # Tests is a list of tuples containing the test environment, command, and
@@ -366,6 +389,31 @@ def run_terraform(*, image: str, final: bool = False):
             {"LEARNING_MODE": "true", "SKIP_CHECKOV": "true"},
             "terraform validate --skip-tfsec --skip-terrascan",
             0,
+        ),
+        (
+            {
+                "SKIP_CHECKOV": "true",
+                "SKIP_TFSEC": "true",
+                "SKIP_TERRASCAN": "true",
+                "KICS_QUERIES": "4728cd65-a20c-49da-8b31-9c08b423e4db,46883ce1-dc3e-4b17-9195-c6a601624c73",
+            },
+            "terraform validate",
+            0,
+        ),  # Exits with 0 because the provided insecure terraform does not apply to the included kics queries
+        (
+            {
+                "SKIP_CHECKOV": "true",
+                "SKIP_TFSEC": "true",
+                "SKIP_TERRASCAN": "true",
+                "KICS_QUERIES": "5a2486aa-facf-477d-a5c1-b010789459ce",
+            },
+            "terraform validate",
+            50,
+        ),
+        (
+            {},
+            '/usr/bin/env bash -c "KICS_QUERIES=5a2486aa-facf-477d-a5c1-b010789459ce terraform --skip-tfsec --skip-terrascan --skip-checkov validate"',
+            50,
         ),
     ]
 
@@ -723,6 +771,21 @@ def run_ansible(*, image: str):
             "ansible-playbook insecure.yml --check",
             4,
         ),  # Exits 4 because insecure.yml is not a valid Play
+        (
+            {"KICS_QUERIES": "c3b9f7b0-f5a0-49ec-9cbc-f1e346b7274d"},
+            "ansible-playbook insecure.yml --check",
+            4,
+        ),  # Exits with 4 because insecure.yml is not a valid Play, and the provided insecure playbook does not apply to the included queries
+        (
+            {"KICS_QUERIES": "7dfb316c-a6c2-454d-b8a2-97f147b0c0ff"},
+            "ansible-playbook insecure.yml --check",
+            50,
+        ),
+        (
+            {},
+            "/usr/bin/env bash -c 'KICS_QUERIES=7dfb316c-a6c2-454d-b8a2-97f147b0c0ff ansible-playbook insecure.yml --check'",
+            50,
+        ),
     ]
 
     num_tests_ran += exec_tests(tests=tests, volumes=kics_volumes, image=image)
