@@ -43,6 +43,23 @@ for target in constants.TARGETS:
 basicConfig(level=constants.LOG_DEFAULT, format=constants.LOG_FORMAT)
 
 
+def process_container(*, container: docker.models.containers.Container) -> None:
+    """Process a provided container"""
+    response = container.wait(condition="not-running")
+    decoded_response = container.logs().decode("utf-8")
+    response["logs"] = decoded_response.strip().replace("\n", "  ")
+    container.remove()
+    if not response["StatusCode"] == 0:
+        LOG.error(
+            "Received a non-zero status code from docker (%s); additional details: %s",
+            response["StatusCode"],
+            response["logs"],
+        )
+        sys.exit(response["StatusCode"])
+    else:
+        LOG.info("%s", response["logs"])
+
+
 def log_build_log(*, build_err: docker.errors.BuildError) -> None:
     """Log the docker build log"""
     iterator = iter(build_err.build_log)
@@ -88,6 +105,11 @@ def update(_c, debug=False):
         version = utils.get_latest_release_from_pypi(package=package)
         utils.update_config_file(thing=package, version=version)
 
+    # On github they use aquasecurity but on docker hub it's aquasec, and the
+    # github releases are prefaced with v but not on docker hub
+    version = utils.get_latest_release_from_github(repo="aquasecurity/trivy").lstrip('v')
+    utils.update_test_security_scanner(image="aquasec/trivy", tag=version)
+
     # Update the CI dependencies
     image = "python:3.9"
     working_dir = "/usr/src/app/"
@@ -102,6 +124,36 @@ def update(_c, debug=False):
         detach=False,
         command=command,
     )
+
+
+@task
+def reformat(_c, debug=False):
+    """Reformat easy_infra"""
+    if debug:
+        getLogger().setLevel("DEBUG")
+
+    entrypoint_and_command = [
+        ("isort", ". --settings-file /action/lib/.automation/.isort.cfg"),
+        ("black", "."),
+    ]
+    image = "seiso/goat:latest"
+    working_dir = "/goat/"
+    volumes = {CWD: {"bind": working_dir, "mode": "rw"}}
+
+    LOG.info("Pulling %s...", image)
+    CLIENT.images.pull(image)
+    LOG.info("Reformatting the project...")
+    for entrypoint, command in entrypoint_and_command:
+        container = CLIENT.containers.run(
+            auto_remove=False,
+            command=command,
+            detach=True,
+            entrypoint=entrypoint,
+            image=image,
+            volumes=volumes,
+            working_dir=working_dir,
+        )
+        process_container(container=container)
 
 
 @task

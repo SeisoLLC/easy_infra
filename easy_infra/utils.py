@@ -1,3 +1,4 @@
+import re
 import sys
 from logging import getLogger
 from pathlib import Path
@@ -71,6 +72,7 @@ def get_latest_release_from_apt(*, package: str) -> str:
         image=image,
         auto_remove=True,
         detach=False,
+        user=0,
         command='/bin/bash -c "apt-get update &>/dev/null && apt-cache policy '
         + package
         + " | grep '^  Candidate:' | awk -F' ' '{print $NF}'\"",
@@ -116,6 +118,34 @@ def update_config_file(*, thing: str, version: str):
     config = parse_config(config_file=constants.CONFIG_FILE)
     config["commands"][thing]["version"] = version
     write_config(config=config)
+
+
+def update_test_security_scanner(
+    *, image: str, tag: str, file_name: str = "tests/test.py"
+) -> None:
+    """Update the security scanner used in tests"""
+    file_object = Path(file_name)
+    pattern = re.compile(fr'^.+scanner = "{image}:.+"$\n')
+    final_content = []
+
+    # Validate
+    if not file_object.is_file():
+        LOG.error("%s is not a valid file", file_name)
+        sys.exit(1)
+
+    # Extract
+    with open(file_object) as file:
+        file_contents = file.readlines()
+
+    # Transform
+    for line in file_contents:
+        if pattern.fullmatch(line):
+            line = f'    scanner = "{image}:{tag}"\n'
+        final_content.append(line)
+
+    # Load
+    with open(file_object, "w") as file:
+        file.writelines(final_content)
 
 
 def opinionated_docker_run(
