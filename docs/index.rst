@@ -7,14 +7,7 @@
 .. mdinclude:: ../README.md
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
-
    Home <self>
    Terraform/index
    Ansible/index
-
-Search
-==================
-
-* :ref:`search`
+   Logging/index

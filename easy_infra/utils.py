@@ -71,6 +71,7 @@ def get_latest_release_from_apt(*, package: str) -> str:
         image=image,
         auto_remove=True,
         detach=False,
+        user=0,
         command='/bin/bash -c "apt-get update &>/dev/null && apt-cache policy '
         + package
         + " | grep '^  Candidate:' | awk -F' ' '{print $NF}'\"",
