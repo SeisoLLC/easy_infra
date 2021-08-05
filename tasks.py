@@ -193,18 +193,7 @@ def lint(_c, debug=False):
         volumes=volumes,
         working_dir=working_dir,
     )
-
-    response = container.wait(condition="not-running")
-    decoded_response = container.logs().decode("utf-8")
-    response["logs"] = decoded_response.strip().replace("\n", "  ")
-    container.remove()
-    if not response["StatusCode"] == 0:
-        LOG.error(
-            "Received a non-zero status code from docker (%s); additional details: %s",
-            response["StatusCode"],
-            response["logs"],
-        )
-        sys.exit(response["StatusCode"])
+    process_container(container=container)
 
     LOG.info("Linting completed successfully")
 
