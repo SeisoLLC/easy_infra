@@ -954,9 +954,7 @@ def run_security(*, image: str):
     volumes = {temp_dir: {"bind": working_dir, "mode": "ro"}}
 
     num_tests_ran = 0
-    # The following line is touchy, see easy_infra/util.py's
-    # update_test_security_scanner function
-    scanner = "aquasec/trivy:0.18.3"
+    scanner = constants.CONTAINER_SECURITY_SCANNER
 
     # Provide debug information about unknown, low, and medium severity
     # findings

@@ -120,12 +120,12 @@ def update_config_file(*, thing: str, version: str):
     write_config(config=config)
 
 
-def update_test_security_scanner(
-    *, image: str, tag: str, file_name: str = "tests/test.py"
+def update_container_security_scanner(
+    *, image: str, tag: str, file_name: str = "easy_infra/constants.py"
 ) -> None:
     """Update the security scanner used in tests"""
     file_object = Path(file_name)
-    pattern = re.compile(fr'^.+scanner = "{image}:.+"$\n')
+    pattern = re.compile(fr'^CONTAINER_SECURITY_SCANNER = "{image}:.+"$\n')
     final_content = []
 
     # Validate
@@ -140,7 +140,7 @@ def update_test_security_scanner(
     # Transform
     for line in file_contents:
         if pattern.fullmatch(line):
-            line = f'    scanner = "{image}:{tag}"\n'
+            line = f'CONTAINER_SECURITY_SCANNER = "{image}:{tag}"\n'
         final_content.append(line)
 
     # Load

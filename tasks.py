@@ -108,7 +108,7 @@ def update(_c, debug=False):
     # On github they use aquasecurity but on docker hub it's aquasec, and the
     # github releases are prefaced with v but not on docker hub
     version = utils.get_latest_release_from_github(repo="aquasecurity/trivy").lstrip('v')
-    utils.update_test_security_scanner(image="aquasec/trivy", tag=version)
+    utils.update_container_security_scanner(image="aquasec/trivy", tag=version)
 
     # Update the CI dependencies
     image = "python:3.9"
