@@ -15,4 +15,4 @@ Customizing fluent-bit
 
 In order to customize ``fluent-bit``, you can volume mount your preferred
 configuration file on top of the ``/usr/local/etc/fluent-bit/fluent-bit.conf``
-file at runtime
+file at runtime.
