@@ -35,5 +35,8 @@ GITHUB_REPOS_RELEASES = {
 GITHUB_REPOS_TAGS = {"aws/aws-cli"}
 PYTHON_PACKAGES = {"checkov"}
 HASHICORP_PROJECTS = {"terraform", "packer"}
+# The following line is touchy, see easy_infra/util.py's
+# update_container_security_scanner function
+CONTAINER_SECURITY_SCANNER = "aquasec/trivy:0.18.3"
 UNACCEPTABLE_VULNS = ["CRITICAL"]
 INFORMATIONAL_VULNS = ["UNKNOWN", "LOW", "MEDIUM", "HIGH"]
