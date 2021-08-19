@@ -14,7 +14,7 @@ ENV KICS_JSON_REPORT_PATH="/tmp/reports/kics"
 ENV PATH="/home/easy_infra/.local/bin:${PATH}"
 ARG DEBIAN_FRONTEND="noninteractive"
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-# hadolint ignore=DL3008,SC1091
+# hadolint ignore=DL3003,DL3008,SC1091
 RUN groupadd --gid 53150 -r easy_infra \
  && useradd -r -g easy_infra -s "$(which bash)" --create-home --uid 53150 easy_infra \
  && apt-get update \

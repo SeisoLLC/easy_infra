@@ -4,7 +4,9 @@ _anchors:
       command: checkov -d . --no-guide
       description: directory scan
     kics:
-      command: kics scan --type Terraform --no-progress --queries-path ${KICS_QUERIES_PATH} --report-formats json --output-path ${KICS_JSON_REPORT_PATH} --output-name kics --path .
+      command: kics scan --type Terraform --no-progress --queries-path ${KICS_QUERIES_PATH}
+        --report-formats json --output-path ${KICS_JSON_REPORT_PATH} --output-name
+        kics --path .
       customizations:
         KICS_QUERIES: --include-queries
       description: directory scan
@@ -26,7 +28,9 @@ commands:
     - ansible-playbook
     security:
       kics:
-        command: kics scan --type Ansible --no-progress --queries-path ${KICS_QUERIES_PATH} --report-formats json --output-path ${KICS_REPORTS} --output-name kics --path .
+        command: kics scan --type Ansible --no-progress --queries-path ${KICS_QUERIES_PATH}
+          --report-formats json --output-path ${KICS_REPORTS} --output-name kics --path
+          .
         customizations:
           KICS_QUERIES: --include-queries
         description: directory scan
@@ -46,7 +50,7 @@ commands:
     version: 2.0.257
     version_argument: --version
   fluent-bit:
-    version: v1.8.2
+    version: v1.8.3
     version_argument: --version
   kics:
     version: v1.3.4
