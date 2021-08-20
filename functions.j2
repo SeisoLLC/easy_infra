@@ -192,11 +192,13 @@ function {{ function }}() {
     return $?
   elif [[ "${security_skipped:-false}" == "argument" ]]; then
     _feedback WARNING "Skipping all security checks for {{ function }} due to the --disable-security argument"
+    _log "easy_infra.stdouterr" info unknown "{{ function }}" string "All security checks for {{ function }} were skipped due to the --disable-security argument"
     unset 'security_skipped'
     command "${FUNCNAME[0]}" "${arguments[@]}"
     return $?
   elif [[ "${DISABLE_SECURITY,,}" == "true" ]]; then
     _feedback WARNING "Skipping all security checks for {{ function }} due to the DISABLE_SECURITY environment variable value"
+    _log "easy_infra.stdouterr" info unknown "{{ function }}" string "All security checks for {{ function }} were skipped due to the DISABLE_SECURITY environment variable value"
     command "${FUNCNAME[0]}" "${arguments[@]}"
     return $?
 {%- if validations is defined %}
@@ -234,15 +236,18 @@ function {{ function }}() {
 
   ## Methods to skip {{ security_tool | replace("-", "_") }}
   if [[ "{{ '${' }}{{ security_tool | replace("-", "_") }}_skipped:-false}" == "argument" ]]; then
-    _feedback WARNING "Skipping {{ security_tool | replace("-", "_") }} due to {{ '${' }}{{ security_tool | replace("-", "_") }}_skip_argument}"
+    _feedback WARNING "Skipping {{ security_tool }} due to {{ '${' }}{{ security_tool | replace("-", "_") }}_skip_argument}"
+    _log "easy_infra.stdouterr" info unknown "{{ security_tool }}-skipped" string "Skipping {{ security_tool }} due to {{ '${' }}{{ security_tool | replace("-", "_") }}_skip_argument}"
     unset '{{ security_tool | replace("-", "_") }}_skipped'
   # If the "skip" environment variable was set to true, skip the security scan
   elif [[ "${!{{ security_tool | replace("-", "_") }}_skip_env_var,,}" == "true" ]]; then
-    _feedback WARNING "Skipping {{ security_tool | replace("-", "_") }} due to the {{ '${' }}{{ security_tool | replace("-", "_") }}_skip_env_var} environment variable value"
+    _feedback WARNING "Skipping {{ security_tool }} due to the {{ '${' }}{{ security_tool | replace("-", "_") }}_skip_env_var} environment variable value"
+    _log "easy_infra.stdouterr" info unknown "{{ security_tool }}-skipped" string "Skipping {{ security_tool }} due to the {{ '${' }}{{ security_tool | replace("-", "_") }}_skip_env_var} environment variable value"
   # If the security scan was already run successfully in an non-interactive
   # shell, don't run it again
   elif [[ -r "/tmp/{{ security_tool | replace("-", "_") }}_complete" ]]; then
-    _feedback INFORMATIONAL "Skipping {{ security_tool | replace("-", "_") }} because it was already run on $(date -d @"$(cat /tmp/{{ security_tool | replace("-", "_") }}_complete)")"
+    _feedback INFORMATIONAL "Skipping {{ security_tool }} because it was already run on $(date -d @"$(cat /tmp/{{ security_tool | replace("-", "_") }}_complete)")"
+    _log "easy_infra.stdouterr" info unknown "{{ security_tool }}-skipped" string "Skipping {{ security_tool }} because it was already run on $(date -d @"$(cat /tmp/{{ security_tool | replace("-", "_") }}_complete)")"
   # Otherwise, attempt to run the security tool
   else
     if [[ -x $(which {{ security_tool }}) ]]; then

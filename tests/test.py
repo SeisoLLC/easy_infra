@@ -63,12 +63,11 @@ def check_for_files(
     successful_tests = 0
 
     for file in files:
-        # attempt is a tuple of (exit_code, output)
-        attempt = container.exec_run(cmd=f"ls {file}")
-        if (expected_to_exist and attempt[0] != 0) or (
-            not expected_to_exist and attempt[0] == 0
+        # container.exec_run returns a tuple of (exit_code, output)
+        exit_code = container.exec_run(cmd=f"ls {file}")[0]
+        if (expected_to_exist and exit_code != 0) or (
+            not expected_to_exist and exit_code == 0
         ):
-            container.kill()
             if expected_to_exist:
                 LOG.error("Didn't find the file %s when it was expected", file)
             elif not expected_to_exist:
@@ -76,9 +75,68 @@ def check_for_files(
             return 0
         successful_tests += 1
 
-    container.kill()
-
     return successful_tests
+
+
+def is_expected_file_length(
+    *,
+    container: docker.models.containers.Container,
+    log_path: str,
+    expected_log_length: int,
+) -> bool:
+    """
+    Compare the number of lines in the provided file_path to the provided
+    expected length, in the provided container. Return True if the file length
+    is expected, else False
+    """
+    exit_code, output = container.exec_run(cmd=f"/bin/bash -c \"wc -l {log_path} | awk '{{print $1}}'\"")
+    sanitized_output = int(output.decode("utf-8").strip())
+    if exit_code != 0 or sanitized_output != expected_log_length:
+        LOG.error(
+            "The file %s had a length of %s when a length of %s was expected",
+            log_path,
+            sanitized_output,
+            expected_log_length,
+        )
+        return False
+
+    return True
+
+
+def check_container(
+    container: docker.models.containers.Container,
+    files: list,
+    files_expected_to_exist: bool,
+    log_path: str,
+    expected_log_length: int,
+) -> int:
+    """
+    Checks a provided container for:
+    - Whether the provided files list exists as expected
+    - Whether the fluent bit log length is expected
+
+    Returns 0 if any test fails, otherwise the number of successful tests
+    """
+    num_successful_tests = 0
+
+    if (
+        num_successful_tests := check_for_files(
+            container=container, files=files, expected_to_exist=files_expected_to_exist
+        )
+    ) == 0:
+        return 0
+
+    # Should have one log for each security tool that easy_infra supports,
+    # regardless of if it was skipped, not installed, or whether it was
+    # interactive or not
+    if not is_expected_file_length(
+        container=container, log_path=log_path, expected_log_length=expected_log_length
+    ):
+        return 0
+
+    num_successful_tests += 1
+
+    return num_successful_tests
 
 
 def run_path_check(*, image: str) -> None:
@@ -183,6 +241,13 @@ def run_terraform(*, image: str, final: bool = False):
     kics_volumes = {kics_config_dir: {"bind": working_dir, "mode": "rw"}}
     secure_config_dir = TESTS_PATH.joinpath("terraform/secure")
     secure_volumes = {secure_config_dir: {"bind": working_dir, "mode": "rw"}}
+    secure_volumes_with_log_config = copy.deepcopy(secure_volumes)
+    fluent_bit_config_host = TESTS_PATH.joinpath("fluent-bit.conf")
+    fluent_bit_config_container = "/usr/local/etc/fluent-bit/fluent-bit.conf"
+    secure_volumes_with_log_config[fluent_bit_config_host] = {
+        "bind": fluent_bit_config_container,
+        "mode": "ro",
+    }
 
     # Base tests
     command = "./test.sh"
@@ -425,27 +490,39 @@ def run_terraform(*, image: str, final: bool = False):
         detach=True,
         auto_remove=False,
         tty=True,
-        volumes=secure_volumes,
+        volumes=secure_volumes_with_log_config,
         environment=environment,
     )
 
-    # Running an interactive terraform command should not cause the creation of
-    # the following files
+    # Running an interactive terraform command
     test_interactive_container.exec_run(
         cmd='/bin/bash -ic "terraform validate"', tty=True
     )
+
+    # An interactive terraform command should not cause the creation of the
+    # following files, and should have 4 logs lines in the fluent bit log
+    # regardless of which image is being tested
     files = ["/tmp/kics_complete"]
     if final:
         files.append("/tmp/tfsec_complete")
         files.append("/tmp/terrascan_complete")
         files.append("/tmp/checkov_complete")
     LOG.debug("Testing interactive terraform commands")
+
+    # Check the container
     if (
-        num_successful_tests := check_for_files(
-            container=test_interactive_container, files=files, expected_to_exist=False
+        num_successful_tests := check_container(
+            container=test_interactive_container,
+            files=files,
+            files_expected_to_exist=False,
+            log_path="/tmp/fluent_bit.log",
+            expected_log_length=4,
         )
     ) == 0:
+        test_interactive_container.kill()
         sys.exit(1)
+
+    test_interactive_container.kill()
 
     num_tests_ran += num_successful_tests
 
@@ -455,27 +532,39 @@ def run_terraform(*, image: str, final: bool = False):
         detach=True,
         auto_remove=False,
         tty=True,
-        volumes=secure_volumes,
+        volumes=secure_volumes_with_log_config,
         environment=environment,
     )
 
-    # Running a non-interactive terraform command should cause the creation of
-    # the following files
+    # Running a non-interactive terraform command
     test_noninteractive_container.exec_run(
         cmd='/bin/bash -c "terraform validate"', tty=False
     )
+
+    # A non-interactive terraform command should cause the creation of the
+    # following files, and should have 4 logs lines in the fluent bit log
+    # regardless of which image is being tested
     files = ["/tmp/kics_complete"]
     if final:
         files.append("/tmp/tfsec_complete")
         files.append("/tmp/terrascan_complete")
         files.append("/tmp/checkov_complete")
     LOG.debug("Testing non-interactive terraform commands")
+
+    # Check the container
     if (
-        num_successful_tests := check_for_files(
-            container=test_noninteractive_container, files=files, expected_to_exist=True
+        num_successful_tests := check_container(
+            container=test_noninteractive_container,
+            files=files,
+            files_expected_to_exist=True,
+            log_path="/tmp/fluent_bit.log",
+            expected_log_length=4,
         )
     ) == 0:
+        test_noninteractive_container.kill()
         sys.exit(1)
+
+    test_noninteractive_container.kill()
 
     num_tests_ran += num_successful_tests
 
@@ -719,6 +808,13 @@ def run_ansible(*, image: str):
     kics_volumes = {kics_config_dir: {"bind": working_dir, "mode": "rw"}}
     secure_config_dir = TESTS_PATH.joinpath("ansible/secure")
     secure_volumes = {secure_config_dir: {"bind": working_dir, "mode": "rw"}}
+    secure_volumes_with_log_config = copy.deepcopy(secure_volumes)
+    fluent_bit_config_host = TESTS_PATH.joinpath("fluent-bit.conf")
+    fluent_bit_config_container = "/usr/local/etc/fluent-bit/fluent-bit.conf"
+    secure_volumes_with_log_config[fluent_bit_config_host] = {
+        "bind": fluent_bit_config_container,
+        "mode": "ro",
+    }
 
     # Ensure insecure configurations fail due to kics
     # Tests is a list of tuples containing the test environment, command, and
@@ -796,24 +892,36 @@ def run_ansible(*, image: str):
         detach=True,
         auto_remove=False,
         tty=True,
-        volumes=secure_volumes,
+        volumes=secure_volumes_with_log_config,
     )
 
-    # Running an interactive ansible-playbook command should not cause the creation of
-    # the following files
+    # Running an interactive ansible-playbook command
     test_interactive_container.exec_run(
         cmd='/bin/bash -ic "ansible-playbook secure.yml --check"', tty=True
     )
+
+    # An interactive ansible-playbook command should not cause the creation of the
+    # following files, and should have 4 logs lines in the fluent bit log
+    # regardless of which image is being tested
     files = [
         "/tmp/kics_complete",
     ]
     LOG.debug("Testing interactive ansible-playbook commands")
+
+    # Check the container
     if (
-        num_successful_tests := check_for_files(
-            container=test_interactive_container, files=files, expected_to_exist=False
+        num_successful_tests := check_container(
+            container=test_interactive_container,
+            files=files,
+            files_expected_to_exist=False,
+            log_path="/tmp/fluent_bit.log",
+            expected_log_length=4,
         )
     ) == 0:
+        test_interactive_container.kill()
         sys.exit(1)
+
+    test_interactive_container.kill()
 
     num_tests_ran += num_successful_tests
 
@@ -823,11 +931,10 @@ def run_ansible(*, image: str):
         detach=True,
         auto_remove=False,
         tty=True,
-        volumes=secure_volumes,
+        volumes=secure_volumes_with_log_config,
     )
 
-    # Running a non-interactive ansible-playbook command should cause the creation of
-    # the following files
+    # Running a non-interactive ansible-playbook command
     test_noninteractive_container.exec_run(
         cmd='/bin/bash -c "ansible-playbook secure.yml --check"', tty=False
     )
@@ -835,12 +942,21 @@ def run_ansible(*, image: str):
         "/tmp/kics_complete",
     ]
     LOG.debug("Testing non-interactive ansible-playbook commands")
+
+    # Check the container
     if (
-        num_successful_tests := check_for_files(
-            container=test_noninteractive_container, files=files, expected_to_exist=True
+        num_successful_tests := check_container(
+            container=test_noninteractive_container,
+            files=files,
+            files_expected_to_exist=True,
+            log_path="/tmp/fluent_bit.log",
+            expected_log_length=4,
         )
     ) == 0:
+        test_noninteractive_container.kill()
         sys.exit(1)
+
+    test_noninteractive_container.kill()
 
     num_tests_ran += num_successful_tests
 
