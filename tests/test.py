@@ -89,7 +89,9 @@ def is_expected_file_length(
     expected length, in the provided container. Return True if the file length
     is expected, else False
     """
-    exit_code, output = container.exec_run(cmd=f"/bin/bash -c \"wc -l {log_path} | awk '{{print $1}}'\"")
+    exit_code, output = container.exec_run(
+        cmd=f"/bin/bash -c \"wc -l {log_path} | awk '{{print $1}}'\""
+    )
     sanitized_output = int(output.decode("utf-8").strip())
     if exit_code != 0 or sanitized_output != expected_log_length:
         LOG.error(
