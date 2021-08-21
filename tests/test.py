@@ -902,8 +902,8 @@ def run_ansible(*, image: str):
         cmd='/bin/bash -ic "ansible-playbook secure.yml --check"', tty=True
     )
 
-    # An interactive ansible-playbook command should not cause the creation of the
-    # following files, and should have 4 logs lines in the fluent bit log
+    # An interactive ansible-playbook command should not cause the creation of
+    # the following files, and should have 1 log line in the fluent bit log
     # regardless of which image is being tested
     files = [
         "/tmp/kics_complete",
@@ -917,7 +917,7 @@ def run_ansible(*, image: str):
             files=files,
             files_expected_to_exist=False,
             log_path="/tmp/fluent_bit.log",
-            expected_log_length=4,
+            expected_log_length=1,
         )
     ) == 0:
         test_interactive_container.kill()
