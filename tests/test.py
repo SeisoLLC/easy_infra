@@ -952,7 +952,7 @@ def run_ansible(*, image: str):
             files=files,
             files_expected_to_exist=True,
             log_path="/tmp/fluent_bit.log",
-            expected_log_length=4,
+            expected_log_length=1,
         )
     ) == 0:
         test_noninteractive_container.kill()
