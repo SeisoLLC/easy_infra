@@ -7,7 +7,7 @@ set -o pipefail
 
 # The banner and other logs go to stderr, pending
 # https://github.com/fluent/fluent-bit/pull/3974
-fluent-bit -c /usr/local/etc/fluent-bit/fluent-bit.conf 2>/dev/null
+fluent-bit -c /usr/local/etc/fluent-bit/fluent-bit.conf -p tls=on -p tls.verify=on 2>/dev/null
 
 if [ "$#" -eq 0 ]; then
   # Print select tool versions then open an bash shell
