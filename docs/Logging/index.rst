@@ -15,10 +15,12 @@ directory to configure inputs and outputs by default.
 TLS is enforced in ``easy_infra`` when ``fluent-bit`` is started, via
 ``docker-entrypoint.sh``.
 
+``fluent-bit`` logs are located in ``/var/log/fluent-bit.log``.
+
 Customizing fluent-bit
 ----------------------
 
 In order to customize ``fluent-bit``, you can volume mount your preferred
 configuration file(s) on top of ``fluent-bit.conf`, ``fluent-bit.inputs.conf``,
-and/or ``fluent-bit.outputs.conf`` from within the
-``/usr/local/etc/fluent-bit/`` folder at runtime.
+``fluent-bit.outputs.conf``, ``parsers.conf``, and/or ``plugins.conf`` from
+within the ``/usr/local/etc/fluent-bit/`` folder at runtime.

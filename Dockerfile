@@ -60,8 +60,8 @@ RUN groupadd --gid 53150 -r easy_infra \
  && apt-get clean autoclean \
  && apt-get -y autoremove \
  && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/log/* /var/cache/debconf/*-old \
- && touch /var/log/easy_infra.log \
- && chown easy_infra: /var/log/easy_infra.log
+ && touch /var/log/easy_infra.log /var/log/fluent-bit.log \
+ && chown easy_infra: /var/log/easy_infra.log /var/log/fluent-bit.log
 USER easy_infra
 
 COPY --chown=easy_infra:easy_infra functions /functions
