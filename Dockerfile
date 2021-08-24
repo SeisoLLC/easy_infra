@@ -68,6 +68,8 @@ COPY --chown=easy_infra:easy_infra functions /functions
 COPY --chown=easy_infra:easy_infra .terraformrc /home/easy_infra/
 COPY --chown=easy_infra:easy_infra docker-entrypoint.sh /usr/local/bin/
 COPY --chown=easy_infra:easy_infra fluent-bit.conf /usr/local/etc/fluent-bit/fluent-bit.conf
+COPY --chown=easy_infra:easy_infra fluent-bit.inputs.conf /usr/local/etc/fluent-bit/fluent-bit.inputs.conf
+COPY --chown=easy_infra:easy_infra fluent-bit.outputs.conf /usr/local/etc/fluent-bit/fluent-bit.outputs.conf
 
 ENV BASH_ENV=/functions
 WORKDIR /iac

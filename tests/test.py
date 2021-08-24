@@ -244,8 +244,8 @@ def run_terraform(*, image: str, final: bool = False):
     secure_config_dir = TESTS_PATH.joinpath("terraform/secure")
     secure_volumes = {secure_config_dir: {"bind": working_dir, "mode": "rw"}}
     secure_volumes_with_log_config = copy.deepcopy(secure_volumes)
-    fluent_bit_config_host = TESTS_PATH.joinpath("fluent-bit.conf")
-    fluent_bit_config_container = "/usr/local/etc/fluent-bit/fluent-bit.conf"
+    fluent_bit_config_host = TESTS_PATH.joinpath("fluent-bit.outputs.conf")
+    fluent_bit_config_container = "/usr/local/etc/fluent-bit/fluent-bit.outputs.conf"
     secure_volumes_with_log_config[fluent_bit_config_host] = {
         "bind": fluent_bit_config_container,
         "mode": "ro",
@@ -811,8 +811,8 @@ def run_ansible(*, image: str):
     secure_config_dir = TESTS_PATH.joinpath("ansible/secure")
     secure_volumes = {secure_config_dir: {"bind": working_dir, "mode": "rw"}}
     secure_volumes_with_log_config = copy.deepcopy(secure_volumes)
-    fluent_bit_config_host = TESTS_PATH.joinpath("fluent-bit.conf")
-    fluent_bit_config_container = "/usr/local/etc/fluent-bit/fluent-bit.conf"
+    fluent_bit_config_host = TESTS_PATH.joinpath("fluent-bit.outputs.conf")
+    fluent_bit_config_container = "/usr/local/etc/fluent-bit/fluent-bit.outputs.conf"
     secure_volumes_with_log_config[fluent_bit_config_host] = {
         "bind": fluent_bit_config_container,
         "mode": "ro",

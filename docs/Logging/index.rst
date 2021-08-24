@@ -8,11 +8,17 @@ Elastic Common Schema (ECS) 1.11.
 
 Logs are written within the container to /var/log/easy_infra.log and then
 picked up by the agent and shipped off based on the configuration in
-``/usr/local/etc/fluent-bit/fluent-bit.conf``
+``/usr/local/etc/fluent-bit/fluent-bit.conf``, which points to
+``fluent-bit.inputs.conf`` and ``fluent-bit.outputs.conf`` in the same
+directory to configure inputs and outputs by default.
+
+TLS is enforced in ``easy_infra`` when ``fluent-bit`` is started, via
+``docker-entrypoint.sh``.
 
 Customizing fluent-bit
 ----------------------
 
 In order to customize ``fluent-bit``, you can volume mount your preferred
-configuration file on top of the ``/usr/local/etc/fluent-bit/fluent-bit.conf``
-file at runtime.
+configuration file(s) on top of ``fluent-bit.conf`, ``fluent-bit.inputs.conf``,
+and/or ``fluent-bit.outputs.conf`` from within the
+``/usr/local/etc/fluent-bit/`` folder at runtime.
