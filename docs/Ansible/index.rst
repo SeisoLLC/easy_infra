@@ -33,6 +33,8 @@ Customizing KICS
 |----------------------|-------------------------------------------|-------------------------------------------------------------------------------|
 | ``KICS_QUERIES``     | Passes the value to ``--include-queries`` | ``c3b9f7b0-f5a0-49ec-9cbc-f1e346b7274d,7dfb316c-a6c2-454d-b8a2-97f147b0c0ff`` |
 
+::
+
     KICS_QUERIES=c3b9f7b0-f5a0-49ec-9cbc-f1e346b7274d,7dfb316c-a6c2-454d-b8a2-97f147b0c0ff
     docker run --env-file <(env | grep KICS_QUERIES) -v $(pwd):/iac easy_infra:latest-minimal ansible-playbook EXAMPLE.yml --check
 

@@ -7,10 +7,7 @@ set -o pipefail
 
 # The fluent-bit banner and other logs go to stderr, but warnings and errors go
 # to stdout
-fluent-bit -c /usr/local/etc/fluent-bit/fluent-bit.conf \
-           -p tls=on \
-           -p tls.verify=on \
-           2>/dev/null
+fluent-bit -c /usr/local/etc/fluent-bit/fluent-bit.conf --verbose 2>/dev/null
 
 if [ "$#" -eq 0 ]; then
   # Print select tool versions then open an bash shell
