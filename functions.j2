@@ -33,7 +33,7 @@ function _log() {
   event_dataset="\"${1}\"" # event.dataset
   event_type="\"${2}\"" # event.type
   event_outcome="\"${3}\"" # event.outcome
-  event_action="\"${4}\"" # event.action
+  event_action="$(jq -R <<< ${4})" # event.action (JSON-escaped string)
   message_type="${5}"
   if [[ "${message_type}" == "string" ]]; then
     message="$(jq -R <<< ${6})" # message (JSON-escaped string)
@@ -76,7 +76,7 @@ function _log() {
       },                                                            \
       \"message\": ${message}                                       \
       }"                                                            \
-    )
+    ) || _feedback ERROR "Failed to generate a valid JSON log message"
   else
     LOG_MESSAGE=$(jq -c -n                               \
       "{                                                 \
@@ -92,7 +92,7 @@ function _log() {
       \"event.type\": ${event_type},                     \
       \"message\": ${message}                            \
       }"                                                 \
-    )
+    ) || _feedback ERROR "Failed to generate a valid JSON log message"
   fi
   echo "${LOG_MESSAGE}" &>> /var/log/easy_infra.log
 }
