@@ -37,9 +37,11 @@ plan`` and ``terraform deploy``::
 Customizing KICS
 ^^^^^^^^^^^^^^^^
 
++----------------------+-------------------------------------------+-------------------------------------------------------------------------------+
 | Environment variable | Result                                    | Example                                                                       |
-|----------------------|-------------------------------------------|-------------------------------------------------------------------------------|
++======================+===========================================+===============================================================================+
 | ``KICS_QUERIES``     | Passes the value to ``--include-queries`` | ``4728cd65-a20c-49da-8b31-9c08b423e4db,46883ce1-dc3e-4b17-9195-c6a601624c73`` |
++----------------------+-------------------------------------------+-------------------------------------------------------------------------------+
 
 ::
 
@@ -60,27 +62,39 @@ Disabling Security
 The injected security tooling can be disabled entirely or individually, using
 ``easy_infra``-specific command line arguments or environment variables.
 
++----------------------+-----------+------------------------------------------------------------+
 | Environment variable | Default   | Result                                                     |
-|----------------------|-----------|------------------------------------------------------------|
++======================+===========+============================================================+
 | ``DISABLE_SECURITY`` | ``false`` | Disables all security tooling (Not just Terraform-related) |
-| ``SKIP_CHECKOV``     | ``false`` | Disables Checkov\*                                         |
++----------------------+-----------+------------------------------------------------------------+
+| ``SKIP_CHECKOV``     | ``false`` | Disables Checkov                                           |
++----------------------+-----------+------------------------------------------------------------+
 | ``SKIP_KICS``        | ``false`` | Disables KICS                                              |
-| ``SKIP_TERRASCAN``   | ``false`` | Disables Terrascan\*                                       |
-| ``SKIP_TFSEC``       | ``false`` | Disables tfsec\*                                           |
++----------------------+-----------+------------------------------------------------------------+
+| ``SKIP_TERRASCAN``   | ``false`` | Disables Terrascan                                         |
++----------------------+-----------+------------------------------------------------------------+
+| ``SKIP_TFSEC``       | ``false`` | Disables tfsec                                             |
++----------------------+-----------+------------------------------------------------------------+
 
-| Parameter               | Result                       | Example                                   |
-|-------------------------|------------------------------|-------------------------------------------|
-| ``--disable-security``  | Disable all security tooling | ``terraform validate --disable-security`` |
-| ``--skip-checkov``\**   | Disable Checkov              | ``terraform --skip-checkov validate``     |
-| ``--skip-kics``         | Disable KICS                 | ``terraform validate --skip-kics``        |
-| ``--skip-terrascan``\** | Disable Terrascan            | ``terraform --skip-terrascan validate``   |
-| ``--skip-tfsec``\**     | Disable tfsec                | ``terraform --skip-tfsec validate``       |
++------------------------+------------------------------+-------------------------------------------+
+| Parameter              | Result                       | Example                                   |
++========================+==============================+===========================================+
+| ``--disable-security`` | Disable all security tooling | ``terraform validate --disable-security`` |
++------------------------+------------------------------+-------------------------------------------+
+| ``--skip-checkov``\*   | Disable Checkov              | ``terraform --skip-checkov validate``     |
++------------------------+------------------------------+-------------------------------------------+
+| ``--skip-kics``        | Disable KICS                 | ``terraform validate --skip-kics``        |
++------------------------+------------------------------+-------------------------------------------+
+| ``--skip-terrascan``\* | Disable Terrascan            | ``terraform --skip-terrascan validate``   |
++------------------------+------------------------------+-------------------------------------------+
+| ``--skip-tfsec``\*     | Disable tfsec                | ``terraform --skip-tfsec validate``       |
++------------------------+------------------------------+-------------------------------------------+
 
-
-\* In the minimal images, only KICS is available
-
-\** This argument is processed by easy_infra and removed prior to passing
+\* This argument is processed by ``easy_infra`` and removed prior to passing
 parameters to Terraform commands.
+
+.. note::
+    In the minimal, aws, and az images only KICS is available
 
 
 Resources
