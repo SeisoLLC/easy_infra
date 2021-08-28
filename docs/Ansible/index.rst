@@ -31,9 +31,9 @@ Customizing KICS
 
 ::
 
-| Environment variable | Result                                | Example                                                                   |
-|----------------------|---------------------------------------|---------------------------------------------------------------------------|
-| KICS_QUERIES         | Passes the value to --include-queries | c3b9f7b0-f5a0-49ec-9cbc-f1e346b7274d,7dfb316c-a6c2-454d-b8a2-97f147b0c0ff |
+| Environment variable | Result                                    | Example                                                                       |
+|----------------------|-------------------------------------------|-------------------------------------------------------------------------------|
+| ``KICS_QUERIES``     | Passes the value to ``--include-queries`` | ``c3b9f7b0-f5a0-49ec-9cbc-f1e346b7274d,7dfb316c-a6c2-454d-b8a2-97f147b0c0ff`` |
 
 ::
 
@@ -46,17 +46,17 @@ Disabling Security
 The injected security tooling can be disabled entirely or individually, using
 ``easy_infra``-specific command line arguments or environment variables::
 
-| Environment variable | Default | Result                                                   |
-|----------------------|---------|----------------------------------------------------------|
-| DISABLE_SECURITY     | false   | Disables all security tooling (Not just Ansible-related) |
-| SKIP_KICS            | false   | Disables KICS                                            |
+| Environment variable | Default   | Result                                                   |
+|----------------------|-----------|----------------------------------------------------------|
+| ``DISABLE_SECURITY`` | ``false`` | Disables all security tooling (Not just Ansible-related) |
+| ``SKIP_KICS``        | ``false`` | Disables KICS                                            |
 
 ::
 
-| Parameter            | Result                       | Example                                                 |
-|----------------------|------------------------------|---------------------------------------------------------|
-| --disable-security\* | Disable all security tooling | ansible-playbook --disable-security EXAMPLE.yml --check |
-| --skip-kics\*        | Disable KICS                 | ansible-playbook --skip-kics EXAMPLE.yml --check        |
+| Parameter                | Result                       | Example                                                     |
+|--------------------------|------------------------------|-------------------------------------------------------------|
+| ``--disable-security``\* | Disable all security tooling | ``ansible-playbook --disable-security EXAMPLE.yml --check`` |
+| ``--skip-kics``\*        | Disable KICS                 | ``ansible-playbook --skip-kics EXAMPLE.yml --check``        |
 
 \* This argument is processed by easy_infra and removed prior to passing
 parameters to Ansible commands.
