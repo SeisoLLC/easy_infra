@@ -94,7 +94,7 @@ The injected security tooling can be disabled entirely or individually, using
 parameters to Terraform commands.
 
 .. note::
-    In the minimal, aws, and az images only KICS is available
+    In the minimal, aws, and az images, only KICS is available
 
 
 Resources
