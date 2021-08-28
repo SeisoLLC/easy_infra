@@ -16,7 +16,8 @@ Infrastructure as Code (IaC).
 the provided IaC against the defined security policy.
 
 Varying levels of Terraform security are included in the ``easy_infra`` tags,
-including minimal, aws, az, and latest
+including minimal, aws, az, and latest.  For more information, see
+:ref:`<Disabling Security>` below.
 
 
 Use Cases
