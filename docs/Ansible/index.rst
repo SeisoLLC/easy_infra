@@ -29,8 +29,6 @@ a pipeline action on commit or pull request::
 Customizing KICS
 ^^^^^^^^^^^^^^^^
 
-::
-
 | Environment variable | Result                                    | Example                                                                       |
 |----------------------|-------------------------------------------|-------------------------------------------------------------------------------|
 | ``KICS_QUERIES``     | Passes the value to ``--include-queries`` | ``c3b9f7b0-f5a0-49ec-9cbc-f1e346b7274d,7dfb316c-a6c2-454d-b8a2-97f147b0c0ff`` |
@@ -44,14 +42,12 @@ Disabling Security
 ^^^^^^^^^^^^^^^^^^
 
 The injected security tooling can be disabled entirely or individually, using
-``easy_infra``-specific command line arguments or environment variables::
+``easy_infra``-specific command line arguments or environment variables.
 
 | Environment variable | Default   | Result                                                   |
 |----------------------|-----------|----------------------------------------------------------|
 | ``DISABLE_SECURITY`` | ``false`` | Disables all security tooling (Not just Ansible-related) |
 | ``SKIP_KICS``        | ``false`` | Disables KICS                                            |
-
-::
 
 | Parameter                | Result                       | Example                                                     |
 |--------------------------|------------------------------|-------------------------------------------------------------|
