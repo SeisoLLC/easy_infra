@@ -5,8 +5,8 @@ _anchors:
       description: directory scan
     kics:
       command: kics scan --type Terraform --no-progress --queries-path ${KICS_QUERIES_PATH}
-        --report-formats json --output-path ${KICS_JSON_REPORT_PATH} --output-name
-        kics --path .
+        --library ${KICS_LIBRARY_PATH} --report-formats json --output-path ${KICS_JSON_REPORT_PATH}
+        --output-name kics --path .
       customizations:
         KICS_QUERIES: --include-queries
       description: directory scan
@@ -29,8 +29,8 @@ commands:
     security:
       kics:
         command: kics scan --type Ansible --no-progress --queries-path ${KICS_QUERIES_PATH}
-          --report-formats json --output-path ${KICS_REPORTS} --output-name kics --path
-          .
+          --library ${KICS_LIBRARY_PATH} --report-formats json --output-path ${KICS_REPORTS}
+          --output-name kics --path .
         customizations:
           KICS_QUERIES: --include-queries
         description: directory scan
@@ -50,7 +50,7 @@ commands:
     version: 2.0.379
     version_argument: --version
   fluent-bit:
-    version: v1.8.3
+    version: v1.8.4
     version_argument: --version
   kics:
     version: v1.4.1
