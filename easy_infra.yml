@@ -5,8 +5,8 @@ _anchors:
       description: directory scan
     kics:
       command: kics scan --type Terraform --no-progress --queries-path ${KICS_QUERIES_PATH}
-        --report-formats json --output-path ${KICS_JSON_REPORT_PATH} --output-name
-        kics --path .
+        --library ${KICS_LIBRARY_PATH} --report-formats json --output-path ${KICS_JSON_REPORT_PATH}
+        --output-name kics --path .
       customizations:
         KICS_QUERIES: --include-queries
       description: directory scan
@@ -29,8 +29,8 @@ commands:
     security:
       kics:
         command: kics scan --type Ansible --no-progress --queries-path ${KICS_QUERIES_PATH}
-          --report-formats json --output-path ${KICS_REPORTS} --output-name kics --path
-          .
+          --library ${KICS_LIBRARY_PATH} --report-formats json --output-path ${KICS_REPORTS}
+          --output-name kics --path .
         customizations:
           KICS_QUERIES: --include-queries
         description: directory scan
@@ -39,32 +39,32 @@ commands:
   aws-cli:
     aliases:
     - aws
-    version: 2.2.17
+    version: 2.2.33
     version_argument: --version
   azure-cli:
     aliases:
     - az
-    version: 2.26.0-1~focal
+    version: 2.27.2-1~focal
     version_argument: version
   checkov:
-    version: 2.0.257
+    version: 2.0.379
     version_argument: --version
   fluent-bit:
     version: v1.8.4
     version_argument: --version
   kics:
-    version: v1.3.4
+    version: v1.4.1
     version_argument: version
   packer:
-    version: 1.7.3
+    version: 1.7.4
     version_argument: version
   terraform:
     security: *id001
     validation: *id002
-    version: 1.0.2
+    version: 1.0.5
     version_argument: version
   terrascan:
-    version: v1.8.0
+    version: v1.10.0
     version_argument: version
   tfenv:
     allow_filter:
@@ -75,5 +75,5 @@ commands:
     version: v2.2.2
     version_argument: --version
   tfsec:
-    version: v0.42.3
+    version: v0.58.6
     version_argument: --version
