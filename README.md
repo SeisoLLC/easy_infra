@@ -20,7 +20,9 @@ into `/iac` and pass your command, such as `terraform validate`, as such:
 docker run -v $(pwd):/iac seiso/easy_infra terraform validate
 ```
 
-To learn more, check out [our documentation](https://easy_infra.readthedocs.io/).
+To learn more, check out [our
+documentation](https://easy_infra.readthedocs.io/) and
+[CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## Secure by default
 
@@ -62,11 +64,3 @@ If you'd like to enable debug logs at runtime, pass an environment variable of
 ```bash
 docker run -e LOG_LEVEL=DEBUG -v $(pwd):/iac seiso/easy_infra terraform validate
 ```
-
-## Contributing
-
-1. [Fork the repository](https://github.com/SeisoLLC/easy_infra/fork)
-1. Create a feature branch via `git checkout -b feature/description`
-1. Make your changes
-1. Commit your changes via `git commit -am 'Summarize the changes here'`
-1. Create a new pull request ([how-to](https://help.github.com/articles/creating-a-pull-request/))

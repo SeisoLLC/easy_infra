@@ -4,20 +4,25 @@ ARG FROM_IMAGE_TAG=20.04
 FROM "${FROM_IMAGE}":"${FROM_IMAGE_TAG}" AS minimal
 
 # minimal setup
+ARG FLUENT_BIT_VERSION
 ARG ANSIBLE_VERSION
 ARG KICS_VERSION
 ARG TERRAFORM_VERSION
 ARG TFENV_VERSION
 ENV KICS_QUERIES_PATH="/home/easy_infra/.kics/assets/queries"
+ENV KICS_JSON_REPORT_PATH="/tmp/reports/kics"
 ENV PATH="/home/easy_infra/.local/bin:${PATH}"
 ARG DEBIAN_FRONTEND="noninteractive"
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-# hadolint ignore=DL3008,SC1091
-RUN apt-get update \
+# hadolint ignore=DL3003,DL3008,SC1091
+RUN groupadd --gid 53150 -r easy_infra \
+ && useradd -r -g easy_infra -s "$(which bash)" --create-home --uid 53150 easy_infra \
+ && apt-get update \
  && apt-get -y install --no-install-recommends ansible=${ANSIBLE_VERSION} \
                                                bsdmainutils \
                                                ca-certificates \
                                                curl \
+                                               gettext \
                                                git \
                                                groff \
                                                jq \
@@ -28,16 +33,11 @@ RUN apt-get update \
                                                time \
                                                tini \
                                                unzip \
- && apt-get clean autoclean \
- && apt-get -y autoremove \
- && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/log/* /var/cache/debconf/*-old \
  && curl -L https://github.com/checkmarx/kics/releases/download/${KICS_VERSION}/kics_${KICS_VERSION#v}_linux_x64.tar.gz -o /usr/local/bin/kics.tar.gz \
  && tar -xvf /usr/local/bin/kics.tar.gz -C /usr/local/bin/ kics \
  && rm -f /usr/local/bin/kics.tar.gz \
  && chmod 0755 /usr/local/bin/kics \
  && chown root: /usr/local/bin/kics \
- && groupadd --gid 53150 -r easy_infra \
- && useradd -r -g easy_infra -s "$(which bash)" --create-home --uid 53150 easy_infra \
  && su easy_infra -c "git clone https://github.com/tfutils/tfenv.git /home/easy_infra/.tfenv --depth 1 --branch ${TFENV_VERSION}" \
  && rm -rf /home/easy_infra/.tfenv/.git \
  && su easy_infra -c "mkdir -p /home/easy_infra/.local/bin/" \
@@ -48,14 +48,28 @@ RUN apt-get update \
  && su - easy_infra -c "terraform -install-autocomplete" \
  && su easy_infra -c "git clone https://github.com/checkmarx/kics.git /home/easy_infra/.kics --depth 1 --branch ${KICS_VERSION}" \
  && rm -rf /home/easy_infra/.kics/.git \
+ && apt-get install -y --no-install-recommends cmake build-essential flex bison \
+ && git clone https://github.com/fluent/fluent-bit --depth 1 --branch ${FLUENT_BIT_VERSION} \
+ && cd fluent-bit/build \
+ && cmake ../ && make && make install \
+ && cd ../.. \
+ && rm -rf fluent-bit \
+ && apt-get remove -y cmake build-essential flex bison \
  && echo "source /functions" >> /home/easy_infra/.bashrc \
  && su easy_infra -c "mkdir /home/easy_infra/.ansible" \
- && rm -rf /var/log/* /var/cache/debconf/*-old
+ && apt-get clean autoclean \
+ && apt-get -y autoremove \
+ && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/log/* /var/cache/debconf/*-old \
+ && touch /var/log/easy_infra.log /var/log/fluent-bit.log \
+ && chown easy_infra: /var/log/easy_infra.log /var/log/fluent-bit.log
 USER easy_infra
 
 COPY --chown=easy_infra:easy_infra functions /functions
 COPY --chown=easy_infra:easy_infra .terraformrc /home/easy_infra/
 COPY --chown=easy_infra:easy_infra docker-entrypoint.sh /usr/local/bin/
+COPY --chown=easy_infra:easy_infra fluent-bit.conf /usr/local/etc/fluent-bit/fluent-bit.conf
+COPY --chown=easy_infra:easy_infra fluent-bit.inputs.conf /usr/local/etc/fluent-bit/fluent-bit.inputs.conf
+COPY --chown=easy_infra:easy_infra fluent-bit.outputs.conf /usr/local/etc/fluent-bit/fluent-bit.outputs.conf
 
 ENV BASH_ENV=/functions
 WORKDIR /iac

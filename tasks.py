@@ -297,8 +297,6 @@ def release(_c, debug=False):
     # Get the current date info
     date_info = datetime.now().strftime("%Y.%m")
 
-    # Our CalVer pattern which works until year 2200, up to 100 releases a
-    # month (purposefully excludes builds)
     pattern = re.compile(r"v2[0-1][0-9]{2}.(0[0-9]|1[0-2]).[0-9]{2}")
 
     # Identify and set the increment

@@ -30,6 +30,7 @@ GITHUB_REPOS_RELEASES = {
     "aquasecurity/tfsec",
     "accurics/terrascan",
     "checkmarx/kics",
+    "fluent/fluent-bit",
 }
 GITHUB_REPOS_TAGS = {"aws/aws-cli"}
 PYTHON_PACKAGES = {"checkov"}
