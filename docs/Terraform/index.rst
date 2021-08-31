@@ -19,6 +19,10 @@ Varying levels of Terraform security are included in the ``easy_infra`` tags,
 including minimal, aws, az, and latest.  For more information, see
 `Disabling Security`_ below.
 
+.. note::
+    In the minimal, aws, and az images, only the KICS security tool is
+    available.  All other security tools will be skipped.
+
 
 Use Cases
 ---------
@@ -81,20 +85,18 @@ The injected security tooling can be disabled entirely or individually, using
 +========================+==============================+===========================================+
 | ``--disable-security`` | Disable all security tooling | ``terraform validate --disable-security`` |
 +------------------------+------------------------------+-------------------------------------------+
-| ``--skip-checkov``\*   | Disable Checkov              | ``terraform --skip-checkov validate``     |
+| ``--skip-checkov``     | Disable Checkov              | ``terraform --skip-checkov validate``     |
 +------------------------+------------------------------+-------------------------------------------+
 | ``--skip-kics``        | Disable KICS                 | ``terraform validate --skip-kics``        |
 +------------------------+------------------------------+-------------------------------------------+
-| ``--skip-terrascan``\* | Disable Terrascan            | ``terraform --skip-terrascan validate``   |
+| ``--skip-terrascan``   | Disable Terrascan            | ``terraform --skip-terrascan validate``   |
 +------------------------+------------------------------+-------------------------------------------+
-| ``--skip-tfsec``\*     | Disable tfsec                | ``terraform --skip-tfsec validate``       |
+| ``--skip-tfsec``       | Disable tfsec                | ``terraform --skip-tfsec validate``       |
 +------------------------+------------------------------+-------------------------------------------+
-
-\* This argument is processed by ``easy_infra`` and removed prior to passing
-parameters to Terraform commands.
 
 .. note::
-    In the minimal, aws, and az images, only KICS is available
+    All command-line arguments in the above table are processed by easy_infra
+    and removed prior to passing parameters to Terraform commands.
 
 
 Resources
