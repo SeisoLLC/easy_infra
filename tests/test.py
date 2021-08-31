@@ -321,6 +321,11 @@ def run_terraform(*, image: str, final: bool = False):
             "terraform init",
             0,
         ),
+        (
+            {"KICS_EXCLUDE_SEVERITIES": "info"},
+            "terraform validate",
+            0,
+        ),
     ]
 
     LOG.debug("Testing secure terraform configurations")
@@ -482,6 +487,31 @@ def run_terraform(*, image: str, final: bool = False):
             '/usr/bin/env bash -c "KICS_QUERIES=5a2486aa-facf-477d-a5c1-b010789459ce terraform --skip-tfsec --skip-terrascan --skip-checkov validate"',
             50,
         ),
+        (
+            {
+                "SKIP_CHECKOV": "true",
+                "SKIP_TFSEC": "true",
+                "SKIP_TERRASCAN": "true",
+                "KICS_EXCLUDE_SEVERITIES": "medium",
+            },
+            "terraform validate",
+            50,
+        ),  # Doesn't exclude high
+        (
+            {
+                "SKIP_CHECKOV": "true",
+                "SKIP_TFSEC": "true",
+                "SKIP_TERRASCAN": "true",
+                "KICS_EXCLUDE_SEVERITIES": "info,low,medium,high",
+            },
+            "terraform validate",
+            0,
+        ),  # Excludes all the severities
+        (
+            {},
+            '/usr/bin/env bash -c "KICS_EXCLUDE_SEVERITIES=info,low,medium,high terraform --skip-tfsec --skip-terrascan --skip-checkov validate"',
+            0,
+        ),  # Excludes all the severities
     ]
 
     num_tests_ran += exec_tests(tests=tests, volumes=kics_volumes, image=image)
@@ -884,6 +914,25 @@ def run_ansible(*, image: str):
             "/usr/bin/env bash -c 'KICS_QUERIES=7dfb316c-a6c2-454d-b8a2-97f147b0c0ff ansible-playbook insecure.yml --check'",
             50,
         ),
+        (
+            {
+                "KICS_EXCLUDE_SEVERITIES": "info,low",
+            },
+            "ansible-playbook insecure.yml --check",
+            50,
+        ),  # Doesn't exclude high or medium
+        (
+            {
+                "KICS_EXCLUDE_SEVERITIES": "high,medium",
+            },
+            "ansible-playbook insecure.yml --check",
+            0,
+        ),  # Excludes all the relevant severities
+        (
+            {},
+            '/usr/bin/env bash -c "KICS_EXCLUDE_SEVERITIES=info,low,medium,high ansible-playbook insecure.yml --check',
+            0,
+        ),  # Excludes all the severities
     ]
 
     num_tests_ran += exec_tests(tests=tests, volumes=kics_volumes, image=image)

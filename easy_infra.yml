@@ -9,6 +9,7 @@ _anchors:
         --output-name kics --path .
       customizations:
         KICS_QUERIES: --include-queries
+        KICS_EXCLUDE_SEVERITIES: --exclude-severities
       description: directory scan
     terrascan:
       command: terrascan scan -i terraform -t all -d .
@@ -33,6 +34,7 @@ commands:
           --output-name kics --path .
         customizations:
           KICS_QUERIES: --include-queries
+          KICS_EXCLUDE_SEVERITIES: --exclude-severities
         description: directory scan
     version: 2.9.6+dfsg-1
     version_argument: --version
