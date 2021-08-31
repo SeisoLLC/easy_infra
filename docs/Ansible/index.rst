@@ -13,8 +13,9 @@ Infrastructure as Code (IaC).
 to semi-transparently assess the provided IaC against the defined security
 policy.
 
-The same level of Ansible security is included in all of the ``easy_infra``
-tags, including minimal, aws, az, and latest
+.. note::
+    The same level of Ansible security is included in all of the ``easy_infra``
+    tags, including minimal, aws, az, and latest.
 
 
 Use Cases
@@ -54,16 +55,17 @@ The injected security tooling can be disabled entirely or individually, using
 | ``SKIP_KICS``        | ``false`` | Disables KICS                                            |
 +----------------------+-----------+----------------------------------------------------------+
 
-+--------------------------+------------------------------+-------------------------------------------------------------+
-| Parameter                | Result                       | Example                                                     |
-+==========================+==============================+=============================================================+
-| ``--disable-security``\* | Disable all security tooling | ``ansible-playbook --disable-security EXAMPLE.yml --check`` |
-+--------------------------+------------------------------+-------------------------------------------------------------+
-| ``--skip-kics``\*        | Disable KICS                 | ``ansible-playbook --skip-kics EXAMPLE.yml --check``        |
-+--------------------------+------------------------------+-------------------------------------------------------------+
++------------------------+------------------------------+-------------------------------------------------------------+
+| Parameter              | Result                       | Example                                                     |
++========================+==============================+=============================================================+
+| ``--disable-security`` | Disable all security tooling | ``ansible-playbook --disable-security EXAMPLE.yml --check`` |
++------------------------+------------------------------+-------------------------------------------------------------+
+| ``--skip-kics``        | Disable KICS                 | ``ansible-playbook --skip-kics EXAMPLE.yml --check``        |
++------------------------+------------------------------+-------------------------------------------------------------+
 
-\* This argument is processed by easy_infra and removed prior to passing
-parameters to Ansible commands.
+.. note::
+    All command-line arguments in the above table are processed by easy_infra
+    and removed prior to passing parameters to Ansible commands.
 
 
 Resources
