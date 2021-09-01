@@ -12,15 +12,40 @@ jobs:
     name: Release
     runs-on: Ubuntu-20.04
     steps:
-      - name: Checkout the code
+      - name: Checkout the repository
         uses: actions/checkout@v2
-      - name: Create the release
-        id: create_release
-        uses: actions/create-release@v1
+      - name: Retrieve the tag
+        run: echo "TAG=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_ENV
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+      - name: Install the dependencies
+        run: |
+          python -m pip install --upgrade pipenv
+          pipenv install --dev
+      - name: Build the Docker images
+        run: pipenv run invoke build --debug
+      - name: Publish the release to GitHub
+        uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
+          name: ${{ github.ref }}
           draft: false
           prerelease: false
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Publish the release README to Docker Hub
+        uses: peter-evans/dockerhub-description@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: seiso/easy_infra
+          short_description: |
+            A docker container to simplify the use of Infrastructure as Code (IaC) tools
+      - name: Publish the release Docker images to Docker Hub
+        run: pipenv run invoke publish release --debug
