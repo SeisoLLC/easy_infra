@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "9fd592e5e497ff9f0788572ca3be572b70d70be6d48585f58b06e42fed36862e"
+            "sha256": "963941d2ee7a18f104e59082230471a04763bbfd87b26e4392b94648a50bf105"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -65,11 +65,11 @@
         },
         "docker": {
             "hashes": [
-                "sha256:3e8bc47534e0ca9331d72c32f2881bb13b93ded0bcdeab3c833fb7cf61c0a9a5",
-                "sha256:fc961d622160e8021c10d1bcabc388c57d55fb1f917175afbe24af442e6879bd"
+                "sha256:21ec4998e90dff7a7aaaa098ca8d839c7de412b89e6f6c30908372d58fecf663",
+                "sha256:9b17f0723d83c1f3418d2aa17bf90b24dbe97deda06208dd4262fa30a6ee87eb"
             ],
             "index": "pypi",
-            "version": "==5.0.0"
+            "version": "==5.0.2"
         },
         "docutils": {
             "hashes": [
@@ -276,14 +276,6 @@
             ],
             "index": "pypi",
             "version": "==2.26.0"
-        },
-        "six": {
-            "hashes": [
-                "sha256:1e61c37477a1626458e36f7b1d82aa5c9b094fa4802892072e49de9c60c4c926",
-                "sha256:8abb2f1d86890a2dfb989f9a77cfcfd3e47c2a354b01111771326f8aa26e0254"
-            ],
-            "index": "pypi",
-            "version": "==1.16.0"
         },
         "smmap": {
             "hashes": [
