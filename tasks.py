@@ -333,7 +333,7 @@ def publish(_c, tag, debug=False):
     for target in constants.TARGETS:
         for repository in TARGETS[target]["tags"]:
             # Skip tags which don't start with the tag we are publishing
-            if not repository.startswith(tag):
+            if not repository.startswith(f"{constants.IMAGE}:{tag}"):
                 continue
 
             LOG.info("Pushing %s to docker hub...", repository)
