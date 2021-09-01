@@ -318,18 +318,28 @@ def release(_c, debug=False):
 
 
 @task
-def publish(_c, debug=False):
+def publish(_c, tag, debug=False):
     """Publish easy_infra"""
     if debug:
         getLogger().setLevel("DEBUG")
 
+    if tag not in ["latest", "release"]:
+        LOG.error("Please provide a tag of either latest or release")
+        sys.exit(1)
+    elif tag == "release":
+        tag = __version__
+
     # pylint: disable=redefined-outer-name
     for target in constants.TARGETS:
-        for tag in TARGETS[target]["tags"]:
-            repository = tag
+        for repository in TARGETS[target]["tags"]:
+            # Skip tags which don't start with the tag we are publishing
+            if not repository.startswith(tag):
+                continue
+
             LOG.info("Pushing %s to docker hub...", repository)
             CLIENT.images.push(repository=repository)
-    LOG.info("Done publishing easy_infra Docker images")
+            LOG.info("Done publishing the %s Docker image", repository)
+    LOG.info("Done publishing all of the %s easy_infra Docker images", tag)
 
 
 @task
