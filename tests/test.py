@@ -852,7 +852,7 @@ def run_ansible(*, image: str):
     # Tests is a list of tuples containing the test environment, command, and
     # expected exit code
     tests: list[tuple[dict, str, int]] = [
-        ({}, "ansible-playbook insecure.yml --check", 126),
+        ({}, "ansible-playbook insecure.yml --check", 50),
         (
             {},
             "ansible-playbook --skip-kics insecure.yml --check",
@@ -887,7 +887,7 @@ def run_ansible(*, image: str):
         (
             {"SKIP_TERRASCAN": "tRuE", "SKIP_CHECKOV": "FaLsE", "SKIP_KICS": "Unknown"},
             "ansible-playbook insecure.yml --check",
-            126,
+            50,
         ),  # checkov and terrascan are purposefully irrelevant for ansible
         (
             {},
@@ -907,19 +907,19 @@ def run_ansible(*, image: str):
         (
             {"KICS_QUERIES": "7dfb316c-a6c2-454d-b8a2-97f147b0c0ff"},
             "ansible-playbook insecure.yml --check",
-            126,
+            50,
         ),
         (
             {},
             "/usr/bin/env bash -c 'KICS_QUERIES=7dfb316c-a6c2-454d-b8a2-97f147b0c0ff ansible-playbook insecure.yml --check'",
-            126,
+            50,
         ),
         (
             {
                 "KICS_EXCLUDE_SEVERITIES": "info,low",
             },
             "ansible-playbook insecure.yml --check",
-            126,
+            50,
         ),  # Doesn't exclude high or medium
         (
             {
