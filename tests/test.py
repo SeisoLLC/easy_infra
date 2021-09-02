@@ -321,6 +321,13 @@ def run_terraform(*, image: str, final: bool = False):
             "terraform init",
             0,
         ),
+        (
+            {
+                "KICS_EXCLUDE_RESULTS": "7dfb316c-a6c2-454d-b8a2-97f147b0c0ff"
+            },
+            "terraform validate",
+            0,
+        ),
     ]
 
     LOG.debug("Testing secure terraform configurations")
@@ -482,6 +489,31 @@ def run_terraform(*, image: str, final: bool = False):
             '/usr/bin/env bash -c "KICS_QUERIES=5a2486aa-facf-477d-a5c1-b010789459ce terraform --skip-tfsec --skip-terrascan --skip-checkov validate"',
             50,
         ),
+        (
+            {
+                "SKIP_CHECKOV": "true",
+                "SKIP_TFSEC": "true",
+                "SKIP_TERRASCAN": "true",
+                "KICS_EXCLUDE_RESULTS": "4728cd65-a20c-49da-8b31-9c08b423e4db,46883ce1-dc3e-4b17-9195-c6a601624c73",
+            },
+            "terraform validate",
+            50,
+        ),  # Doesn't exclude the results of a query which should match
+        (
+            {
+                "SKIP_CHECKOV": "true",
+                "SKIP_TFSEC": "true",
+                "SKIP_TERRASCAN": "true",
+                "KICS_EXCLUDE_RESULTS": "7dfb316c-a6c2-454d-b8a2-97f147b0c0ff",
+            },
+            "terraform validate",
+            0,
+        ),  # Excludes the results of a query which should match
+        (
+            {},
+            '/usr/bin/env bash -c "KICS_EXCLUDE_RESULTS=7dfb316c-a6c2-454d-b8a2-97f147b0c0ff terraform --skip-tfsec --skip-terrascan --skip-checkov validate"',
+            0,
+        ),  # Excludes the results of a query which should match
     ]
 
     num_tests_ran += exec_tests(tests=tests, volumes=kics_volumes, image=image)
@@ -884,6 +916,25 @@ def run_ansible(*, image: str):
             "/usr/bin/env bash -c 'KICS_QUERIES=7dfb316c-a6c2-454d-b8a2-97f147b0c0ff ansible-playbook insecure.yml --check'",
             50,
         ),
+        (
+            {
+                "KICS_EXCLUDE_RESULTS": "c3b9f7b0-f5a0-49ec-9cbc-f1e346b7274d",
+            },
+            "ansible-playbook insecure.yml --check",
+            50,
+        ),  # Doesn't exclude the results of a query which should match
+        (
+            {
+                "KICS_EXCLUDE_RESULTS": "7dfb316c-a6c2-454d-b8a2-97f147b0c0ff",
+            },
+            "ansible-playbook insecure.yml --check",
+            0,
+        ),  # Excludes the results of a query which should match
+        (
+            {},
+            '/usr/bin/env bash -c "KICS_EXCLUDE_RESULTS=7dfb316c-a6c2-454d-b8a2-97f147b0c0ff ansible-playbook insecure.yml --check',
+            0,
+        ),  # Excludes the results of a query which should match
     ]
 
     num_tests_ran += exec_tests(tests=tests, volumes=kics_volumes, image=image)
