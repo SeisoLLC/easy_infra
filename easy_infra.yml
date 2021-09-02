@@ -18,7 +18,7 @@ _anchors:
       command: tfsec .
       description: recursive scan
   validation: &id002
-  - command: terraform init
+  - command: terraform init -backend=false
     description: initialization
   - command: terraform validate
     description: validation

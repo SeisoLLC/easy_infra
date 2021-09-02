@@ -76,7 +76,7 @@ function _log() {
       },                                                            \
       \"message\": ${message}                                       \
       }"                                                            \
-    ) || _feedback ERROR "Failed to generate a valid JSON log message"
+    ) || { _feedback ERROR "Failed to generate a valid JSON log message"; _log "easy_infra.stdouterr" info unknown "easy_infra" string "Failed to generate a valid JSON log message"; }
   else
     LOG_MESSAGE=$(jq -c -n                               \
       "{                                                 \
@@ -92,7 +92,7 @@ function _log() {
       \"event.type\": ${event_type},                     \
       \"message\": ${message}                            \
       }"                                                 \
-    ) || _feedback ERROR "Failed to generate a valid JSON log message"
+    ) || { _feedback ERROR "Failed to generate a valid JSON log message"; _log "easy_infra.stdouterr" info unknown "easy_infra" string "Failed to generate a valid JSON log message"; }
   fi
   echo "${LOG_MESSAGE}" &>> /var/log/easy_infra.log
 }
