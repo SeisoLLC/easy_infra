@@ -322,9 +322,7 @@ def run_terraform(*, image: str, final: bool = False):
             0,
         ),
         (
-            {
-                "KICS_EXCLUDE_RESULTS": "7dfb316c-a6c2-454d-b8a2-97f147b0c0ff"
-            },
+            {"KICS_EXCLUDE_RESULTS": "7dfb316c-a6c2-454d-b8a2-97f147b0c0ff"},
             "terraform validate",
             0,
         ),
