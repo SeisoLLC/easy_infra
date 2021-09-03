@@ -15,6 +15,7 @@ m2r2 = "*"
 pyyaml = "*"
 requests = "*"
 sphinx = "*"
+types-PyYAML = "*"
 
 [requires]
 python_version = "3.9"
