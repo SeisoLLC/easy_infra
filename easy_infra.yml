@@ -5,7 +5,7 @@ _anchors:
       description: directory scan
     kics:
       command: kics scan --type Terraform --no-progress --queries-path ${KICS_QUERIES_PATH}
-        --library ${KICS_LIBRARY_PATH} --report-formats json --output-path ${KICS_JSON_REPORT_PATH}
+        --libraries-path ${KICS_LIBRARY_PATH} --report-formats json --output-path ${KICS_JSON_REPORT_PATH}
         --output-name kics --path .
       customizations:
         KICS_QUERIES: --include-queries
@@ -29,7 +29,7 @@ commands:
     security:
       kics:
         command: kics scan --type Ansible --no-progress --queries-path ${KICS_QUERIES_PATH}
-          --library ${KICS_LIBRARY_PATH} --report-formats json --output-path ${KICS_REPORTS}
+          --libraries-path ${KICS_LIBRARY_PATH} --report-formats json --output-path ${KICS_REPORTS}
           --output-name kics --path .
         customizations:
           KICS_QUERIES: --include-queries
@@ -39,7 +39,7 @@ commands:
   aws-cli:
     aliases:
     - aws
-    version: 2.2.33
+    version: 2.2.34
     version_argument: --version
   azure-cli:
     aliases:
@@ -47,13 +47,13 @@ commands:
     version: 2.27.2-1~focal
     version_argument: version
   checkov:
-    version: 2.0.379
+    version: 2.0.392
     version_argument: --version
   fluent-bit:
-    version: v1.8.4
+    version: v1.8.6
     version_argument: --version
   kics:
-    version: v1.4.1
+    version: v1.4.2
     version_argument: version
   packer:
     version: 1.7.4
