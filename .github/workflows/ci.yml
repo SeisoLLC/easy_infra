@@ -19,6 +19,7 @@ jobs:
       - uses: seisollc/goat@main
         with:
           disable_terrascan: true
+          disable_mypy: true
       - uses: actions/setup-python@v2
         with:
           python-version: 3.9
