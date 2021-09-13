@@ -926,13 +926,13 @@ def run_ansible(*, image: str):
                 "KICS_EXCLUDE_SEVERITIES": "high,medium",
             },
             "ansible-playbook insecure.yml --check",
-            0,
-        ),  # Excludes all the relevant severities
+            4,
+        ),  # Excludes all the relevant severities, exits 4 because insecure.yml is not a valid Play
         (
             {},
             '/usr/bin/env bash -c "KICS_EXCLUDE_SEVERITIES=info,low,medium,high ansible-playbook insecure.yml --check',
-            0,
-        ),  # Excludes all the severities
+            4,
+        ),  # Excludes all the severities, , exits 4 because insecure.yml is not a valid Play
     ]
 
     num_tests_ran += exec_tests(tests=tests, volumes=kics_volumes, image=image)
