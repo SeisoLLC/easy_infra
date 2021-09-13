@@ -167,6 +167,7 @@ def lint(_c, debug=False):
     environment = {}
     # Default to disabling the goat built-in terrascan
     environment["INPUT_DISABLE_TERRASCAN"] = "true"
+    environment["INPUT_DISABLE_MYPY"] = "true"
 
     if REPO.is_dirty(untracked_files=True):
         LOG.error("Linting requires a clean git directory to function properly")
