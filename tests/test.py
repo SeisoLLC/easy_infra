@@ -911,7 +911,7 @@ def run_ansible(*, image: str):
         ),
         (
             {},
-            "/usr/bin/env bash -c 'KICS_QUERIES=7dfb316c-a6c2-454d-b8a2-97f147b0c0ff ansible-playbook insecure.yml --check'",
+            '/usr/bin/env bash -c "KICS_QUERIES=7dfb316c-a6c2-454d-b8a2-97f147b0c0ff ansible-playbook insecure.yml --check"',
             50,
         ),
         (
@@ -930,9 +930,9 @@ def run_ansible(*, image: str):
         ),  # Excludes all the relevant severities, exits 4 because insecure.yml is not a valid Play
         (
             {},
-            '/usr/bin/env bash -c "KICS_EXCLUDE_SEVERITIES=info,low,medium,high ansible-playbook insecure.yml --check',
+            '/usr/bin/env bash -c "KICS_EXCLUDE_SEVERITIES=info,low,medium,high ansible-playbook insecure.yml --check"',
             4,
-        ),  # Excludes all the severities, , exits 4 because insecure.yml is not a valid Play
+        ),  # Excludes all the severities, exits 4 because insecure.yml is not a valid Play
     ]
 
     num_tests_ran += exec_tests(tests=tests, volumes=kics_volumes, image=image)
