@@ -23,22 +23,23 @@ function _log() {
   event_kind='"state"' # event.kind
   event_category='"configuration"' # event.category
   event_provider='"easy_infra"' # event.provider
-  labels="$(git rev-parse --is-inside-work-tree 2>/dev/null)"
-  if [[ "${labels}" == "true" ]]; then
-    labels_git_branch_name="\"$(git branch --show-current)\""
-    labels_git_branch_ref="\"$(git rev-parse HEAD)\""
-    labels_git_remote_origin_url="\"$(git config --get remote.origin.url)\""
+  git_labels="$(git rev-parse --is-inside-work-tree 2>/dev/null)"
+  if [[ "${git_labels}" == "true" ]]; then
+    git_labels_git_branch_name="\"$(git branch --show-current)\""
+    git_labels_git_branch_ref="\"$(git rev-parse HEAD)\""
+    git_labels_git_remote_origin_url="\"$(git config --get remote.origin.url)\""
   fi
 
   event_dataset="\"${1}\"" # event.dataset
   event_type="\"${2}\"" # event.type
   event_outcome="\"${3}\"" # event.outcome
   event_action="$(jq -R <<< ${4})" # event.action (JSON-escaped string)
-  message_type="${5}"
+  label_cwd="\"${5}\""
+  message_type="${6}"
   if [[ "${message_type}" == "string" ]]; then
-    message="$(jq -R <<< ${6})" # message (JSON-escaped string)
+    message="$(jq -R <<< ${7})" # message (JSON-escaped string)
   elif [[ "${message_type}" == "json" ]]; then
-    message="${6}" # message (JSON)
+    message="${7}" # message (JSON)
   else
     _feedback ERROR "Incorrect message type of ${message_type:-null or unset} sent to the _log function"
     exit 1
@@ -56,27 +57,28 @@ function _log() {
     exit 1
   fi
 
-  if [[ "${labels}" == "true" ]]; then
-    LOG_MESSAGE=$(jq -c -n                                          \
-      "{                                                            \
-      \"@timestamp\": ${timestamp},                                 \
-      \"container.image.name\": ${container_image_name},            \
-      \"container.image.tag\": ${container_image_tag},              \
-      \"ecs.version\": ${ecs_version},                              \
-      \"event.action\": ${event_action},                            \
-      \"event.category\": ${event_category},                        \
-      \"event.kind\": ${event_kind},                                \
-      \"event.outcome\": ${event_outcome},                          \
-      \"event.provider\": ${event_provider},                        \
-      \"event.type\": ${event_type},                                \
-      \"labels\": {                                                 \
-        \"git.branch.name\": ${labels_git_branch_name},             \
-        \"git.branch.ref\": ${labels_git_branch_ref},               \
-        \"git.remote.origin.url\": ${labels_git_remote_origin_url}  \
-      },                                                            \
-      \"message\": ${message}                                       \
-      }"                                                            \
-    ) || { _feedback ERROR "Failed to generate a valid JSON log message"; _log "easy_infra.stdouterr" info unknown "easy_infra" string "Failed to generate a valid JSON log message"; }
+  if [[ "${git_labels}" == "true" ]]; then
+    LOG_MESSAGE=$(jq -c -n                                             \
+      "{                                                               \
+      \"@timestamp\": ${timestamp},                                    \
+      \"container.image.name\": ${container_image_name},               \
+      \"container.image.tag\": ${container_image_tag},                 \
+      \"ecs.version\": ${ecs_version},                                 \
+      \"event.action\": ${event_action},                               \
+      \"event.category\": ${event_category},                           \
+      \"event.kind\": ${event_kind},                                   \
+      \"event.outcome\": ${event_outcome},                             \
+      \"event.provider\": ${event_provider},                           \
+      \"event.type\": ${event_type},                                   \
+      \"labels\": {                                                    \
+        \"cwd\": ${label_cwd},                                         \
+        \"git.branch.name\": ${git_labels_git_branch_name},            \
+        \"git.branch.ref\": ${git_labels_git_branch_ref},              \
+        \"git.remote.origin.url\": ${git_labels_git_remote_origin_url} \
+      },                                                               \
+      \"message\": ${message}                                          \
+      }"                                                               \
+    ) || { _feedback ERROR "Failed to generate a valid JSON log message"; _log "easy_infra.stdouterr" info unknown "easy_infra" "${label_cwd}" string "Failed to generate a valid JSON log message"; }
   else
     LOG_MESSAGE=$(jq -c -n                               \
       "{                                                 \
@@ -90,9 +92,12 @@ function _log() {
       \"event.outcome\": ${event_outcome},               \
       \"event.provider\": ${event_provider},             \
       \"event.type\": ${event_type},                     \
+      \"labels\": {                                      \
+        \"cwd\": ${label_cwd}                            \
+      },                                                 \
       \"message\": ${message}                            \
       }"                                                 \
-    ) || { _feedback ERROR "Failed to generate a valid JSON log message"; _log "easy_infra.stdouterr" info unknown "easy_infra" string "Failed to generate a valid JSON log message"; }
+    ) || { _feedback ERROR "Failed to generate a valid JSON log message"; _log "easy_infra.stdouterr" info unknown "easy_infra" "${label_cwd}" string "Failed to generate a valid JSON log message"; }
   fi
   echo "${LOG_MESSAGE}" &>> /var/log/easy_infra.log
 }
@@ -143,7 +148,7 @@ function process_command_exit_status() {
 }
 
 {# Macro to be used by the loops below #}
-{% macro function(function, tools, allow_filter, version_argument, validations, security_tools) %}
+{% macro function(function, file_extensions, tools, allow_filter, version_argument, validations, security_tools) %}
 function {{ function }}() {
   arguments=("${@}")
   easy_infra_{{ function | replace("-", "_") }}_tools=({% for tool in tools %}{{ tool | replace("-", "_") }}{% if not loop.last %} {% endif %}{% endfor %})
@@ -184,6 +189,21 @@ function {{ function }}() {
 
   # Methods to skip **all** security tools for {{ function }}
   DISABLE_SECURITY="${DISABLE_SECURITY:-false}"
+  dirs=()
+  if [[ "${AUTODETECT:-false}" == "true" ]]; then
+{%- if file_extensions is defined %}
+{%- for file_extension in file_extensions %}
+    IFS=$'\n' dirs+=($(find . -iname "*.{{ file_extension }}" -type f -exec dirname {} \; | sort -u | xargs readlink --canonicalize))
+{%- endfor %}
+{%- else %}
+    dir=$(pwd -P)
+    _feedback WARNING "AUTODETECT enabled, but {{ function }} does not have any file extensions configured to search for; falling back to running in ${dir}"
+    _log "easy_infra.stdouterr" info unknown "{{ function }}" "${dir}" string "Failed to properly autodetect the directories to scan when running a {{ function }} command"
+    dirs+=("${dir}")
+{%- endif %}
+  else
+    dirs+=($(pwd -P))
+  fi
 
   if [[ "${1}" == "{{ version_argument }}" ]]; then
     _feedback INFORMATIONAL "Detected version check, skipping security checks for {{ function }}"
@@ -192,22 +212,26 @@ function {{ function }}() {
     return $?
   elif [[ "${security_skipped:-false}" == "argument" ]]; then
     _feedback WARNING "Skipping all security checks for {{ function }} due to the --disable-security argument"
-    _log "easy_infra.stdouterr" info unknown "{{ function }}" string "All security checks for {{ function }} were skipped due to the --disable-security argument"
+    _log "easy_infra.stdouterr" info unknown "{{ function }}" "${dir}" string "All security checks for {{ function }} were skipped due to the --disable-security argument"
     unset 'security_skipped'
     command "${FUNCNAME[0]}" "${arguments[@]}"
     return $?
   elif [[ "${DISABLE_SECURITY,,}" == "true" ]]; then
     _feedback WARNING "Skipping all security checks for {{ function }} due to the DISABLE_SECURITY environment variable value"
-    _log "easy_infra.stdouterr" info unknown "{{ function }}" string "All security checks for {{ function }} were skipped due to the DISABLE_SECURITY environment variable value"
+    _log "easy_infra.stdouterr" info unknown "{{ function }}" "${dir}" string "All security checks for {{ function }} were skipped due to the DISABLE_SECURITY environment variable value"
     command "${FUNCNAME[0]}" "${arguments[@]}"
     return $?
-{%- if validations is defined %}
-  else
+  fi
+
+  for dir in "${dirs[@]}"; do
+    pushd "${dir}"
+
+  {%- if validations is defined %}
     ## Validate the input prior to running security tooling
     {%- for validation in validations %}
-    # If the initialization was already run successfully in an non-interactive
-    # shell, don't run it again
-    if [[ -r "/tmp/{{ validation.command | replace(" ", "_") }}_complete" ]]; then
+    # If the initialization was already run successfully in a non-interactive
+    # shell with AUTODETECT not set to true, don't run it again
+    if [[ -r "/tmp/{{ validation.command | replace(" ", "_") }}_complete" && "${AUTODETECT:-false}" != "true" ]]; then
       _feedback INFORMATIONAL "Skipping \`{{ validation.command }}\` because it was already run on $(date -d @"$(cat /tmp/{{ validation.command | replace(" ", "_") }}_complete)")"
     else
       command {{ validation.command }} &>/tmp/{{ validation.command | replace(" ", "_") }}_stdouterr
@@ -216,6 +240,7 @@ function {{ function }}() {
       if [[ ${return:-1} != 0 ]]; then
         cat /tmp/{{ validation.command | replace(" ", "_") }}_stdouterr
         if [[ "${LEARNING_MODE,,}" != "true" ]]; then
+          popd
           return "${return}"
         else
           _feedback DEBUGGING "Learning mode enabled, not returning {{ validation.command }}'s exit code of ${return}"
@@ -223,103 +248,105 @@ function {{ function }}() {
       fi
     fi
     {%- endfor -%}
-{%- endif %}
-  fi
+  {%- endif %}
 
-  ## Setup the per-tool security integrations
-  {#- For each command being wrapped, loop through each security tool and apply tool-specific skips based on env vars/arguments #}
-  {%- for security_tool in security_tools %}
-  {{ security_tool | replace("-", "_") }}_skip_argument="--skip-{{ security_tool | replace("-", "_") }}"
-  {{ security_tool | replace("-", "_") }}_upper=$(echo "{{ security_tool | replace("-", "_") }}" | tr '[:lower:]' '[:upper:]')
-  {{ security_tool | replace("-", "_") }}_skip_env_var="SKIP_{{ '${' }}{{ security_tool | replace("-", "_") }}_upper}"
-  declare "SKIP_{{ '${' }}{{ security_tool | replace("-", "_") }}_upper}={{ '${' }}!{{ security_tool | replace("-", "_") }}_skip_env_var:-false}"
+    ## Setup the per-tool security integrations
+    {#- For each command being wrapped, loop through each security tool and apply tool-specific skips based on env vars/arguments #}
+    {%- for security_tool in security_tools %}
+    {{ security_tool | replace("-", "_") }}_skip_argument="--skip-{{ security_tool | replace("-", "_") }}"
+    {{ security_tool | replace("-", "_") }}_upper=$(echo "{{ security_tool | replace("-", "_") }}" | tr '[:lower:]' '[:upper:]')
+    {{ security_tool | replace("-", "_") }}_skip_env_var="SKIP_{{ '${' }}{{ security_tool | replace("-", "_") }}_upper}"
+    declare "SKIP_{{ '${' }}{{ security_tool | replace("-", "_") }}_upper}={{ '${' }}!{{ security_tool | replace("-", "_") }}_skip_env_var:-false}"
 
-  ## Methods to skip {{ security_tool | replace("-", "_") }}
-  if [[ "{{ '${' }}{{ security_tool | replace("-", "_") }}_skipped:-false}" == "argument" ]]; then
-    _feedback WARNING "Skipping {{ security_tool }} due to {{ '${' }}{{ security_tool | replace("-", "_") }}_skip_argument}"
-    _log "easy_infra.stdouterr" info unknown "{{ security_tool }}-skipped" string "Skipping {{ security_tool }} due to {{ '${' }}{{ security_tool | replace("-", "_") }}_skip_argument}"
-    unset '{{ security_tool | replace("-", "_") }}_skipped'
-  # If the "skip" environment variable was set to true, skip the security scan
-  elif [[ "${!{{ security_tool | replace("-", "_") }}_skip_env_var,,}" == "true" ]]; then
-    _feedback WARNING "Skipping {{ security_tool }} due to the {{ '${' }}{{ security_tool | replace("-", "_") }}_skip_env_var} environment variable value"
-    _log "easy_infra.stdouterr" info unknown "{{ security_tool }}-skipped" string "Skipping {{ security_tool }} due to the {{ '${' }}{{ security_tool | replace("-", "_") }}_skip_env_var} environment variable value"
-  # If the security scan was already run successfully in an non-interactive
-  # shell, don't run it again
-  elif [[ -r "/tmp/{{ security_tool | replace("-", "_") }}_complete" ]]; then
-    _feedback INFORMATIONAL "Skipping {{ security_tool }} because it was already run on $(date -d @"$(cat /tmp/{{ security_tool | replace("-", "_") }}_complete)")"
-    _log "easy_infra.stdouterr" info unknown "{{ security_tool }}-skipped" string "Skipping {{ security_tool }} because it was already run on $(date -d @"$(cat /tmp/{{ security_tool | replace("-", "_") }}_complete)")"
-  # Otherwise, attempt to run the security tool
-  else
-    if [[ -x $(which {{ security_tool }}) ]]; then
-      security_tool_command='{{ security_tools[security_tool].command }}'
-      {%- if security_tools[security_tool]["customizations"] is defined %}
-      {%- for env_var, argument in security_tools[security_tool]["customizations"].items() %}
-      if [[ -v {{ env_var }} ]]; then
-        addition=' {{ argument }} "{{ '${' }}{{ env_var }}{{ '}' }}"'
-        security_tool_command+="${addition}"
-        _feedback DEBUGGING "Adding '${addition}' to the {{ security_tool }} command"
-      fi
-      {%- endfor %}
-      {%- endif %}
-      _feedback DEBUGGING "Running '${security_tool_command} &>/tmp/{{ security_tool | replace("-", "_") }}_stdouterr'"
-      eval "${security_tool_command} &>/tmp/{{ security_tool | replace("-", "_") }}_stdouterr"
-      process_command_exit_status "${?}" "{{ security_tool | replace("-", "_") }}" "{{ security_tools[security_tool].description }}"
-      return=${?}
+    ## Methods to skip {{ security_tool | replace("-", "_") }}
+    if [[ "{{ '${' }}{{ security_tool | replace("-", "_") }}_skipped:-false}" == "argument" ]]; then
+      _feedback WARNING "Skipping {{ security_tool }} due to {{ '${' }}{{ security_tool | replace("-", "_") }}_skip_argument}"
+      _log "easy_infra.stdouterr" info unknown "{{ security_tool }}-skipped" "${dir}" string "Skipping {{ security_tool }} due to {{ '${' }}{{ security_tool | replace("-", "_") }}_skip_argument}"
+      unset '{{ security_tool | replace("-", "_") }}_skipped'
+    # If the "skip" environment variable was set to true, skip the security scan
+    elif [[ "${!{{ security_tool | replace("-", "_") }}_skip_env_var,,}" == "true" ]]; then
+      _feedback WARNING "Skipping {{ security_tool }} due to the {{ '${' }}{{ security_tool | replace("-", "_") }}_skip_env_var} environment variable value"
+      _log "easy_infra.stdouterr" info unknown "{{ security_tool }}-skipped" "${dir}" string "Skipping {{ security_tool }} due to the {{ '${' }}{{ security_tool | replace("-", "_") }}_skip_env_var} environment variable value"
+    # If the security scan was already run successfully in a non-interactive
+    # shell with AUTODETECT not set to true, don't run it again
+    elif [[ -r "/tmp/{{ security_tool | replace("-", "_") }}_complete" && "${AUTODETECT:-false}" != "true" ]]; then
+      _feedback INFORMATIONAL "Skipping {{ security_tool }} because it was already run on $(date -d @"$(cat /tmp/{{ security_tool | replace("-", "_") }}_complete)")"
+      _log "easy_infra.stdouterr" info unknown "{{ security_tool }}-skipped" "${dir}" string "Skipping {{ security_tool }} because it was already run on $(date -d @"$(cat /tmp/{{ security_tool | replace("-", "_") }}_complete)")"
+    # Otherwise, attempt to run the security tool
+    else
+      if [[ -x $(which {{ security_tool }}) ]]; then
+        security_tool_command='{{ security_tools[security_tool].command }}'
+        {%- if security_tools[security_tool]["customizations"] is defined %}
+        {%- for env_var, argument in security_tools[security_tool]["customizations"].items() %}
+        if [[ -v {{ env_var }} ]]; then
+          addition=' {{ argument }} "{{ '${' }}{{ env_var }}{{ '}' }}"'
+          security_tool_command+="${addition}"
+          _feedback DEBUGGING "Adding '${addition}' to the {{ security_tool }} command"
+        fi
+        {%- endfor %}
+        {%- endif %}
+        _feedback DEBUGGING "Running '${security_tool_command} &>/tmp/{{ security_tool | replace("-", "_") }}_stdouterr'"
+        eval "${security_tool_command} &>/tmp/{{ security_tool | replace("-", "_") }}_stdouterr"
+        process_command_exit_status "${?}" "{{ security_tool | replace("-", "_") }}" "{{ security_tools[security_tool].description }}"
+        return=${?}
 
-      # Identify the best message content to log
-      if [[ -v {{ security_tool | upper | replace("-", "_") }}_JSON_REPORT_PATH && -r "{{ '${' }}{{ security_tool | upper | replace("-", "_") }}{{ '_JSON_REPORT_PATH}' }}/{{ security_tool | replace("-", "_") }}.json" ]]; then
-        message_content="$(cat "{{ '${' }}{{ security_tool | upper | replace("-", "_") }}{{ '_JSON_REPORT_PATH}' }}/{{ security_tool | replace("-", "_") }}.json")"
-        message_type="json"
-      else
-        _feedback DEBUGGING "{{ security_tool | upper | replace("-", "_") }}{{ '_JSON_REPORT_PATH' }} was not set or {{ '\${' }}{{ security_tool | upper | replace("-", "_") }}{{ '_JSON_REPORT_PATH}' }}/{{ security_tool | replace("-", "_") }}.json is not readable; falling back to /tmp/{{ security_tool | replace("-", "_") }}_stdouterr"
-        message_content="$(cat /tmp/{{ security_tool | replace("-", "_") }}_stdouterr | tr '\n' '\t')"
-        message_type="string"
-      fi
-
-      _feedback DEBUGGING "The message type was set to ${message_type:-null or unset}"
-
-      # Identify the interpolated security tool command
-      interpolated_security_tool_command="$(envsubst "$(printf '{{ '${' }}%s{{ '}' }} ' $(env | awk -F\= '{print $1}'))" < <(echo "${security_tool_command}"))"
-
-      if [[ ${return:-1} != 0 ]]; then
-        cat /tmp/{{ security_tool | replace("-", "_") }}_stdouterr
-
-        if [[ "${LEARNING_MODE,,}" != "true" ]]; then
-          # easy_infra denied the command because the security tool failed
-          _log "{{ security_tool }}.stdouterr" denied failure "${interpolated_security_tool_command}" "${message_type}" "${message_content}"
-          _feedback DEBUGGING "{{ security_tool }}'s exit code was ${return}; learning mode was ${LEARNING_MODE:-null or unset}. Returning ${return}"
-          return ${return}
+        # Identify the best message content to log
+        if [[ -v {{ security_tool | upper | replace("-", "_") }}_JSON_REPORT_PATH && -r "{{ '${' }}{{ security_tool | upper | replace("-", "_") }}{{ '_JSON_REPORT_PATH}' }}/{{ security_tool | replace("-", "_") }}.json" ]]; then
+          message_content="$(cat "{{ '${' }}{{ security_tool | upper | replace("-", "_") }}{{ '_JSON_REPORT_PATH}' }}/{{ security_tool | replace("-", "_") }}.json")"
+          message_type="json"
         else
-          # easy_infra allowed the command due to learning mode, but the
-          # security tool failed
-          _log "{{ security_tool }}.stdouterr" allowed failure "${interpolated_security_tool_command}" "${message_type}" "${message_content}"
-          _feedback DEBUGGING "{{ security_tool }}'s exit code was ${return}, but suppressing it due to learning mode"
+          _feedback DEBUGGING "{{ security_tool | upper | replace("-", "_") }}{{ '_JSON_REPORT_PATH' }} was not set or {{ '\${' }}{{ security_tool | upper | replace("-", "_") }}{{ '_JSON_REPORT_PATH}' }}/{{ security_tool | replace("-", "_") }}.json is not readable; falling back to /tmp/{{ security_tool | replace("-", "_") }}_stdouterr"
+          message_content="$(cat /tmp/{{ security_tool | replace("-", "_") }}_stdouterr | tr '\n' '\t')"
+          message_type="string"
+        fi
+
+        _feedback DEBUGGING "The message type was set to ${message_type:-null or unset}"
+
+        # Identify the interpolated security tool command
+        interpolated_security_tool_command="$(envsubst "$(printf '{{ '${' }}%s{{ '}' }} ' $(env | awk -F\= '{print $1}'))" < <(echo "${security_tool_command}"))"
+
+        if [[ ${return:-1} != 0 ]]; then
+          cat /tmp/{{ security_tool | replace("-", "_") }}_stdouterr
+
+          if [[ "${LEARNING_MODE,,}" != "true" ]]; then
+            # easy_infra denied the command because the security tool failed
+            _log "{{ security_tool }}.stdouterr" denied failure "${interpolated_security_tool_command}" "${dir}" "${message_type}" "${message_content}"
+            _feedback DEBUGGING "{{ security_tool }}'s exit code was ${return}; learning mode was ${LEARNING_MODE:-null or unset}. Returning ${return}"
+            popd
+            return ${return}
+          else
+            # easy_infra allowed the command due to learning mode, but the
+            # security tool failed
+            _log "{{ security_tool }}.stdouterr" allowed failure "${interpolated_security_tool_command}" "${dir}" "${message_type}" "${message_content}"
+            _feedback DEBUGGING "{{ security_tool }}'s exit code was ${return}, but suppressing it due to learning mode"
+          fi
+        else
+          # easy_infra allowed the command and the security tool succeeded
+          _log "{{ security_tool }}.stdouterr" allowed success "${interpolated_security_tool_command}" "${dir}" "${message_type}" "${message_content}"
+          _feedback DEBUGGING "{{ security_tool }} was run successfully; specifically '${interpolated_security_tool_command}'"
         fi
       else
-        # easy_infra allowed the command and the security tool succeeded
-        _log "{{ security_tool }}.stdouterr" allowed success "${interpolated_security_tool_command}" "${message_type}" "${message_content}"
-        _feedback DEBUGGING "{{ security_tool }} was run successfully; specifically '${interpolated_security_tool_command}'"
+        # easy_infra skipped the security tool
+        _log "{{ security_tool }}.stdouterr" info unknown "{{ security_tool }}" "${dir}" string "{{ security_tool }} was not run because it was either not in the path or is not executable"
+        _feedback DEBUGGING "Did not run {{ security_tool }} because it was either not in the path or is not executable"
       fi
-    else
-      # easy_infra skipped the security tool
-      _log "{{ security_tool }}.stdouterr" info unknown "{{ security_tool }}" string "{{ security_tool }} was not run because it was either not in the path or is not executable"
-      _feedback DEBUGGING "Did not run {{ security_tool }} because it was either not in the path or is not executable"
     fi
-  fi
-  {%- endfor %}
+    {%- endfor %}
 
-  # Run the command per a PATH lookup, after any easy_infra specific arguments
-  # are removed
-  command "${FUNCNAME[0]}" "${arguments[@]}"
+    # Run the command per a PATH lookup, after any easy_infra specific arguments
+    # are removed
+    command "${FUNCNAME[0]}" "${arguments[@]}"
+
+    popd
+  done
 }
 {% endmacro %}
 
 {# Loop through each provided command (or aliases, if they are set) to be wrapped and make a single wrapper function for it -#}
 {% for command in commands if commands[command]["security"] -%}
 {% for alias in commands[command]["aliases"] -%}
-{{ function(alias, commands[command]["security"], commands[command]["allow_filter"], commands[command]["version_argument"], commands[command]["validation"], commands[command]["security"]) }}
+{{ function(alias, commands[command]["file_extensions"], commands[command]["security"], commands[command]["allow_filter"], commands[command]["version_argument"], commands[command]["validation"], commands[command]["security"]) }}
 {% else %}
-{{ function(command, commands[command]["security"], commands[command]["allow_filter"], commands[command]["version_argument"], commands[command]["validation"], commands[command]["security"]) }}
+{{ function(command, commands[command]["file_extensions"],commands[command]["security"], commands[command]["allow_filter"], commands[command]["version_argument"], commands[command]["validation"], commands[command]["security"]) }}
 {% endfor %}
 {%- endfor -%}
-
