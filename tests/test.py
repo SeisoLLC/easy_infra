@@ -250,6 +250,10 @@ def run_terraform(*, image: str, final: bool = False):
         "bind": fluent_bit_config_container,
         "mode": "ro",
     }
+    terraform_autodetect_dir = TESTS_PATH.joinpath("terraform")
+    terraform_autodetect_volumes = {
+        terraform_autodetect_dir: {"bind": working_dir, "mode": "rw"}
+    }
 
     # Base tests
     command = "./test.sh"
@@ -285,6 +289,32 @@ def run_terraform(*, image: str, final: bool = False):
         command=command,
         environment=informational_environment,
         expected_exit=1,  # This still fails terraform validate
+    )
+    num_tests_ran += 1
+
+    # Ensure autodetect finds the appropriate terraform configs, which can be
+    # inferred by the number of logs written to /var/log/easy_infra.log
+    #
+    # This test requires LEARNING_MODE to be true because the autodetect
+    # functionality traverses into the testing sub-directories, including those
+    # which are purposefully insecure, which otherwise would exit non-zero
+    # early, resulting in a limited set of logs
+    test_terraform_dir = tests_test_dir.joinpath("terraform")
+    number_of_security_tools = len(CONFIG["commands"]["terraform"]["security"])
+    number_of_testing_folders = len(
+        [dir for dir in test_terraform_dir.iterdir() if dir.is_dir()]
+    )
+    expected_number_of_logs = number_of_security_tools * number_of_testing_folders
+    command = f"/bin/bash -c \"terraform validate && if [[ $(wc -l /var/log/easy_infra.log | awk '{{print $1}}') != {expected_number_of_logs} ]]; then exit 1; fi\""
+    LOG.debug("Testing autodetect mode")
+    autodetect_environment = copy.deepcopy(informational_environment)
+    autodetect_environment["AUTODETECT"] = "true"
+    utils.opinionated_docker_run(
+        image=image,
+        volumes=terraform_autodetect_volumes,
+        command=command,
+        environment=autodetect_environment,
+        expected_exit=0,
     )
     num_tests_ran += 1
 
@@ -514,6 +544,7 @@ def run_terraform(*, image: str, final: bool = False):
         ),  # Excludes all the severities
     ]
 
+    LOG.debug("Testing terraform with security disabled")
     num_tests_ran += exec_tests(tests=tests, volumes=kics_volumes, image=image)
 
     # Run base interactive terraform tests
