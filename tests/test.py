@@ -305,7 +305,8 @@ def run_terraform(*, image: str, final: bool = False):
         [dir for dir in test_terraform_dir.iterdir() if dir.is_dir()]
     )
     expected_number_of_logs = number_of_security_tools * number_of_testing_folders
-    command = f"/bin/bash -c \"terraform validate && if [[ $(wc -l /var/log/easy_infra.log | awk '{{print $1}}') != {expected_number_of_logs} ]]; then exit 1; fi\""
+    test_log_length = f"if [[ $(wc -l /var/log/easy_infra.log | awk '{{print $1}}') != {expected_number_of_logs} ]]; then exit 1; fi"
+    command = f"/bin/bash -c \"terraform validate && {test_log_length}\""
     LOG.debug("Testing autodetect mode")
     autodetect_environment = copy.deepcopy(informational_environment)
     autodetect_environment["AUTODETECT"] = "true"
