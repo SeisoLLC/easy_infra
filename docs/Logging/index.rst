@@ -62,7 +62,7 @@ variables as defined
 `here<https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html>_`
 and run the following::
 
-    docker run --env-file <(env | grep -E '^CW|^AWS') -v $(pwd)/fluent-bit.cw_example.conf:/usr/local/etc/fluent-bit/fluent-bit.outputs.conf seiso/easy_infra:latest terraform validate
+    docker run --env-file <(env | grep -E '^CW_|^AWS_') -v $(pwd)/fluent-bit.cw_example.conf:/usr/local/etc/fluent-bit/fluent-bit.outputs.conf seiso/easy_infra:latest terraform validate
 
 The contents of ``fluent-bit.cw_example.conf`` here are as follows::
 
