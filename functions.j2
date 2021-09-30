@@ -224,7 +224,7 @@ function {{ function }}() {
   fi
 
   for dir in "${dirs[@]}"; do
-    pushd "${dir}"
+    pushd "${dir}" > /dev/null
 
   {%- if validations is defined %}
     ## Validate the input prior to running security tooling
@@ -240,7 +240,7 @@ function {{ function }}() {
       if [[ ${return:-1} != 0 ]]; then
         cat /tmp/{{ validation.command | replace(" ", "_") }}_stdouterr
         if [[ "${LEARNING_MODE,,}" != "true" ]]; then
-          popd
+          popd > /dev/null
           return "${return}"
         else
           _feedback DEBUGGING "Learning mode enabled, not returning {{ validation.command }}'s exit code of ${return}"
@@ -312,7 +312,7 @@ function {{ function }}() {
             # easy_infra denied the command because the security tool failed
             _log "{{ security_tool }}.stdouterr" denied failure "${interpolated_security_tool_command}" "${dir}" "${message_type}" "${message_content}"
             _feedback DEBUGGING "{{ security_tool }}'s exit code was ${return}; learning mode was ${LEARNING_MODE:-null or unset}. Returning ${return}"
-            popd
+            popd > /dev/null
             return ${return}
           else
             # easy_infra allowed the command due to learning mode, but the
@@ -336,8 +336,12 @@ function {{ function }}() {
     # Run the command per a PATH lookup, after any easy_infra specific arguments
     # are removed
     command "${FUNCNAME[0]}" "${arguments[@]}"
+    return=${?}
+    if [[ ${return:-1} != 0 ]]; then
+      return ${return}
+    fi
 
-    popd
+    popd > /dev/null
   done
 }
 {% endmacro %}
