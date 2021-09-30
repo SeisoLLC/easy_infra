@@ -300,24 +300,33 @@ def run_terraform(*, image: str, final: bool = False):
     # which are purposefully insecure, which otherwise would exit non-zero
     # early, resulting in a limited set of logs
     test_terraform_dir = tests_test_dir.joinpath("terraform")
+    # There is always one log for each security tool, regardless of if that
+    # tool is installed in the image being used.  If a tool is not in the PATH
+    # and executable, a log message indicating that is generated
+    LOG.debug("Testing autodetect mode")
     number_of_security_tools = len(CONFIG["commands"]["terraform"]["security"])
     number_of_testing_folders = len(
         [dir for dir in test_terraform_dir.iterdir() if dir.is_dir()]
     )
-    expected_number_of_logs = number_of_security_tools * number_of_testing_folders
-    test_log_length = f"if [[ $(wc -l /var/log/easy_infra.log | awk '{{print $1}}') != {expected_number_of_logs} ]]; then exit 1; fi"
-    command = f'/bin/bash -c "terraform validate && {test_log_length}"'
-    LOG.debug("Testing autodetect mode")
     autodetect_environment = copy.deepcopy(informational_environment)
-    autodetect_environment["AUTODETECT"] = "true"
-    utils.opinionated_docker_run(
-        image=image,
-        volumes=terraform_autodetect_volumes,
-        command=command,
-        environment=autodetect_environment,
-        expected_exit=0,
-    )
-    num_tests_ran += 1
+    for autodetect_status in ["true", "false"]:
+        if autodetect_status == "true":
+            expected_number_of_logs = (
+                number_of_security_tools * number_of_testing_folders
+            )
+        else:
+            expected_number_of_logs = number_of_security_tools
+        test_log_length = f"if [[ $(wc -l /var/log/easy_infra.log | awk '{{print $1}}') != {expected_number_of_logs} ]]; then exit 1; fi"
+        command = f'/bin/bash -c "terraform validate && {test_log_length}"'
+        autodetect_environment["AUTODETECT"] = autodetect_status
+        utils.opinionated_docker_run(
+            image=image,
+            volumes=terraform_autodetect_volumes,
+            command=command,
+            environment=autodetect_environment,
+            expected_exit=0,
+        )
+        num_tests_ran += 1
 
     # Ensure secure configurations pass
     # Tests is a list of tuples containing the test environment, command, and
