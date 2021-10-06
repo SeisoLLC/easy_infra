@@ -7,8 +7,10 @@ FROM "${FROM_IMAGE}":"${FROM_IMAGE_TAG}" AS minimal
 ARG FLUENT_BIT_VERSION
 ARG ANSIBLE_VERSION
 ARG KICS_VERSION
+ENV SKIP_KICS="false"
 ARG TERRAFORM_VERSION
 ARG TFENV_VERSION
+ENV AUTODETECT="false"
 ENV KICS_QUERIES_PATH="/home/easy_infra/.kics/assets/queries"
 ENV KICS_LIBRARY_PATH="/home/easy_infra/.kics/assets/libraries"
 ENV KICS_JSON_REPORT_PATH="/tmp/reports/kics"
@@ -137,9 +139,12 @@ FROM minimal AS final
 USER root
 # binary downloads and pip installs
 ARG CHECKOV_VERSION
+ENV SKIP_CHECKOV="false"
 ARG PACKER_VERSION
 ARG TERRASCAN_VERSION
+ENV SKIP_TERRASCAN="false"
 ARG TFSEC_VERSION
+ENV SKIP_TFSEC="false"
 # hadolint ignore=DL3013
 RUN curl -L https://releases.hashicorp.com/packer/${PACKER_VERSION}/packer_${PACKER_VERSION}_linux_amd64.zip -o /usr/local/bin/packer.zip \
  && unzip /usr/local/bin/packer.zip -d /usr/local/bin/ \

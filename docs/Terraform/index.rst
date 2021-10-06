@@ -70,19 +70,19 @@ Disabling Security
 The injected security tooling can be disabled entirely or individually, using
 ``easy_infra``-specific command line arguments or environment variables.
 
-+----------------------+-----------+------------------------------------------------------------+
-| Environment variable | Default   | Result                                                     |
-+======================+===========+============================================================+
-| ``DISABLE_SECURITY`` | ``false`` | Disables all security tooling (Not just Terraform-related) |
-+----------------------+-----------+------------------------------------------------------------+
-| ``SKIP_CHECKOV``     | ``false`` | Disables Checkov                                           |
-+----------------------+-----------+------------------------------------------------------------+
-| ``SKIP_KICS``        | ``false`` | Disables KICS                                              |
-+----------------------+-----------+------------------------------------------------------------+
-| ``SKIP_TERRASCAN``   | ``false`` | Disables Terrascan                                         |
-+----------------------+-----------+------------------------------------------------------------+
-| ``SKIP_TFSEC``       | ``false`` | Disables tfsec                                             |
-+----------------------+-----------+------------------------------------------------------------+
++----------------------+-----------+---------------------------------------------------------------------------------+
+| Environment variable | Default   | Result                                                                          |
++======================+===========+=================================================================================+
+| ``DISABLE_SECURITY`` | ``false`` | Disables all security tooling (Not just Terraform-related) when set to ``true`` |
++----------------------+-----------+---------------------------------------------------------------------------------+
+| ``SKIP_CHECKOV``     | ``false`` | Disables Checkov when set to ``true``                                           |
++----------------------+-----------+---------------------------------------------------------------------------------+
+| ``SKIP_KICS``        | ``false`` | Disables KICS when set to ``true``                                              |
++----------------------+-----------+---------------------------------------------------------------------------------+
+| ``SKIP_TERRASCAN``   | ``false`` | Disables Terrascan when set to ``true``                                         |
++----------------------+-----------+---------------------------------------------------------------------------------+
+| ``SKIP_TFSEC``       | ``false`` | Disables tfsec when set to ``true``                                             |
++----------------------+-----------+---------------------------------------------------------------------------------+
 
 +------------------------+------------------------------+-------------------------------------------+
 | Parameter              | Result                       | Example                                   |
@@ -101,6 +101,26 @@ The injected security tooling can be disabled entirely or individually, using
 .. note::
     All command-line arguments in the above table are processed by easy_infra
     and removed prior to passing parameters to Terraform commands.
+
+
+Autodetecting files
+^^^^^^^^^^^^^^^^^^^
+
+If you'd like to autodetect where your Terraform files exist and run the
+provided command in each of those detected folders, this is the feature for
+you.  This is useful in cases where there is a single repository containing
+folders which store varying terraform files, and you would like to run a
+command (or series of commands) on all of them without needing to maintain a
+method of looping through them yourself.
+
++----------------------+-----------+--------------------------------------------------------------------+
+| Environment variable | Default   | Result                                                             |
++======================+===========+====================================================================+
+| ``AUTODETECT``       | ``false`` | Autodetect folders containing Terraform files when set to ``true`` |
++----------------------+-----------+--------------------------------------------------------------------+
+
+.. note::
+    Only .tf files are supported; .tf.json files will not be detected
 
 
 Resources
