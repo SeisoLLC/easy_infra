@@ -22,6 +22,8 @@ _anchors:
     description: initialization
   - command: terraform validate
     description: validation
+  file_extensions: &id003
+    - tf
 commands:
   ansible:
     aliases:
@@ -61,6 +63,7 @@ commands:
     version: 1.7.4
     version_argument: version
   terraform:
+    file_extensions: *id003
     security: *id001
     validation: *id002
     version: 1.0.5
@@ -72,6 +75,7 @@ commands:
     allow_filter:
     - match: exec
       position: 0
+    file_extensions: *id003
     security: *id001
     validation: *id002
     version: v2.2.2
