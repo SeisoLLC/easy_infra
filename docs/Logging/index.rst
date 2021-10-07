@@ -22,14 +22,17 @@ configuration file(s) on top of ``fluent-bit.conf``, ``fluent-bit.inputs.conf``,
 ``fluent-bit.outputs.conf``, ``parsers.conf``, and/or ``plugins.conf`` from
 within the ``/usr/local/etc/fluent-bit/`` folder at runtime.
 
-For example, if you'd like to run ``terraform validate`` on terraform stored in
-your current working directory and log the outputs of it to Loki, set the
-``LOKI_USER``, ``LOKI_PASSWD``, ``LOKI_TENANT_ID``, and ``LOKI_HOST`` variables
-appropriately on your host and run the following::
+Loki example
+^^^^^^^^^^^^
 
-    docker run --env-file <(env | grep ^LOKI_) -v $(pwd)/fluent-bit.example.conf:/usr/local/etc/fluent-bit/fluent-bit.outputs.conf seiso/easy_infra:latest-minimal terraform validate
+If you'd like to run ``terraform validate`` on terraform stored in your current
+working directory and log the outputs of it to Loki, set the ``LOKI_USER``,
+``LOKI_PASSWD``, ``LOKI_TENANT_ID``, and ``LOKI_HOST`` variables appropriately
+on your host and run the following::
 
-The contents of fluent-bit.example.com here are as follows::
+    docker run --env-file <(env | grep ^LOKI_) -v $(pwd)/fluent-bit.loki_example.conf:/usr/local/etc/fluent-bit/fluent-bit.outputs.conf seiso/easy_infra:latest-minimal terraform validate
+
+The contents of ``fluent-bit.loki_example.conf`` here are as follows::
 
     [OUTPUT]
         Name        loki
@@ -42,3 +45,35 @@ The contents of fluent-bit.example.com here are as follows::
         Port        443
         Tls         On
         Tls.verify  On
+
+For more details on the fluent-bit Loki output plugin, see `this
+page<https://docs.fluentbit.io/manual/pipeline/outputs/loki>_`.
+
+CloudWatch example
+^^^^^^^^^^^^^^^^^^
+
+If you'd like to run ``terraform validate`` on terraform stored in your current
+working directory and log the outputs of it to CloudWatch, set the
+``CW_REGION``, ``CW_LOG_GROUP_NAME``, and ``CW_LOG_STREAM_NAME`` variables
+appropriately on your host, ensure you are properly logged in using the
+``AWS_ACCESS_KEY_ID``, ``AWS_SECRET_ACCESS_KEY``, and any other AWS environment variables
+(including ``AWS_SESSION_TOKEN`` if you are assuming a role) environment
+variables as defined
+`here<https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html>_`
+and run the following::
+
+    docker run --env-file <(env | grep -E '^CW_|^AWS_') -v $(pwd)/fluent-bit.cw_example.conf:/usr/local/etc/fluent-bit/fluent-bit.outputs.conf seiso/easy_infra:latest terraform validate
+
+The contents of ``fluent-bit.cw_example.conf`` here are as follows::
+
+    [OUTPUT]
+        Name               cloudwatch_logs
+        Match              *
+        Region             ${CW_REGION}
+        Log_group_name     ${CW_LOG_GROUP_NAME}
+        Log_stream_name    ${CW_LOG_STREAM_NAME}
+        Auto_create_group  true
+
+For more details on the fluent-bit Amazon CloudWatch output plugin, including
+features like cross account role assumption, see `this
+page<https://docs.fluentbit.io/manual/pipeline/outputs/cloudwatch>_`.

@@ -115,7 +115,7 @@ RUN apt-get update \
  && apt-get -y install --no-install-recommends azure-cli=${AZURE_CLI_VERSION} \
  && apt-get clean autoclean \
  && apt-get -y autoremove \
- && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/log/* /var/cache/debconf/*-old \
+ && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/cache/debconf/*-old \
  && su easy_infra -c "ansible-galaxy collection install azure.azcollection"
 USER easy_infra
 
@@ -128,7 +128,7 @@ RUN curl -L https://awscli.amazonaws.com/awscli-exe-linux-x86_64-${AWS_CLI_VERSI
  && /tmp/aws/install --bin-dir /aws-cli-bin/ \
  # Required for the *-aws images to be functional
  && ln -sf /aws-cli-bin/* /usr/local/bin/ \
- && rm -rf /tmp/* /var/tmp/* /var/log/* /var/cache/debconf/*-old \
+ && rm -rf /tmp/* /var/tmp/* /var/cache/debconf/*-old \
  && su easy_infra -c "ansible-galaxy collection install amazon.aws" \
  && echo 'complete -C /usr/local/bin/aws_completer aws' >> /home/easy_infra/.bashrc
 USER easy_infra
