@@ -338,6 +338,7 @@ function {{ function }}() {
     command "${FUNCNAME[0]}" "${arguments[@]}"
     return=${?}
     if [[ ${return:-1} != 0 ]]; then
+      _feedback ERROR "${FUNCNAME[0]}" "${arguments[@]} exited with ${return} in ${dir}"
       return ${return}
     fi
 
