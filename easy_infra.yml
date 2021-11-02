@@ -1,15 +1,17 @@
 _anchors:
-  security: &id001
+  file_extensions: &id001
+  - tf
+  security: &id002
     checkov:
       command: checkov -d . --no-guide
       description: directory scan
     kics:
       command: kics scan --type Terraform --no-progress --queries-path ${KICS_QUERIES_PATH}
-        --libraries-path ${KICS_LIBRARY_PATH} --report-formats json --output-path ${KICS_JSON_REPORT_PATH}
-        --output-name kics --path .
+        --libraries-path ${KICS_LIBRARY_PATH} --report-formats json --output-path
+        ${KICS_JSON_REPORT_PATH} --output-name kics --path .
       customizations:
-        KICS_QUERIES: --include-queries
         KICS_EXCLUDE_SEVERITIES: --exclude-severities
+        KICS_QUERIES: --include-queries
       description: directory scan
     terrascan:
       command: terrascan scan -i terraform -t all -d .
@@ -17,13 +19,11 @@ _anchors:
     tfsec:
       command: tfsec .
       description: recursive scan
-  validation: &id002
+  validation: &id003
   - command: terraform init -backend=false
     description: initialization
   - command: terraform validate
     description: validation
-  file_extensions: &id003
-    - tf
 commands:
   ansible:
     aliases:
@@ -32,54 +32,54 @@ commands:
     security:
       kics:
         command: kics scan --type Ansible --no-progress --queries-path ${KICS_QUERIES_PATH}
-          --libraries-path ${KICS_LIBRARY_PATH} --report-formats json --output-path ${KICS_REPORTS}
-          --output-name kics --path .
+          --libraries-path ${KICS_LIBRARY_PATH} --report-formats json --output-path
+          ${KICS_REPORTS} --output-name kics --path .
         customizations:
-          KICS_QUERIES: --include-queries
           KICS_EXCLUDE_SEVERITIES: --exclude-severities
+          KICS_QUERIES: --include-queries
         description: directory scan
     version: 2.9.6+dfsg-1
     version_argument: --version
   aws-cli:
     aliases:
     - aws
-    version: 2.2.34
+    version: 2.3.2
     version_argument: --version
   azure-cli:
     aliases:
     - az
-    version: 2.27.2-1~focal
+    version: 2.30.0-1~focal
     version_argument: version
   checkov:
-    version: 2.0.392
+    version: 2.0.534
     version_argument: --version
   fluent-bit:
-    version: v1.8.6
+    version: v1.8.9
     version_argument: --version
   kics:
-    version: v1.4.2
+    version: v1.4.6-1
     version_argument: version
   packer:
-    version: 1.7.4
+    version: 1.7.7
     version_argument: version
   terraform:
-    file_extensions: *id003
-    security: *id001
-    validation: *id002
-    version: 1.0.5
+    file_extensions: *id001
+    security: *id002
+    validation: *id003
+    version: 1.0.10
     version_argument: version
   terrascan:
-    version: v1.10.0
+    version: v1.12.0
     version_argument: version
   tfenv:
     allow_filter:
     - match: exec
       position: 0
-    file_extensions: *id003
-    security: *id001
-    validation: *id002
+    file_extensions: *id001
+    security: *id002
+    validation: *id003
     version: v2.2.2
     version_argument: --version
   tfsec:
-    version: v0.58.6
+    version: v0.58.14
     version_argument: --version
