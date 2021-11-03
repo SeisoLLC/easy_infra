@@ -21,9 +21,9 @@ _anchors:
       description: recursive scan
     tfsec:
       command: tfsec .
-      description: recursive scan
       customizations:
         TFSEC_DISABLE_CHECKS: -e
+      description: recursive scan
   validation: &id003
   - command: terraform init -backend=false
     description: initialization
