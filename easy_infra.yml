@@ -3,15 +3,18 @@ _anchors:
   - tf
   security: &id002
     checkov:
-      command: checkov -d . --no-guide
+      command: checkov -d . --download-external-modules True --no-guide
+      customizations:
+        CHECKOV_EXTERNAL_CHECKS_DIR: --external-checks-dir
+        CHECKOV_SKIP_CHECK: --skip-check
       description: directory scan
     kics:
-      command: kics scan --type Terraform --no-progress --queries-path ${KICS_QUERIES_PATH}
+      command: kics scan --type Terraform --no-progress --queries-path ${KICS_INCLUDE_QUERIES_PATH}
         --libraries-path ${KICS_LIBRARY_PATH} --report-formats json --output-path
         ${KICS_JSON_REPORT_PATH} --output-name kics --path .
       customizations:
         KICS_EXCLUDE_SEVERITIES: --exclude-severities
-        KICS_QUERIES: --include-queries
+        KICS_INCLUDE_QUERIES: --include-queries
       description: directory scan
     terrascan:
       command: terrascan scan -i terraform -t all -d .
@@ -19,6 +22,8 @@ _anchors:
     tfsec:
       command: tfsec .
       description: recursive scan
+      customizations:
+        TFSEC_DISABLE_CHECKS: -e
   validation: &id003
   - command: terraform init -backend=false
     description: initialization
@@ -31,12 +36,12 @@ commands:
     - ansible-playbook
     security:
       kics:
-        command: kics scan --type Ansible --no-progress --queries-path ${KICS_QUERIES_PATH}
+        command: kics scan --type Ansible --no-progress --queries-path ${KICS_INCLUDE_QUERIES_PATH}
           --libraries-path ${KICS_LIBRARY_PATH} --report-formats json --output-path
           ${KICS_REPORTS} --output-name kics --path .
         customizations:
           KICS_EXCLUDE_SEVERITIES: --exclude-severities
-          KICS_QUERIES: --include-queries
+          KICS_INCLUDE_QUERIES: --include-queries
         description: directory scan
     version: 2.9.6+dfsg-1
     version_argument: --version
