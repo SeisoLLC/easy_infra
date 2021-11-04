@@ -11,7 +11,7 @@ ENV SKIP_KICS="false"
 ARG TERRAFORM_VERSION
 ARG TFENV_VERSION
 ENV AUTODETECT="false"
-ENV KICS_QUERIES_PATH="/home/easy_infra/.kics/assets/queries"
+ENV KICS_INCLUDE_QUERIES_PATH="/home/easy_infra/.kics/assets/queries"
 ENV KICS_LIBRARY_PATH="/home/easy_infra/.kics/assets/libraries"
 ENV KICS_JSON_REPORT_PATH="/tmp/reports/kics"
 ENV PATH="/home/easy_infra/.local/bin:${PATH}"
