@@ -30,11 +30,10 @@ GITHUB_REPOS_RELEASES = {
     "checkmarx/kics",
     "env0/terratag",
     "fluent/fluent-bit",
+<<<<<<< HEAD
     "hashicorp/consul-template",
     "hashicorp/envconsul",
-    "tfutils/tfenv",
 }
-GITHUB_REPOS_TAGS = {"aws/aws-cli"}
 PYTHON_PACKAGES = {"checkov"}
 HASHICORP_PROJECTS = {"terraform", "packer"}
 # The following line is touchy, see easy_infra/util.py's
