@@ -33,14 +33,14 @@ Customizing KICS
 +-----------------------------+----------------------------------------------+-------------------------------------------------------------------------------+
 | Environment variable        | Result                                       | Example                                                                       |
 +=============================+==============================================+===============================================================================+
-| ``KICS_QUERIES``            | Passes the value to ``--include-queries``    | ``c3b9f7b0-f5a0-49ec-9cbc-f1e346b7274d,7dfb316c-a6c2-454d-b8a2-97f147b0c0ff`` |
+| ``KICS_INCLUDE_QUERIES``    | Passes the value to ``--include-queries``    | ``c3b9f7b0-f5a0-49ec-9cbc-f1e346b7274d,7dfb316c-a6c2-454d-b8a2-97f147b0c0ff`` |
 +-----------------------------+----------------------------------------------+-------------------------------------------------------------------------------+
 | ``KICS_EXCLUDE_SEVERITIES`` | Passes the value to ``--exclude-severities`` | ``info,low``                                                                  |
 +-----------------------------+----------------------------------------------+-------------------------------------------------------------------------------+
 
 ::
 
-    KICS_QUERIES=c3b9f7b0-f5a0-49ec-9cbc-f1e346b7274d,7dfb316c-a6c2-454d-b8a2-97f147b0c0ff
+    KICS_INCLUDE_QUERIES=c3b9f7b0-f5a0-49ec-9cbc-f1e346b7274d,7dfb316c-a6c2-454d-b8a2-97f147b0c0ff
     KICS_EXCLUDE_SEVERITIES=info,low
     docker run --env-file <(env | grep ^KICS_) -v $(pwd):/iac easy_infra:latest-minimal ansible-playbook EXAMPLE.yml --check
 
