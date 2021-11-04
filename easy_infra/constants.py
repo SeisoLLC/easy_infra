@@ -26,11 +26,12 @@ LOG_FORMAT = json.dumps(
 
 APT_PACKAGES = {"ansible", "azure-cli"}
 GITHUB_REPOS_RELEASES = {
-    "tfutils/tfenv",
-    "aquasecurity/tfsec",
     "accurics/terrascan",
+    "aquasecurity/tfsec",
     "checkmarx/kics",
+    "env0/terratag",
     "fluent/fluent-bit",
+    "tfutils/tfenv",
 }
 GITHUB_REPOS_TAGS = {"aws/aws-cli"}
 PYTHON_PACKAGES = {"checkov"}
