@@ -557,7 +557,6 @@ def run_terraform(*, image: str, final: bool = False):
     LOG.debug("Testing terraform with security disabled")
     num_tests_ran += exec_tests(tests=tests, volumes=kics_volumes, image=image)
 
-
     # Ensure insecure configurations fail due to checkov
     # Tests is a list of tuples containing the test environment, command, and
     # expected exit code
@@ -618,7 +617,6 @@ def run_terraform(*, image: str, final: bool = False):
 
     LOG.debug("Testing checkov against insecure terraform")
     num_tests_ran += exec_tests(tests=tests, volumes=checkov_volumes, image=image)
-
 
     # Run base interactive terraform tests
     test_interactive_container = CLIENT.containers.run(
