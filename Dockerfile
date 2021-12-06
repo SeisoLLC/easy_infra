@@ -6,11 +6,13 @@ FROM "${FROM_IMAGE}":"${FROM_IMAGE_TAG}" AS minimal
 # minimal setup
 ARG FLUENT_BIT_VERSION
 ARG ANSIBLE_VERSION
-ARG KICS_VERSION
-ENV SKIP_KICS="false"
 ARG TERRAFORM_VERSION
 ARG TERRATAG_VERSION
 ARG TFENV_VERSION
+ARG CHECKOV_VERSION
+ENV SKIP_CHECKOV="false"
+ARG KICS_VERSION
+ENV SKIP_KICS="false"
 ENV AUTODETECT="false"
 ENV KICS_INCLUDE_QUERIES_PATH="/home/easy_infra/.kics/assets/queries"
 ENV KICS_LIBRARY_PATH="/home/easy_infra/.kics/assets/libraries"
@@ -37,11 +39,16 @@ RUN groupadd --gid 53150 -r easy_infra \
                                                time \
                                                tini \
                                                unzip \
+ && python3 -m pip install --upgrade --no-cache-dir pip \
+ && su - easy_infra -c "pip install --user --no-cache-dir checkov==${CHECKOV_VERSION}" \
+ && echo "export PATH=/home/easy_infra/.local/bin:${PATH}" >> /home/easy_infra/.bashrc \
  && curl -L https://github.com/checkmarx/kics/releases/download/${KICS_VERSION}/kics_${KICS_VERSION#v}_linux_x64.tar.gz -o /usr/local/bin/kics.tar.gz \
  && tar -xvf /usr/local/bin/kics.tar.gz -C /usr/local/bin/ kics \
  && rm -f /usr/local/bin/kics.tar.gz \
  && chmod 0755 /usr/local/bin/kics \
  && chown root: /usr/local/bin/kics \
+ && su easy_infra -c "git clone https://github.com/checkmarx/kics.git /home/easy_infra/.kics --depth 1 --branch ${KICS_VERSION}" \
+ && rm -rf /home/easy_infra/.kics/.git \
  && curl -L https://github.com/env0/terratag/releases/download/${TERRATAG_VERSION}/terratag_${TERRATAG_VERSION#v}_linux_amd64.tar.gz -o /usr/local/bin/terratag.tar.gz \
  && tar -xvf /usr/local/bin/terratag.tar.gz -C /usr/local/bin/ terratag \
  && rm -f /usr/local/bin/terratag.tar.gz \
@@ -55,8 +62,6 @@ RUN groupadd --gid 53150 -r easy_infra \
  && su - easy_infra -c "tfenv install ${TERRAFORM_VERSION}" \
  && su - easy_infra -c "tfenv use ${TERRAFORM_VERSION}" \
  && su - easy_infra -c "terraform -install-autocomplete" \
- && su easy_infra -c "git clone https://github.com/checkmarx/kics.git /home/easy_infra/.kics --depth 1 --branch ${KICS_VERSION}" \
- && rm -rf /home/easy_infra/.kics/.git \
  && apt-get install -y --no-install-recommends cmake build-essential flex bison \
  && git clone https://github.com/fluent/fluent-bit --depth 1 --branch ${FLUENT_BIT_VERSION} \
  && cd fluent-bit/build \
@@ -144,8 +149,6 @@ FROM minimal AS final
 
 USER root
 # binary downloads and pip installs
-ARG CHECKOV_VERSION
-ENV SKIP_CHECKOV="false"
 ARG PACKER_VERSION
 ARG TERRASCAN_VERSION
 ENV SKIP_TERRASCAN="false"
@@ -164,10 +167,7 @@ RUN curl -L https://releases.hashicorp.com/packer/${PACKER_VERSION}/packer_${PAC
  && su easy_infra -c "terrascan init" \
  && rm -rf /home/easy_infra/.terrascan \
  && curl -L https://github.com/aquasecurity/tfsec/releases/download/${TFSEC_VERSION}/tfsec-linux-amd64 -o /usr/local/bin/tfsec \
- && chmod 0755 /usr/local/bin/tfsec \
- && python3 -m pip install --upgrade --no-cache-dir pip \
- && su - easy_infra -c "pip install --user --no-cache-dir checkov==${CHECKOV_VERSION}" \
- && echo "export PATH=/home/easy_infra/.local/bin:${PATH}" >> /home/easy_infra/.bashrc
+ && chmod 0755 /usr/local/bin/tfsec
 USER easy_infra
 
 # AWS

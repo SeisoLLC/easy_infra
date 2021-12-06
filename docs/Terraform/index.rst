@@ -20,7 +20,7 @@ including minimal, aws, az, and latest.  For more information, see
 `Disabling Security`_ below.
 
 .. note::
-    In the minimal, aws, and az images, only the KICS security tool is
+    In the minimal, aws, and az images, only the KICS and Checkov security tools are
     available.  All other security tools will be skipped.
 
 
