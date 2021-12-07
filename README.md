@@ -43,7 +43,7 @@ What `easy_infra` does in this case is:
    were confirmed as valid and did not fail any of the security policy
    validation.
 
-\* In the minimal images, only KICS is available
+\* In the minimal images, only Checkov and KICS are available
 
 ### Learning mode
 
