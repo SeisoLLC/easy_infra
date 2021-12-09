@@ -90,3 +90,9 @@ commands:
   tfsec:
     version: v0.58.14
     version_argument: --version
+  consul-template:
+    version: 0.25.1
+    version_command: consul-template --version
+  envconsul:
+    version: 0.11.0
+    version_command: envconsul --version

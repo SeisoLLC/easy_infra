@@ -31,6 +31,8 @@ GITHUB_REPOS_RELEASES = {
     "checkmarx/kics",
     "env0/terratag",
     "fluent/fluent-bit",
+    "hashicorp/consul-template",
+    "hashicorp/envconsul",
     "tfutils/tfenv",
 }
 GITHUB_REPOS_TAGS = {"aws/aws-cli"}
