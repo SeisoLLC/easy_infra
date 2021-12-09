@@ -64,11 +64,11 @@ RUN groupadd --gid 53150 -r easy_infra \
  && su - easy_infra -c "tfenv install ${TERRAFORM_VERSION}" \
  && su - easy_infra -c "tfenv use ${TERRAFORM_VERSION}" \
  && su - easy_infra -c "terraform -install-autocomplete" \
- && curl -L https://releases.hashicorp.com/consul-template/${CONSUL_TEMPLATE_VERSION}/consul-template_${CONSUL_TEMPLATE_VERSION}_linux_amd64.zip -o /usr/local/bin/consul-template.zip \
+ && curl -L https://releases.hashicorp.com/consul-template/${CONSUL_TEMPLATE_VERSION#v}/consul-template_${CONSUL_TEMPLATE_VERSION#v}_linux_amd64.zip -o /usr/local/bin/consul-template.zip \
  && unzip /usr/local/bin/consul-template.zip -d /usr/local/bin/ \
  && rm -f /usr/local/bin/consul-template.zip \
  && chmod 0755 /usr/local/bin/consul-template \
- && curl -L https://releases.hashicorp.com/envconsul/${ENVCONSUL_VERSION}/envconsul_${ENVCONSUL_VERSION}_linux_amd64.zip -o /usr/local/bin/envconsul.zip \
+ && curl -L https://releases.hashicorp.com/envconsul/${ENVCONSUL_VERSION#v}/envconsul_${ENVCONSUL_VERSION#v}_linux_amd64.zip -o /usr/local/bin/envconsul.zip \
  && unzip /usr/local/bin/envconsul.zip -d /usr/local/bin/ \
  && rm -f /usr/local/bin/envconsul.zip \
  && chmod 0755 /usr/local/bin/envconsul \
