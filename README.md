@@ -10,7 +10,7 @@ easy_infra runs security scans in response to any Ansible or Terraform command. 
 1. **Continuous Integration** as a part of Pull/Merge Request validation.
 1. **Continuous Deployment** as an automated deployment tool.
 
-In order to run your infrstructure code from within the container, volume mount your files into `/iac` and pass it your command, for example:
+In order to run your infrastructure code from within the container, volume mount your files into `/iac` and pass it your command, for example:
 
 ```bash
 docker run -v $(pwd):/iac seiso/easy_infra terraform validate
