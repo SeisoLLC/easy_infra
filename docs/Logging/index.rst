@@ -47,7 +47,7 @@ The contents of ``fluent-bit.loki_example.conf`` here are as follows::
         Tls.verify  On
 
 For more details on the fluent-bit Loki output plugin, see `this
-page<https://docs.fluentbit.io/manual/pipeline/outputs/loki>_`.
+page <https://docs.fluentbit.io/manual/pipeline/outputs/loki>`_.
 
 CloudWatch example
 ^^^^^^^^^^^^^^^^^^
@@ -76,4 +76,4 @@ The contents of ``fluent-bit.cw_example.conf`` here are as follows::
 
 For more details on the fluent-bit Amazon CloudWatch output plugin, including
 features like cross account role assumption, see `this
-page<https://docs.fluentbit.io/manual/pipeline/outputs/cloudwatch>_`.
+page <https://docs.fluentbit.io/manual/pipeline/outputs/cloudwatch>`_.
