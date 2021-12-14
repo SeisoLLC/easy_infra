@@ -2,5 +2,5 @@
 # This file defines requirements used by readthedocs.io
 #
 
-m2r2 == 0.2.7
+m2r2 == 0.3.2
 sphinx_rtd_theme == 0.5.2
