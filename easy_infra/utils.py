@@ -1,3 +1,4 @@
+import os
 import re
 import sys
 from logging import getLogger
@@ -205,3 +206,27 @@ def is_status_expected(*, expected: int, response: dict) -> bool:
         return False
 
     return True
+
+
+def write_docker_image(*, image: str, file_name: str) -> Path:
+    """Write the docker image to a file; returns path to the file"""
+    temp_dir = Path(".").joinpath("tests").joinpath("tmp").absolute()
+
+    if os.environ.get("GITHUB_ACTIONS") == "true":
+        if os.environ.get("RUNNER_TEMP"):
+            # Update the temp_dir if a temporary directory is indicated by the
+            # environment
+            temp_dir = Path(str(os.environ.get("RUNNER_TEMP"))).absolute()
+        else:
+            LOG.warning(
+                "Unable to determine the context due to inconsistent environment variables, falling back to %s",
+                str(temp_dir),
+            )
+
+    image_file = temp_dir.joinpath(file_name)
+    raw_image = CLIENT.images.get(image).save(named=True)
+    with open(image_file, "wb") as file:
+        for chunk in raw_image:
+            file.write(chunk)
+
+    return image_file

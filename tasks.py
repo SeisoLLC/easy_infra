@@ -296,12 +296,16 @@ def sbom(_c, debug=False):
     for target in constants.TARGETS:
         image = TARGETS[target]["tags"][-1]
         tag = image.split(":")[-1]
+        docker_image_file_name = f"{tag}.tar"
+        docker_image_file_path = utils.write_docker_image(
+            image=image, file_name=docker_image_file_name
+        )
 
         try:
             subprocess.run(
                 [
                     "syft",
-                    f"{image}",
+                    f"docker-archive:{str(docker_image_file_path)}",
                     "-o",
                     "spdx-json",
                     "--file",
