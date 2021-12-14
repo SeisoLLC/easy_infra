@@ -299,7 +299,14 @@ def sbom(_c, debug=False):
 
         try:
             subprocess.run(
-                ["syft", f"{image}", "-o", "spdx-json", "--file", f"sbom.{tag}.spdx.json"],
+                [
+                    "syft",
+                    f"{image}",
+                    "-o",
+                    "spdx-json",
+                    "--file",
+                    f"sbom.{tag}.spdx.json",
+                ],
                 capture_output=True,
                 check=True,
             )
