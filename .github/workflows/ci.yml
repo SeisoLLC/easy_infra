@@ -46,8 +46,18 @@ jobs:
         run: |
           python -m pip install --upgrade pipenv
           pipenv install --dev
+          mkdir "${GITHUB_WORKSPACE}/bin"
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b "${GITHUB_WORKSPACE}/bin"
+          echo "::add-path:${GITHUB_WORKSPACE}/bin"
+          chmod +x "${GITHUB_WORKSPACE}/bin/syft"
       - name: Build the Docker images
         run: pipenv run invoke build --debug
+      - name: Generate SBOMs
+        run: pipenv run invoke sbom --debug
+      - uses: actions/upload-artifact@v2
+        with:
+          name: SBOMs
+          path: sbom.*.spdx.json
       - name: Log in to Docker Hub
         uses: docker/login-action@v1
         with:

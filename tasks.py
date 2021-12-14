@@ -5,6 +5,7 @@ Task execution tool & library
 
 import os
 import re
+import subprocess
 import sys
 from datetime import datetime
 from logging import basicConfig, getLogger
@@ -283,6 +284,30 @@ def test(_c, debug=False):
             run_test.run_security(image=image)
         else:
             LOG.error("Untested stage of %s", target)
+
+
+@task
+def sbom(_c, debug=False):
+    """Generate an SBOM"""
+    if debug:
+        getLogger().setLevel("DEBUG")
+
+    # pylint: disable=redefined-outer-name
+    for target in constants.TARGETS:
+        image = TARGETS[target]["tags"][-1]
+        tag = image.split(":")[-1]
+
+        try:
+            subprocess.run(
+                ["syft", f"{image}", "-o", "spdx-json", "--file", f"sbom.{tag}.spdx.json"],
+                capture_output=True,
+                check=True,
+            )
+        except subprocess.CalledProcessError as error:
+            LOG.error(
+                f"stdout: {error.stdout.decode('utf-8')}, stderr: {error.stderr.decode('utf-8')}"
+            )
+            sys.exit(1)
 
 
 @task
