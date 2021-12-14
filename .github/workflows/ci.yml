@@ -58,6 +58,7 @@ jobs:
         with:
           name: SBOMs
           path: sbom.*.spdx.json
+          if-no-files-found: error
       - name: Log in to Docker Hub
         uses: docker/login-action@v1
         with:

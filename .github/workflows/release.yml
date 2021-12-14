@@ -36,6 +36,7 @@ jobs:
         with:
           name: SBOMs
           path: sbom.*.spdx.json
+          if-no-files-found: error
       - name: Publish the release to GitHub
         uses: softprops/action-gh-release@v1
         env:
