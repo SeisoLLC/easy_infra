@@ -48,8 +48,8 @@ jobs:
           pipenv install --dev
           mkdir "${GITHUB_WORKSPACE}/bin"
           curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b "${GITHUB_WORKSPACE}/bin"
-          echo "::add-path:${GITHUB_WORKSPACE}/bin"
           chmod +x "${GITHUB_WORKSPACE}/bin/syft"
+          echo "${GITHUB_WORKSPACE}/bin" >> "${GITHUB_PATH}"
       - name: Build the Docker images
         run: pipenv run invoke build --debug
       - name: Generate SBOMs
