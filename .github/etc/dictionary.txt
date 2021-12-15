@@ -1,3 +1,5 @@
 checkov
 kics
 mindepth
+sbom
+syft
