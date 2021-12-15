@@ -7,15 +7,15 @@ Terraform
 The ``easy_infra`` project includes and secures Terraform as a component due to its popularity and versitility in provisioning and updating
 environments as Infrastructure as Code (IaC).
 
-``easy_infra``'s Terraform security uses tools such as `KICS <https://kics.io/>`_, `Checkov <https://www.checkov.io/>`_, `tfsec
-<https://tfsec.dev/>`_, and `Terrascan <https://www.accurics.com/products/terrascan/>`_ to semi-transparently assess the provided IaC against the
-defined security policy.
+``easy_infra``'s Terraform security uses tools such as `Checkov <https://www.checkov.io/>`_, `KICS <https://kics.io/>`_, `Terrascan
+<https://www.accurics.com/products/terrascan/>`_, and `tfsec <https://tfsec.dev/>`_, to semi-transparently assess the provided IaC against the defined
+security policy.
 
 Varying levels of Terraform security are included in the ``easy_infra`` tags, including minimal, aws, az, and latest.  For more information, see
 `Disabling Security`_ below.
 
 .. note::
-    In the minimal, aws, and az images, only the KICS and Checkov security tools are available.  All other security tools will be skipped.
+    In the minimal, aws, and az images, only the Checkov and KICS security tools are available.  All other security tools will be skipped.
 
 
 Use Cases
