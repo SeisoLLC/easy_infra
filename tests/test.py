@@ -511,7 +511,8 @@ def run_terraform(*, image: str, final: bool = False):
             },
             "terraform validate",
             0,
-        ),  # Exits with 0 because the provided insecure terraform does not apply to the included kics queries. This tests the "customizations" idea from easy_infra.yml and functions.j2
+        ),  # Exits with 0 because the provided insecure terraform does not apply to the included kics queries.
+        # This tests the "customizations" idea from easy_infra.yml and functions.j2
         (
             {
                 "SKIP_CHECKOV": "true",
@@ -944,7 +945,8 @@ def run_ansible(*, image: str):
             {"KICS_INCLUDE_QUERIES": "c3b9f7b0-f5a0-49ec-9cbc-f1e346b7274d"},
             "ansible-playbook insecure.yml --check",
             4,
-        ),  # Exits with 4 because insecure.yml is not a valid Play, and the provided insecure playbook does not apply to the included queries. This tests the "customizations" idea from easy_infra.yml and functions.j2
+        ),  # Exits with 4 because insecure.yml is not a valid Play, and the provided insecure playbook does not apply to the included queries.
+        # This tests the "customizations" idea from easy_infra.yml and functions.j2
         (
             {"KICS_INCLUDE_QUERIES": "7dfb316c-a6c2-454d-b8a2-97f147b0c0ff"},
             "ansible-playbook insecure.yml --check",
@@ -961,19 +963,22 @@ def run_ansible(*, image: str):
             },
             "ansible-playbook insecure.yml --check",
             50,
-        ),  # Doesn't exclude high or medium. This tests the "customizations" idea from easy_infra.yml and functions.j2
+        ),  # Doesn't exclude high or medium.
+        # This tests the "customizations" idea from easy_infra.yml and functions.j2
         (
             {
                 "KICS_EXCLUDE_SEVERITIES": "high,medium",
             },
             "ansible-playbook insecure.yml --check",
             4,
-        ),  # Excludes all the relevant severities, exits 4 because insecure.yml is not a valid Play. This tests the "customizations" idea from easy_infra.yml and functions.j2
+        ),  # Excludes all the relevant severities, exits 4 because insecure.yml is not a valid Play.
+        # This tests the "customizations" idea from easy_infra.yml and functions.j2
         (
             {},
             '/usr/bin/env bash -c "KICS_EXCLUDE_SEVERITIES=info,low,medium,high ansible-playbook insecure.yml --check"',
             4,
-        ),  # Excludes all the severities, exits 4 because insecure.yml is not a valid Play. This tests the "customizations" idea from easy_infra.yml and functions.j2
+        ),  # Excludes all the severities, exits 4 because insecure.yml is not a valid Play.
+        # This tests the "customizations" idea from easy_infra.yml and functions.j2
     ]
 
     num_tests_ran += exec_tests(tests=tests, volumes=kics_volumes, image=image)
