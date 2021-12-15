@@ -297,11 +297,13 @@ def sbom(_c, debug=False):
         image = TARGETS[target]["tags"][-1]
         tag = image.split(":")[-1]
         docker_image_file_name = f"{tag}.tar"
+        LOG.debug(f"Writing {docker_image_file_name} for future SBOM generation...")
         docker_image_file_path = utils.write_docker_image(
             image=image, file_name=docker_image_file_name
         )
 
         try:
+            LOG.debug(f"Generating sbom.{tag}.spdx.json...")
             subprocess.run(
                 [
                     "syft",
@@ -389,3 +391,6 @@ def clean(_c, debug=False):
 
     for tarball in temp_dir.glob("*.tar"):
         tarball.unlink()
+
+    for sbom_files in CWD.glob("*.spdx.json"):
+        sbom_files.unlink()
