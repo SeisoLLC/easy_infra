@@ -4,7 +4,6 @@ Test Functions
 """
 
 import copy
-import os
 import sys
 from logging import getLogger
 from pathlib import Path
@@ -1137,29 +1136,13 @@ def run_cli(*, image: str):
 
 def run_security(*, image: str):
     """Run the security tests"""
-    temp_dir = TESTS_PATH.joinpath("tmp")
-
-    if os.environ.get("GITHUB_ACTIONS") == "true":
-        if os.environ.get("RUNNER_TEMP"):
-            # Update the temp_dir if a temporary directory is indicated by the
-            # environment
-            temp_dir = Path(str(os.environ.get("RUNNER_TEMP"))).absolute()
-        else:
-            LOG.warning(
-                "Unable to determine the context due to inconsistent environment variables, falling back to %s",
-                str(temp_dir),
-            )
-
     tag = image.split(":")[-1]
     file_name = f"{tag}.tar"
-    image_file = temp_dir.joinpath(file_name)
-    raw_image = CLIENT.images.get(image).save(named=True)
-    with open(image_file, "wb") as file:
-        for chunk in raw_image:
-            file.write(chunk)
+    file_path = utils.write_docker_image(image=image, file_name=file_name)
+    file_dir = file_path.parents[0]
 
     working_dir = "/tmp/"
-    volumes = {temp_dir: {"bind": working_dir, "mode": "ro"}}
+    volumes = {file_dir: {"bind": working_dir, "mode": "ro"}}
 
     num_tests_ran = 0
     scanner = constants.CONTAINER_SECURITY_SCANNER
