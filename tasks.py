@@ -303,7 +303,7 @@ def sbom(_c, debug=False):
         )
 
         try:
-            LOG.debug(f"Generating sbom.{tag}.spdx.json...")
+            LOG.info(f"Generating sbom.{tag}.spdx.json...")
             subprocess.run(
                 [
                     "syft",
