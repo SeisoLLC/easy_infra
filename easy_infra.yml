@@ -5,6 +5,7 @@ _anchors:
     checkov:
       command: checkov -d . --download-external-modules True --no-guide
       customizations:
+        CHECKOV_BASELINE: --baseline
         CHECKOV_EXTERNAL_CHECKS_DIR: --external-checks-dir
         CHECKOV_SKIP_CHECK: --skip-check
       description: directory scan
