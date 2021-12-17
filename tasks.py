@@ -316,20 +316,20 @@ def sbom(_c, debug=False):
 
     for variant in constants.VARIANTS:
         versioned_tag = CONTEXT[variant]["buildargs"]["VERSION"]
-        image = f"{constants.IMAGE}:{versioned_tag}"
+        image_and_tag = f"{constants.IMAGE}:{versioned_tag}"
         docker_image_file_name = f"{variant}.tar"
         docker_image_file_path = utils.write_docker_image(
-            image=image, file_name=docker_image_file_name
+            image=image_and_tag, file_name=docker_image_file_name
         )
 
         try:
             if (
-                version_string in REPO.tags
-                and REPO.tags[version_string].commit.hexsha == commit_hash
+                f"v{__version__}" in REPO.tags
+                and REPO.tags[f"v{__version__}"].commit.hexsha == COMMIT_HASH
             ):
-                name = f"{target}.{version_string}"
+                name = f"{variant}.v{__version__}"
             else:
-                name = f"{target}.{commit_hash_short}"
+                name = f"{variant}.{COMMIT_HASH_SHORT}"
 
             LOG.info(f"Generating sbom.{name}.spdx.json...")
             subprocess.run(
@@ -339,7 +339,7 @@ def sbom(_c, debug=False):
                     "-o",
                     "spdx-json",
                     "--file",
-                    f"sbom.{versioned_tag}.spdx.json",
+                    f"sbom.{name}.spdx.json",
                 ],
                 capture_output=True,
                 check=True,
@@ -379,7 +379,7 @@ def release(_c, debug=False):
     else:
         increment = "01"
 
-    new_version = date_info + "." + increment
+    new_version = f"{date_info}.{increment}"
 
     bumpversion(["--new-version", new_version, "unusedpart"])
 
