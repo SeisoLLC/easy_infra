@@ -318,6 +318,7 @@ def sbom(_c, debug=False):
         versioned_tag = CONTEXT[variant]["buildargs"]["VERSION"]
         image_and_tag = f"{constants.IMAGE}:{versioned_tag}"
         docker_image_file_name = f"{variant}.tar"
+        LOG.debug(f"Writing {docker_image_file_name} for future SBOM generation...")
         docker_image_file_path = utils.write_docker_image(
             image=image_and_tag, file_name=docker_image_file_name
         )
