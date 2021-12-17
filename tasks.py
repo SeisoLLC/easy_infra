@@ -10,6 +10,7 @@ import sys
 from datetime import datetime
 from logging import basicConfig, getLogger
 from pathlib import Path
+from typing import Union
 
 import docker
 import git
@@ -21,25 +22,46 @@ from tests import test as run_test
 CWD = Path(".").absolute()
 REPO = git.Repo(CWD)
 COMMIT_HASH = REPO.head.object.hexsha
+COMMIT_HASH_SHORT = REPO.git.rev_parse(COMMIT_HASH, short=True)
 TESTS_PATH = CWD.joinpath("tests")
 LOG = getLogger(__project_name__)
 CLIENT = docker.from_env()
 CONFIG = utils.parse_config(config_file=constants.CONFIG_FILE)
 
-TARGETS: dict[str, dict[str, list[str]]] = {}
-for target in constants.TARGETS:
-    TARGETS[target] = {}
-    if target == "final":
-        TARGETS[target]["tags"] = [
-            constants.IMAGE + ":" + __version__,
-            constants.IMAGE + ":latest",
-        ]
-    else:
-        TARGETS[target]["tags"] = [
-            constants.IMAGE + ":" + __version__ + "-" + target,
-            constants.IMAGE + ":" + "latest" + "-" + target,
-        ]
+CONTEXT: dict[str, dict[str, Union[str, dict[str, str]]]] = {}
 
+for VARIANT in constants.VARIANTS:
+    CONTEXT[VARIANT] = {}
+    CONTEXT[VARIANT]["buildargs"] = {"COMMIT_HASH": COMMIT_HASH}
+
+    # Latest tag
+    if VARIANT == "final":
+        CONTEXT[VARIANT]["latest_tag"] = "latest"
+    else:
+        CONTEXT[VARIANT]["latest_tag"] = f"latest-{VARIANT}"
+
+    # Versioned tag
+    if (
+        f"v{__version__}" in REPO.tags
+        and REPO.tags[f"v{__version__}"].commit.hexsha == COMMIT_HASH
+    ):
+        if VARIANT == "final":
+            CONTEXT[VARIANT]["buildargs"] = {
+                "VERSION": __version__,
+            }
+        else:
+            CONTEXT[VARIANT]["buildargs"] = {
+                "VERSION": f"{__version__}-{VARIANT}",
+            }
+    else:
+        if VARIANT == "final":
+            CONTEXT[VARIANT]["buildargs"] = {
+                "VERSION": f"{__version__}-{COMMIT_HASH_SHORT}",
+            }
+        else:
+            CONTEXT[VARIANT]["buildargs"] = {
+                "VERSION": f"{__version__}-{VARIANT}-{COMMIT_HASH_SHORT}",
+            }
 
 basicConfig(level=constants.LOG_DEFAULT, format=constants.LOG_FORMAT)
 
@@ -143,7 +165,7 @@ def reformat(_c, debug=False):
     working_dir = "/goat/"
     volumes = {CWD: {"bind": working_dir, "mode": "rw"}}
 
-    LOG.info("Pulling %s...", image)
+    LOG.info(f"Pulling {image}...")
     CLIENT.images.pull(image)
     LOG.info("Reformatting the project...")
     for entrypoint, command in entrypoint_and_command:
@@ -184,9 +206,9 @@ def lint(_c, debug=False):
     working_dir = "/goat/"
     volumes = {CWD: {"bind": working_dir, "mode": "rw"}}
 
-    LOG.info("Pulling %s...", image)
+    LOG.info(f"Pulling {image}...")
     CLIENT.images.pull(image)
-    LOG.info("Running %s...", image)
+    LOG.info(f"Running {image}...")
     container = CLIENT.containers.run(
         auto_remove=False,
         detach=True,
@@ -212,40 +234,38 @@ def build(_c, debug=False):
         output_file=constants.OUTPUT_FILE,
     )
 
-    buildargs = {
-        "VERSION": __version__,
-        "COMMIT_HASH": COMMIT_HASH,
-    }
+    buildargs = {}
+
     for command in CONFIG["commands"]:
         if "version" in CONFIG["commands"][command]:
             # Normalize the build args
             arg = command.upper().replace("-", "_") + "_VERSION"
             buildargs[arg] = CONFIG["commands"][command]["version"]
 
-    # pylint: disable=redefined-outer-name
-    for target in constants.TARGETS:
-        first_image = TARGETS[target]["tags"][0]
+    for variant in constants.VARIANTS:
+        buildargs.update(CONTEXT[variant]["buildargs"])
+        versioned_tag = CONTEXT[variant]["buildargs"]["VERSION"]
+        image_and_versioned_tag = f"{constants.IMAGE}:{versioned_tag}"
 
-        LOG.info("Building %s...", first_image)
+        LOG.info(f"Building {image_and_versioned_tag}...")
         try:
             image = CLIENT.images.build(
                 path=str(CWD),
-                target=target,
+                target=variant,
                 rm=True,
-                tag=first_image,
+                tag=image_and_versioned_tag,
                 buildargs=buildargs,
             )[0]
         except docker.errors.BuildError as build_err:
             LOG.exception(
-                "Failed to build target %s, retrieving and logging the more detailed build error...",
-                target,
+                f"Failed to build {image_and_versioned_tag}, retrieving and logging the more detailed build error...",
             )
             log_build_log(build_err=build_err)
             sys.exit(1)
 
-        for tag in TARGETS[target]["tags"][1:]:
-            LOG.info("Tagging %s...", tag)
-            image.tag(constants.IMAGE, tag=tag.split(":")[-1])
+        latest_tag = CONTEXT[variant]["latest_tag"]
+        LOG.info(f"Tagging {constants.IMAGE}:{latest_tag}...")
+        image.tag(constants.IMAGE, tag=latest_tag)
 
 
 @task(pre=[lint, build])
@@ -257,33 +277,33 @@ def test(_c, debug=False):
     default_working_dir = "/iac/"
     default_volumes = {TESTS_PATH: {"bind": default_working_dir, "mode": "ro"}}
 
-    # pylint: disable=redefined-outer-name
-    for target in constants.TARGETS:
-        # Only test using the last tag for each target
-        image = TARGETS[target]["tags"][-1]
+    for variant in constants.VARIANTS:
+        # Only test using the current, versioned tag of each variant
+        versioned_tag = CONTEXT[variant]["buildargs"]["VERSION"]
+        image_and_tag = f"{constants.IMAGE}:{versioned_tag}"
 
-        LOG.info("Testing %s...", image)
-        if target == "minimal":
-            run_test.run_terraform(image=image)
-            run_test.run_ansible(image=image)
-            run_test.run_security(image=image)
-        elif target == "az":
-            run_test.run_az_stage(image=image)
-            run_test.run_security(image=image)
-        elif target == "aws":
-            run_test.run_aws_stage(image=image)
-            run_test.run_security(image=image)
-        elif target == "final":
-            run_test.run_path_check(image=image)
+        LOG.info("Testing {image_and_tag}...")
+        if variant == "minimal":
+            run_test.run_terraform(image=image_and_tag)
+            run_test.run_ansible(image=image_and_tag)
+            run_test.run_security(image=image_and_tag)
+        elif variant == "az":
+            run_test.run_az_stage(image=image_and_tag)
+            run_test.run_security(image=image_and_tag)
+        elif variant == "aws":
+            run_test.run_aws_stage(image=image_and_tag)
+            run_test.run_security(image=image_and_tag)
+        elif variant == "final":
+            run_test.run_path_check(image=image_and_tag)
             run_test.version_arguments(
-                image=image, volumes=default_volumes, working_dir=default_working_dir
+                image=image_and_tag, volumes=default_volumes, working_dir=default_working_dir
             )
-            run_test.run_terraform(image=image, final=True)
-            run_test.run_ansible(image=image)
-            run_test.run_cli(image=image)
-            run_test.run_security(image=image)
+            run_test.run_terraform(image=image_and_tag, final=True)
+            run_test.run_ansible(image=image_and_tag)
+            run_test.run_cli(image=image_and_tag)
+            run_test.run_security(image=image_and_tag)
         else:
-            LOG.error("Untested stage of %s", target)
+            LOG.error(f"Untested stage of {variant}")
 
 
 @task
@@ -292,11 +312,10 @@ def sbom(_c, debug=False):
     if debug:
         getLogger().setLevel("DEBUG")
 
-    # pylint: disable=redefined-outer-name
-    for target in constants.TARGETS:
-        image = TARGETS[target]["tags"][-1]
-        tag = image.split(":")[-1]
-        docker_image_file_name = f"{tag}.tar"
+    for variant in constants.VARIANTS:
+        latest_tag = CONTEXT[variant]["latest_tag"]
+        image = f"{constants.IMAGE}:{latest_tag}"
+        docker_image_file_name = f"{latest_tag}.tar"
         docker_image_file_path = utils.write_docker_image(
             image=image, file_name=docker_image_file_name
         )
@@ -309,7 +328,7 @@ def sbom(_c, debug=False):
                     "-o",
                     "spdx-json",
                     "--file",
-                    f"sbom.{tag}.spdx.json",
+                    f"sbom.{latest_tag}.spdx.json",
                 ],
                 capture_output=True,
                 check=True,
@@ -366,18 +385,18 @@ def publish(_c, tag, debug=False):
     elif tag == "release":
         tag = __version__
 
-    # pylint: disable=redefined-outer-name
-    for target in constants.TARGETS:
-        for repository in TARGETS[target]["tags"]:
-            # Skip tags which don't start with the tag we are publishing
-            if not repository.startswith(f"{constants.IMAGE}:{tag}"):
-                continue
+    for variant in constants.VARIANTS:
+        if tag == "latest":
+            latest_tag = CONTEXT[variant]["latest_tag"]
+            image_and_tag = f"{constants.IMAGE}:{latest_tag}"
+        else:
+            versioned_tag = CONTEXT[variant]["buildargs"]["VERSION"]
+            image_and_tag = f"{constants.IMAGE}:{versioned_tag}"
 
-            LOG.info("Pushing %s to docker hub...", repository)
-            CLIENT.images.push(repository=repository)
-            LOG.info("Done publishing the %s Docker image", repository)
-    LOG.info("Done publishing all of the %s easy_infra Docker images", tag)
+        LOG.info(f"Pushing {image_and_tag} to docker hub...")
+        CLIENT.images.push(repository=image_and_tag)
 
+    LOG.info(f"Done publishing all of the {tag} easy_infra Docker images")
 
 @task
 def clean(_c, debug=False):
