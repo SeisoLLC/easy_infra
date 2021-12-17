@@ -32,12 +32,16 @@ for target in constants.TARGETS:
     if target == "final":
         TARGETS[target]["tags"] = [
             constants.IMAGE + ":" + __version__,
-            constants.IMAGE + ":latest",
+            constants.IMAGE + ":latest",  # Latest tag must be last for sbom generation
         ]
     else:
         TARGETS[target]["tags"] = [
             constants.IMAGE + ":" + __version__ + "-" + target,
-            constants.IMAGE + ":" + "latest" + "-" + target,
+            constants.IMAGE
+            + ":"
+            + "latest"
+            + "-"
+            + target,  # Latest tag must be last for sbom generation
         ]
 
 
@@ -292,16 +296,30 @@ def sbom(_c, debug=False):
     if debug:
         getLogger().setLevel("DEBUG")
 
+    version_string = "v" + __version__
+    commit_hash = REPO.head.commit.hexsha
+    commit_hash_short = REPO.git.rev_parse(commit_hash, short=True)
+
     # pylint: disable=redefined-outer-name
     for target in constants.TARGETS:
         image = TARGETS[target]["tags"][-1]
-        tag = image.split(":")[-1]
-        docker_image_file_name = f"{tag}.tar"
+        latest_tag = image.split(":")[-1]
+        docker_image_file_name = f"{latest_tag}.tar"
+        LOG.debug(f"Writing {docker_image_file_name} for future SBOM generation...")
         docker_image_file_path = utils.write_docker_image(
             image=image, file_name=docker_image_file_name
         )
 
         try:
+            if (
+                version_string in REPO.tags
+                and REPO.tags[version_string].commit.hexsha == commit_hash
+            ):
+                name = f"{target}.{version_string}"
+            else:
+                name = f"{target}.{commit_hash_short}"
+
+            LOG.info(f"Generating sbom.{name}.spdx.json...")
             subprocess.run(
                 [
                     "syft",
@@ -309,7 +327,7 @@ def sbom(_c, debug=False):
                     "-o",
                     "spdx-json",
                     "--file",
-                    f"sbom.{tag}.spdx.json",
+                    f"sbom.{name}.spdx.json",
                 ],
                 capture_output=True,
                 check=True,
@@ -389,3 +407,6 @@ def clean(_c, debug=False):
 
     for tarball in temp_dir.glob("*.tar"):
         tarball.unlink()
+
+    for sbom_files in CWD.glob("*.spdx.json"):
+        sbom_files.unlink()
