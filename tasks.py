@@ -313,9 +313,9 @@ def sbom(_c, debug=False):
         getLogger().setLevel("DEBUG")
 
     for variant in constants.VARIANTS:
-        latest_tag = CONTEXT[variant]["latest_tag"]
-        image = f"{constants.IMAGE}:{latest_tag}"
-        docker_image_file_name = f"{latest_tag}.tar"
+        versioned_tag = CONTEXT[variant]["buildargs"]["VERSION"]
+        image = f"{constants.IMAGE}:{versioned_tag}"
+        docker_image_file_name = f"{variant}.tar"
         docker_image_file_path = utils.write_docker_image(
             image=image, file_name=docker_image_file_name
         )
@@ -328,7 +328,7 @@ def sbom(_c, debug=False):
                     "-o",
                     "spdx-json",
                     "--file",
-                    f"sbom.{latest_tag}.spdx.json",
+                    f"sbom.{versioned_tag}.spdx.json",
                 ],
                 capture_output=True,
                 check=True,
