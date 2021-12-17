@@ -323,6 +323,15 @@ def sbom(_c, debug=False):
         )
 
         try:
+            if (
+                version_string in REPO.tags
+                and REPO.tags[version_string].commit.hexsha == commit_hash
+            ):
+                name = f"{target}.{version_string}"
+            else:
+                name = f"{target}.{commit_hash_short}"
+
+            LOG.info(f"Generating sbom.{name}.spdx.json...")
             subprocess.run(
                 [
                     "syft",
@@ -411,3 +420,6 @@ def clean(_c, debug=False):
 
     for tarball in temp_dir.glob("*.tar"):
         tarball.unlink()
+
+    for sbom_files in CWD.glob("*.spdx.json"):
+        sbom_files.unlink()
