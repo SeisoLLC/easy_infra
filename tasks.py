@@ -296,7 +296,9 @@ def test(_c, debug=False):
         elif variant == "final":
             run_test.run_path_check(image=image_and_tag)
             run_test.version_arguments(
-                image=image_and_tag, volumes=default_volumes, working_dir=default_working_dir
+                image=image_and_tag,
+                volumes=default_volumes,
+                working_dir=default_working_dir,
             )
             run_test.run_terraform(image=image_and_tag, final=True)
             run_test.run_ansible(image=image_and_tag)
@@ -397,6 +399,7 @@ def publish(_c, tag, debug=False):
         CLIENT.images.push(repository=image_and_tag)
 
     LOG.info(f"Done publishing all of the {tag} easy_infra Docker images")
+
 
 @task
 def clean(_c, debug=False):
