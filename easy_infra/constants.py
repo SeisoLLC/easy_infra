@@ -11,9 +11,8 @@ CONFIG_FILE = Path(f"{__project_name__}.yml").absolute()
 OUTPUT_FILE = Path("functions").absolute()
 JINJA2_FILE = Path("functions.j2").absolute()
 LOG_DEFAULT = "INFO"
-
 IMAGE = f"seiso/{__project_name__}"
-TARGETS = ["minimal", "aws", "az", "final"]
+VARIANTS = ["minimal", "aws", "az", "final"]
 
 LOG_FORMAT = json.dumps(
     {
