@@ -28,7 +28,6 @@ GITHUB_REPOS_RELEASES = {
     "accurics/terrascan",
     "aquasecurity/tfsec",
     "checkmarx/kics",
-    "env0/terratag",
     "fluent/fluent-bit",
     "hashicorp/consul-template",
     "hashicorp/envconsul",

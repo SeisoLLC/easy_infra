@@ -9,7 +9,6 @@ ARG CONSUL_TEMPLATE_VERSION
 ARG ENVCONSUL_VERSION
 ARG ANSIBLE_VERSION
 ARG TERRAFORM_VERSION
-ARG TERRATAG_VERSION
 ARG TFENV_VERSION
 ARG CHECKOV_VERSION
 ENV SKIP_CHECKOV="false"
@@ -51,11 +50,6 @@ RUN groupadd --gid 53150 -r easy_infra \
  && chown root: /usr/local/bin/kics \
  && su easy_infra -c "git clone https://github.com/checkmarx/kics.git /home/easy_infra/.kics --depth 1 --branch ${KICS_VERSION}" \
  && rm -rf /home/easy_infra/.kics/.git \
- && curl -L https://github.com/env0/terratag/releases/download/${TERRATAG_VERSION}/terratag_${TERRATAG_VERSION#v}_linux_amd64.tar.gz -o /usr/local/bin/terratag.tar.gz \
- && tar -xvf /usr/local/bin/terratag.tar.gz -C /usr/local/bin/ terratag \
- && rm -f /usr/local/bin/terratag.tar.gz \
- && chmod 0755 /usr/local/bin/terratag \
- && chown root: /usr/local/bin/terratag \
  && su easy_infra -c "git clone https://github.com/tfutils/tfenv.git /home/easy_infra/.tfenv --depth 1 --branch ${TFENV_VERSION}" \
  && rm -rf /home/easy_infra/.tfenv/.git \
  && su easy_infra -c "mkdir -p /home/easy_infra/.local/bin/" \
