@@ -74,5 +74,5 @@ jobs:
           -a git_sha="${GITHUB_SHA}"
           -a variant="${variant}"
           -a tag="${TAG}"
-          seiso/easy_infra@${variant} ;
+          "seiso/easy_infra@${variant}" ;
           done
