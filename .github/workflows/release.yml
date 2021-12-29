@@ -28,7 +28,9 @@ jobs:
           curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b "${GITHUB_WORKSPACE}/bin"
           chmod +x "${GITHUB_WORKSPACE}/bin/syft"
           echo "${GITHUB_WORKSPACE}/bin" >> "${GITHUB_PATH}"
-      - name: Build the Docker images
+      - name: Install cosign
+        uses: sigstore/cosign-installer@main
+      - name: Build the images
         run: pipenv run invoke build --debug
       - name: Generate SBOMs
         run: pipenv run invoke sbom --debug
@@ -59,5 +61,18 @@ jobs:
           repository: seiso/easy_infra
           short_description: |
             A docker container to simplify the use of Infrastructure as Code (IaC) tools
-      - name: Publish the release Docker images to Docker Hub
+      - name: Publish the release images to Docker Hub
         run: pipenv run invoke publish release --debug
+      - name: Sign the images
+        run:
+          for variant in "${TAG}-minimal"
+                         "${TAG}-aws"
+                         "${TAG}-az"
+                         "${TAG}"; do
+            echo -n "${{ secrets.COSIGN_PASSWORD }}" |
+            cosign sign --key cosign.key
+              -a git_sha="${GITHUB_SHA}"
+              -a variant="${variant}"
+              -a tag="${TAG}"
+              "seiso/easy_infra@${variant}" ;
+          done
