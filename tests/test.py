@@ -337,20 +337,20 @@ def run_terraform(*, image: str, final: bool = False):
             {},
             '/bin/bash -c "terraform init && terraform validate && echo no | terraform apply"',
             1,
-        ),  # Getting Started example from the README.md (Minimally modified for automation)
+        ),  # Previous Getting Started example from the README.md (Minimally modified for automation)
         (
             {},
             '/bin/bash -c "terraform init; terraform version"',
             0,
-        ),  # Terraform Caching example from the README.md
+        ),  # Previous Terraform Caching example from the README.md
         (
             {},
-            '/usr/bin/env bash -c "terraform init && terraform validate && terraform plan && terraform validate"',
+            '/usr/bin/env bash -c "terraform validate && terraform plan && terraform validate"',
             0,
         ),
         (
             {},
-            '/usr/bin/env bash -c "terraform init && terraform validate && terraform plan && terraform validate && false"',
+            '/usr/bin/env bash -c "terraform init && terraform validate && false"',
             1,
         ),
         (
@@ -359,12 +359,12 @@ def run_terraform(*, image: str, final: bool = False):
             },
             "terraform init",
             0,
-        ),  # This tests the "customizations" idea from easy_infra.yml and functions.j2
+        ),  # This tests "customizations" features from easy_infra.yml and functions.j2
         (
             {"KICS_EXCLUDE_SEVERITIES": "info"},
             "terraform validate",
             0,
-        ),  # This tests the "customizations" idea from easy_infra.yml and functions.j2
+        ),  # This tests "customizations" features from easy_infra.yml and functions.j2
     ]
 
     LOG.debug("Testing secure terraform configurations")
@@ -377,35 +377,19 @@ def run_terraform(*, image: str, final: bool = False):
     tests: list[tuple[dict, str, int]] = [  # type: ignore
         ({"DISABLE_SECURITY": "true"}, "terraform init", 0),
         ({"DISABLE_SECURITY": "true"}, "tfenv exec init", 0),
-        (
-            {"DISABLE_SECURITY": "true"},
-            '/usr/bin/env bash -c "DISABLE_SECURITY=true terraform init"',
-            0,
-        ),
         ({}, '/usr/bin/env bash -c "DISABLE_SECURITY=true terraform init"', 0),
         (
             {},
             '/usr/bin/env bash -c "DISABLE_SECURITY=true terraform --disable-security init"',
             0,
         ),
-        (
-            {},
-            '/usr/bin/env bash -c "DISABLE_SECURITY=true terraform init --disable-security"',
-            0,
-        ),
-        ({}, "terraform --disable-security init", 0),
-        ({}, "terraform init --disable-security", 0),
-        (
-            {},
-            '/usr/bin/env bash -c "DISABLE_SECURITY=true terraform init --disable-security || true"',
-            0,
-        ),
+        ({}, "terraform --disable-security init", 0),  # Test order independence
+        ({}, "terraform init --disable-security", 0),  # Test order independence
         (
             {},
             '/usr/bin/env bash -c "DISABLE_SECURITY=true terraform init --disable-security || true && false"',
             1,
         ),
-        ({"DISABLE_SECURITY": "true"}, "terraform init", 0),
         (
             {"DISABLE_SECURITY": "true"},
             "terraform plan || false",
@@ -416,16 +400,6 @@ def run_terraform(*, image: str, final: bool = False):
         #     $(pwd)/tests/terraform/terrascan:/iac
         #     seiso/easy_infra:latest terraform plan \|\| false`, prefer
         #     passing the commands through bash like the following test
-        (
-            {"DISABLE_SECURITY": "true"},
-            '/usr/bin/env bash -c "terraform plan || false"',
-            1,
-        ),
-        (
-            {"DISABLE_SECURITY": "true"},
-            '/usr/bin/env bash -c "terraform plan || true"',
-            0,
-        ),
         (
             {},
             "DISABLE_SECURITY=true terraform plan",
@@ -474,11 +448,6 @@ def run_terraform(*, image: str, final: bool = False):
             '/usr/bin/env bash -c "SKIP_TFSEC=true SKIP_CHECKOV=true SKIP_TERRASCAN=true terraform plan || true && false"',
             1,
         ),
-        (
-            {},
-            '/usr/bin/env bash -c "SKIP_TFSEC=true SKIP_CHECKOV=true SKIP_TERRASCAN=true terraform plan || false"',
-            1,
-        ),
         ({"SKIP_CHECKOV": "true"}, "terraform plan --skip-tfsec --skip-terrascan", 50),
         ({"SKIP_TFSEC": "true"}, "terraform --skip-terrascan plan --skip-checkov", 50),
         (
@@ -487,20 +456,15 @@ def run_terraform(*, image: str, final: bool = False):
             50,
         ),
         (
-            {"SKIP_CHECKOV": "true", "SKIP_TFSEC": "true", "SKIP_TERRASCAN": "true"},
-            "terraform plan --skip-checkov --skip-tfsec --skip-terrascan",
-            50,
-        ),
-        (
             {},
             '/usr/bin/env bash -c "LEARNING_MODE=true SKIP_TFSEC=true SKIP_CHECKOV=true SKIP_TERRASCAN=true terraform validate"',
             0,
-        ),
+        ),  # Test learning mode with skip env vars
         (
             {"LEARNING_MODE": "true", "SKIP_CHECKOV": "true"},
             "terraform validate --skip-tfsec --skip-terrascan",
             0,
-        ),
+        ),  # Test learning mode with mixed env vars and cli args
         (
             {
                 "SKIP_CHECKOV": "true",
@@ -547,11 +511,6 @@ def run_terraform(*, image: str, final: bool = False):
             "terraform validate",
             0,
         ),  # Excludes all the severities. This tests the "customizations" idea from easy_infra.yml and functions.j2
-        (
-            {},
-            '/usr/bin/env bash -c "KICS_EXCLUDE_SEVERITIES=info,low,medium,high terraform --skip-tfsec --skip-terrascan --skip-checkov validate"',
-            0,
-        ),  # Excludes all the severities. This tests the "customizations" idea from easy_infra.yml and functions.j2
     ]
 
     LOG.debug("Testing terraform with security disabled")
@@ -576,26 +535,6 @@ def run_terraform(*, image: str, final: bool = False):
         (
             {"SKIP_TFSEC": "true"},
             '/usr/bin/env bash -c "SKIP_TERRASCAN=true SKIP_KICS=true terraform plan || true && false"',
-            1,
-        ),
-        (
-            {"SKIP_TFSEC": "true", "SKIP_KICS": "TRUE"},
-            '/usr/bin/env bash -c "SKIP_TERRASCAN=true terraform plan || false"',
-            1,
-        ),
-        (
-            {"SKIP_TFSEC": "true", "SKIP_KICS": "true"},
-            "terraform plan --skip-terrascan",
-            1,
-        ),
-        (
-            {"SKIP_TERRASCAN": "true", "SKIP_KICS": "true"},
-            "terraform --skip-tfsec plan",
-            1,
-        ),
-        (
-            {"SKIP_TFSEC": "true", "SKIP_KICS": "true"},
-            "terraform --skip-tfsec --skip-kics plan --skip-terrascan",
             1,
         ),
         (
@@ -766,36 +705,14 @@ def run_terraform(*, image: str, final: bool = False):
             1,
         ),
         (
-            {"SKIP_CHECKOV": "true", "SKIP_KICS": "true"},
-            '/usr/bin/env bash -c "SKIP_TERRASCAN=true terraform plan || false"',
-            1,
-        ),
-        ({"SKIP_CHECKOV": "true"}, "terraform --skip-kics --skip-terrascan plan", 1),
-        (
             {"SKIP_TERRASCAN": "TRUE", "SKIP_KICS": "True"},
             "terraform --skip-checkov plan",
-            1,
-        ),
-        ({"SKIP_KICS": "True"}, "terraform --skip-terrascan --skip-checkov plan", 1),
-        (
-            {"SKIP_TERRASCAN": "True", "SKIP_CHECKOV": "TrUe", "SKIP_KICS": "tRuE"},
-            "terraform plan",
             1,
         ),
         (
             {"SKIP_TERRASCAN": "tRuE", "SKIP_CHECKOV": "FaLsE", "SKIP_KICS": "Unknown"},
             "terraform --skip-checkov plan --skip-terrascan --skip-kics",
             1,
-        ),
-        (
-            {"SKIP_KICS": "TRUE", "SKIP_TERRASCAN": "tRuE", "SKIP_TFSEC": "false"},
-            "terraform --skip-checkov --skip-kics plan --skip-terrascan",
-            1,
-        ),
-        (
-            {},
-            '/usr/bin/env bash -c "terraform --skip-kics --skip-checkov --skip-terrascan plan || true"',
-            0,
         ),
         (
             {
@@ -808,8 +725,8 @@ def run_terraform(*, image: str, final: bool = False):
             0,
         ),
         (
-            {"LEARNING_MODE": "TRUE"},
-            '/usr/bin/env bash -c "terraform --skip-kics --skip-checkov --skip-terrascan validate"',
+            {},
+            '/usr/bin/env bash -c "LEARNING_MODE=TRUE terraform --skip-kics --skip-checkov --skip-terrascan validate"',
             0,
         ),
     ]
@@ -838,18 +755,7 @@ def run_terraform(*, image: str, final: bool = False):
             '/usr/bin/env bash -c "SKIP_TFSEC=true SKIP_CHECKOV=true SKIP_KICS=true terraform plan || true && false"',
             1,
         ),
-        (
-            {},
-            '/usr/bin/env bash -c "SKIP_TFSEC=true SKIP_CHECKOV=true SKIP_KICS=true terraform plan || false"',
-            1,
-        ),
         ({"SKIP_CHECKOV": "true"}, "terraform plan --skip-tfsec --skip-kics", 3),
-        ({"SKIP_TFSEC": "true"}, "terraform --skip-kics plan --skip-checkov", 3),
-        (
-            {"SKIP_CHECKOV": "true", "SKIP_TFSEC": "true", "SKIP_KICS": "true"},
-            "terraform plan",
-            3,
-        ),
         (
             {"SKIP_CHECKOV": "true", "SKIP_TFSEC": "true", "SKIP_KICS": "true"},
             "terraform plan --skip-checkov --skip-tfsec --skip-kics",
@@ -907,11 +813,6 @@ def run_ansible(*, image: str):
         #     commands are passed through bash
         (
             {},
-            '/usr/bin/env bash -c "SKIP_KICS=true ansible-playbook insecure.yml --check"',
-            4,
-        ),  # Exits 4 because insecure.yml is not a valid Play
-        (
-            {},
             '/usr/bin/env bash -c "ansible-playbook insecure.yml --check || true"',
             0,
         ),
@@ -949,11 +850,6 @@ def run_ansible(*, image: str):
         (
             {"KICS_INCLUDE_QUERIES": "7dfb316c-a6c2-454d-b8a2-97f147b0c0ff"},
             "ansible-playbook insecure.yml --check",
-            50,
-        ),  # This tests the "customizations" idea from easy_infra.yml and functions.j2
-        (
-            {},
-            '/usr/bin/env bash -c "KICS_INCLUDE_QUERIES=7dfb316c-a6c2-454d-b8a2-97f147b0c0ff ansible-playbook insecure.yml --check"',
             50,
         ),  # This tests the "customizations" idea from easy_infra.yml and functions.j2
         (
