@@ -65,10 +65,10 @@ jobs:
         run: pipenv run invoke publish release --debug
       - name: Sign the images
         run:
-          for variant in "${TAG}-minimal"
-                         "${TAG}-aws"
-                         "${TAG}-az"
-                         "${TAG}"; do
+          for variant in "${TAG#v}-minimal"
+                         "${TAG#v}-aws"
+                         "${TAG#v}-az"
+                         "${TAG#v}"; do
             echo -n "${{ secrets.COSIGN_PASSWORD }}" |
             cosign sign --key cosign.key
               -a git_sha="${GITHUB_SHA}"
