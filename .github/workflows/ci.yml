@@ -74,7 +74,7 @@ jobs:
                      "latest-aws"
                      "latest-az"
                      "latest"; do
-            DIGEST=$(docker manifest inspect seiso/easy_infra:$tag |
+            DIGEST=$(docker manifest inspect "seiso/easy_infra:$tag" |
                      jq -r '.config.digest')
             echo -n "${{ secrets.COSIGN_PASSWORD }}" |
             cosign sign --key cosign.key
