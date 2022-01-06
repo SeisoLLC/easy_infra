@@ -1039,34 +1039,33 @@ def run_cli(*, image: str):
 def run_security(*, image: str, variant: str):
     """Run the security tests"""
     artifact_labels = utils.get_artifact_labels(variant=variant)
+    label = artifact_labels[0]
+    sbom_file = Path(f"sbom.{label}.json")
 
-    for label in artifact_labels:
-        sbom_file = Path(f"sbom.{label}.json")
+    if not sbom_file:
+        LOG.error(
+            f"{sbom_file} was not found; security scans require an SBOM. Please run `pipenv run invoke sbom`"
+        )
 
-        if not sbom_file:
-            LOG.error(
-                f"{sbom_file} was not found; security scans require an SBOM. Please run `pipenv run invoke sbom`"
-            )
-
-        # Run a vulnerability scan on the provided SBOM (derived from variant)
-        try:
-            LOG.info(f"Running a vulnerability scan on {sbom_file}...")
-            subprocess.run(
-                [
-                    "grype",
-                    f"sbom:{str(sbom_file)}",
-                    "--output",
-                    "json",
-                    "--file",
-                    f"vulns.{label}.json",
-                ],
-                capture_output=True,
-                check=True,
-            )
-        except subprocess.CalledProcessError as error:
-            LOG.error(
-                f"stdout: {error.stdout.decode('utf-8')}, stderr: {error.stderr.decode('utf-8')}"
-            )
-            sys.exit(1)
+    # Run a vulnerability scan on the provided SBOM (derived from variant)
+    try:
+        LOG.info(f"Running a vulnerability scan on {sbom_file}...")
+        subprocess.run(
+            [
+                "grype",
+                f"sbom:{str(sbom_file)}",
+                "--output",
+                "json",
+                "--file",
+                f"vulns.{label}.json",
+            ],
+            capture_output=True,
+            check=True,
+        )
+    except subprocess.CalledProcessError as error:
+        LOG.error(
+            f"stdout: {error.stdout.decode('utf-8')}, stderr: {error.stderr.decode('utf-8')}"
+        )
+        sys.exit(1)
 
     LOG.info("%s passed the security tests", image)

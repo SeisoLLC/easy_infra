@@ -5,6 +5,7 @@ Task execution tool & library
 
 import os
 import re
+import shutil
 import subprocess
 import sys
 from datetime import datetime
@@ -274,11 +275,18 @@ def sbom(_c, debug=False):
         try:
             artifact_labels = utils.get_artifact_labels(variant=variant)
 
-            for label in artifact_labels:
+            for iteration, label in enumerate(artifact_labels):
+                if iteration > 0:
+                    prior_file_name = file_name
                 file_name = f"sbom.{label}.json"
 
                 if Path(file_name).is_file() and Path(file_name).stat().st_size > 0:
                     LOG.info(f"Skipping {file_name} because it already exists...")
+                    continue
+
+                if iteration > 0:
+                    LOG.info(f"Copying {prior_file_name} into {file_name} since they are the same...")
+                    shutil.copy(prior_file_name, file_name)
                     continue
 
                 LOG.info(f"Generating {file_name} from {image_and_tag}...")

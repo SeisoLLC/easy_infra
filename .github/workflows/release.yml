@@ -38,7 +38,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: SBOMs
-          path: sbom.*.json
+          path: sbom.*.v*.json
           if-no-files-found: error
       - name: Generate Vuln scan results
         run: pipenv run invoke vulnscan
@@ -46,7 +46,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: Vulns
-          path: vulns.*.json
+          path: vulns.*.v*.json
           if-no-files-found: error
       - name: Publish the release to GitHub
         uses: softprops/action-gh-release@v1
