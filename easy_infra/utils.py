@@ -1,5 +1,3 @@
-import os
-import re
 import sys
 from logging import getLogger
 from pathlib import Path

@@ -277,7 +277,7 @@ def sbom(_c, debug=False):
 
             for iteration, label in enumerate(artifact_labels):
                 if iteration > 0:
-                    prior_file_name = file_name
+                    prior_file_name = file_name if file_name else None
                 file_name = f"sbom.{label}.json"
 
                 if Path(file_name).is_file() and Path(file_name).stat().st_size > 0:
@@ -285,7 +285,9 @@ def sbom(_c, debug=False):
                     continue
 
                 if iteration > 0:
-                    LOG.info(f"Copying {prior_file_name} into {file_name} since they are the same...")
+                    LOG.info(
+                        f"Copying {prior_file_name} into {file_name} since they are the same..."
+                    )
                     shutil.copy(prior_file_name, file_name)
                     continue
 
