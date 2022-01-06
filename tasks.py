@@ -275,7 +275,13 @@ def sbom(_c, debug=False):
             artifact_labels = utils.get_artifact_labels(variant=variant)
 
             for label in artifact_labels:
-                LOG.info(f"Generating sbom.{label}.json from {image_and_tag}...")
+                file_name = f"sbom.{label}.json"
+
+                if Path(file_name).is_file() and Path(file_name).stat().st_size > 0:
+                    LOG.info(f"Skipping {file_name} because it already exists...")
+                    continue
+
+                LOG.info(f"Generating {file_name} from {image_and_tag}...")
                 subprocess.run(
                     [
                         "syft",
@@ -283,7 +289,7 @@ def sbom(_c, debug=False):
                         "-o",
                         "json",
                         "--file",
-                        f"sbom.{label}.json",
+                        file_name,
                     ],
                     capture_output=True,
                     check=True,

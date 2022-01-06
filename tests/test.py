@@ -1044,18 +1044,17 @@ def run_security(*, image: str, variant: str):
         sbom_file = Path(f"sbom.{label}.json")
 
         if not sbom_file:
-            LOG.error(f"{sbom_file} was not found; security scans require an SBOM. Please run `pipenv run invoke sbom`")
+            LOG.error(
+                f"{sbom_file} was not found; security scans require an SBOM. Please run `pipenv run invoke sbom`"
+            )
 
-        # Ensure no critical vulnerabilities exist in the image
+        # Run a vulnerability scan on the provided SBOM (derived from variant)
         try:
             LOG.info(f"Running a vulnerability scan on {sbom_file}...")
-            fail_level = "critical"
             subprocess.run(
                 [
                     "grype",
                     f"sbom:{str(sbom_file)}",
-                    "--fail-on",
-                    fail_level,
                     "--output",
                     "json",
                     "--file",
@@ -1064,7 +1063,6 @@ def run_security(*, image: str, variant: str):
                 capture_output=True,
                 check=True,
             )
-            LOG.info(f"No {fail_level} or worse vulnerabilities were detected in {sbom_file}...")
         except subprocess.CalledProcessError as error:
             LOG.error(
                 f"stdout: {error.stdout.decode('utf-8')}, stderr: {error.stderr.decode('utf-8')}"
