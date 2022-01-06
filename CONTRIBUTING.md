@@ -10,9 +10,11 @@
 
 Ensure you have `docker`, `git`, `pipenv`, and `python3` installed locally, and the `docker` daemon is running.
 
+If you'd like to [run the test suite](#running-tests), you will also need `grype` downloaded and in your `PATH`.
+
 If you'd like to [generate an SBOM](#generating-an-sbom), you will also need `syft` downloaded and in your `PATH`.
 
-## Running tests
+### Running tests
 
 If you are attempting to run the tests locally, consider running the following to ensure that the user from inside the container can write to the
 host:
@@ -21,7 +23,7 @@ host:
 find tests -mindepth 1 -type d -exec chmod o+w {} \;
 ```
 
-## Generating an SBOM
+### Generating an SBOM
 
 If you'd like to generate an SBOM, run the following:
 
@@ -29,4 +31,4 @@ If you'd like to generate an SBOM, run the following:
 pipenv run invoke sbom
 ```
 
-You will now see various `sbom.*.spdx.json` files in your current directory.
+You will now see various `sbom.*.json` files in your current directory.

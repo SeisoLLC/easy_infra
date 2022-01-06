@@ -128,13 +128,6 @@ def update(_c, debug=False):
         version = utils.get_latest_release_from_pypi(package=package)
         utils.update_config_file(thing=package, version=version)
 
-    # On github they use aquasecurity but on docker hub it's aquasec, and the
-    # github releases are prefaced with v but not on docker hub
-    version = utils.get_latest_release_from_github(repo="aquasecurity/trivy").lstrip(
-        "v"
-    )
-    utils.update_container_security_scanner(image="aquasec/trivy", tag=version)
-
     # Update the CI dependencies
     image = "python:3.9"
     working_dir = "/usr/src/app/"
@@ -268,7 +261,41 @@ def build(_c, debug=False):
         image.tag(constants.IMAGE, tag=latest_tag)
 
 
-@task(pre=[lint, build])
+@task
+def sbom(_c, debug=False):
+    """Generate an SBOM"""
+    if debug:
+        getLogger().setLevel("DEBUG")
+
+    for variant in constants.VARIANTS:
+        versioned_tag = CONTEXT[variant]["buildargs"]["VERSION"]
+        image_and_tag = f"{constants.IMAGE}:{versioned_tag}"
+
+        try:
+            artifact_labels = utils.get_artifact_labels(variant=variant)
+
+            for label in artifact_labels:
+                LOG.info(f"Generating sbom.{label}.json from {image_and_tag}...")
+                subprocess.run(
+                    [
+                        "syft",
+                        f"docker:{image_and_tag}",
+                        "-o",
+                        "json",
+                        "--file",
+                        f"sbom.{label}.json",
+                    ],
+                    capture_output=True,
+                    check=True,
+                )
+        except subprocess.CalledProcessError as error:
+            LOG.error(
+                f"stdout: {error.stdout.decode('utf-8')}, stderr: {error.stderr.decode('utf-8')}"
+            )
+            sys.exit(1)
+
+
+@task(pre=[lint, build, sbom])
 def test(_c, debug=False):
     """Test easy_infra"""
     if debug:
@@ -286,13 +313,13 @@ def test(_c, debug=False):
         if variant == "minimal":
             run_test.run_terraform(image=image_and_tag)
             run_test.run_ansible(image=image_and_tag)
-            run_test.run_security(image=image_and_tag)
+            run_test.run_security(image=image_and_tag, variant=variant)
         elif variant == "az":
             run_test.run_az_stage(image=image_and_tag)
-            run_test.run_security(image=image_and_tag)
+            run_test.run_security(image=image_and_tag, variant=variant)
         elif variant == "aws":
             run_test.run_aws_stage(image=image_and_tag)
-            run_test.run_security(image=image_and_tag)
+            run_test.run_security(image=image_and_tag, variant=variant)
         elif variant == "final":
             run_test.run_path_check(image=image_and_tag)
             run_test.version_arguments(
@@ -303,53 +330,23 @@ def test(_c, debug=False):
             run_test.run_terraform(image=image_and_tag, final=True)
             run_test.run_ansible(image=image_and_tag)
             run_test.run_cli(image=image_and_tag)
-            run_test.run_security(image=image_and_tag)
+            run_test.run_security(image=image_and_tag, variant=variant)
         else:
             LOG.error(f"Untested stage of {variant}")
 
 
-@task
-def sbom(_c, debug=False):
-    """Generate an SBOM"""
+@task(pre=[sbom])
+def vulnscan(_c, debug=False):
+    """Scan easy_infra for vulns"""
     if debug:
         getLogger().setLevel("DEBUG")
 
     for variant in constants.VARIANTS:
-        versioned_tag = CONTEXT[variant]["buildargs"]["VERSION"]
-        image_and_tag = f"{constants.IMAGE}:{versioned_tag}"
-        docker_image_file_name = f"{variant}.tar"
-        LOG.debug(f"Writing {docker_image_file_name} for future SBOM generation...")
-        docker_image_file_path = utils.write_docker_image(
-            image=image_and_tag, file_name=docker_image_file_name
-        )
+        latest_tag = CONTEXT[variant]["latest_tag"]
+        image_and_tag = f"{constants.IMAGE}:{latest_tag}"
 
-        try:
-            if (
-                f"v{__version__}" in REPO.tags
-                and REPO.tags[f"v{__version__}"].commit.hexsha == COMMIT_HASH
-            ):
-                name = f"{variant}.v{__version__}"
-            else:
-                name = f"{variant}.{COMMIT_HASH_SHORT}"
-
-            LOG.info(f"Generating sbom.{name}.spdx.json...")
-            subprocess.run(
-                [
-                    "syft",
-                    f"docker-archive:{str(docker_image_file_path)}",
-                    "-o",
-                    "spdx-json",
-                    "--file",
-                    f"sbom.{name}.spdx.json",
-                ],
-                capture_output=True,
-                check=True,
-            )
-        except subprocess.CalledProcessError as error:
-            LOG.error(
-                f"stdout: {error.stdout.decode('utf-8')}, stderr: {error.stderr.decode('utf-8')}"
-            )
-            sys.exit(1)
+        LOG.debug(f"Running run_test.run_security(image={image_and_tag})...")
+        run_test.run_security(image=image_and_tag, variant=variant)
 
 
 @task
@@ -417,10 +414,8 @@ def clean(_c, debug=False):
     if debug:
         getLogger().setLevel("DEBUG")
 
-    temp_dir = TESTS_PATH.joinpath("tmp")
-
-    for tarball in temp_dir.glob("*.tar"):
-        tarball.unlink()
-
-    for sbom_files in CWD.glob("*.spdx.json"):
+    for sbom_files in CWD.glob("sbom.*.json"):
         sbom_files.unlink()
+
+    for vuln_scan_files in CWD.glob("vulns.*.json"):
+        vuln_scan_files.unlink()
