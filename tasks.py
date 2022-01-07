@@ -326,7 +326,7 @@ def test(_c, debug=False):
         versioned_tag = CONTEXT[variant]["buildargs"]["VERSION"]
         image_and_tag = f"{constants.IMAGE}:{versioned_tag}"
 
-        LOG.info("Testing {image_and_tag}...")
+        LOG.info(f"Testing {image_and_tag}...")
         if variant == "minimal":
             run_test.run_terraform(image=image_and_tag)
             run_test.run_ansible(image=image_and_tag)
