@@ -102,6 +102,19 @@ def log_build_log(*, build_err: docker.errors.BuildError) -> None:
             finished = True
 
 
+def process_stages(*, stage: str) -> list[str]:
+    """Process the provided stage"""
+    if stage == "all":
+        stages = constants.VARIANTS
+    elif stage not in constants.VARIANTS:
+        LOG.error(f"{stage} is not a known variant, exiting...")
+        sys.exit(1)
+    else:
+        stages = [stage]
+
+    return stages
+
+
 # Tasks
 @task
 def update(_c, debug=False):
@@ -217,7 +230,7 @@ def lint(_c, debug=False):
 
 
 @task
-def build(_c, debug=False):
+def build(_c, stage="all", debug=False):
     """Build easy_infra"""
     if debug:
         getLogger().setLevel("DEBUG")
@@ -236,7 +249,9 @@ def build(_c, debug=False):
             arg = command.upper().replace("-", "_") + "_VERSION"
             buildargs[arg] = CONFIG["commands"][command]["version"]
 
-    for variant in constants.VARIANTS:
+    variants = process_stages(stage=stage)
+
+    for variant in variants:
         buildargs.update(CONTEXT[variant]["buildargs"])
         versioned_tag = CONTEXT[variant]["buildargs"]["VERSION"]
         image_and_versioned_tag = f"{constants.IMAGE}:{versioned_tag}"
@@ -263,12 +278,14 @@ def build(_c, debug=False):
 
 
 @task
-def sbom(_c, debug=False):
+def sbom(_c, stage="all", debug=False):
     """Generate an SBOM"""
     if debug:
         getLogger().setLevel("DEBUG")
 
-    for variant in constants.VARIANTS:
+    variants = process_stages(stage=stage)
+
+    for variant in variants:
         versioned_tag = CONTEXT[variant]["buildargs"]["VERSION"]
         image_and_tag = f"{constants.IMAGE}:{versioned_tag}"
 
@@ -312,8 +329,8 @@ def sbom(_c, debug=False):
             sys.exit(1)
 
 
-@task(pre=[build, sbom])
-def test(_c, debug=False):
+@task
+def test(_c, stage="all", debug=False):
     """Test easy_infra"""
     if debug:
         getLogger().setLevel("DEBUG")
@@ -321,7 +338,9 @@ def test(_c, debug=False):
     default_working_dir = "/iac/"
     default_volumes = {TESTS_PATH: {"bind": default_working_dir, "mode": "ro"}}
 
-    for variant in constants.VARIANTS:
+    variants = process_stages(stage=stage)
+
+    for variant in variants:
         # Only test using the current, versioned tag of each variant
         versioned_tag = CONTEXT[variant]["buildargs"]["VERSION"]
         image_and_tag = f"{constants.IMAGE}:{versioned_tag}"
@@ -352,13 +371,15 @@ def test(_c, debug=False):
             LOG.error(f"Untested stage of {variant}")
 
 
-@task(pre=[sbom])
-def vulnscan(_c, debug=False):
+@task
+def vulnscan(_c, stage="all", debug=False):
     """Scan easy_infra for vulns"""
     if debug:
         getLogger().setLevel("DEBUG")
 
-    for variant in constants.VARIANTS:
+    variants = process_stages(stage=stage)
+
+    for variant in variants:
         latest_tag = CONTEXT[variant]["latest_tag"]
         image_and_tag = f"{constants.IMAGE}:{latest_tag}"
 
@@ -400,7 +421,7 @@ def release(_c, debug=False):
 
 
 @task
-def publish(_c, tag, debug=False):
+def publish(_c, tag, stage="all", debug=False):
     """Publish easy_infra"""
     if debug:
         getLogger().setLevel("DEBUG")
@@ -411,7 +432,9 @@ def publish(_c, tag, debug=False):
     elif tag == "release":
         tag = __version__
 
-    for variant in constants.VARIANTS:
+    variants = process_stages(stage=stage)
+
+    for variant in variants:
         if tag == "latest":
             latest_tag = CONTEXT[variant]["latest_tag"]
             image_and_tag = f"{constants.IMAGE}:{latest_tag}"
