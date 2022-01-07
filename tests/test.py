@@ -146,9 +146,11 @@ def run_path_check(*, image: str) -> None:
     for interactive in [True, False]:
         num_successful_tests = check_paths(interactive=interactive, image=image)
         if num_successful_tests > 0:
-            LOG.info("%s passed all %d path tests", image, num_successful_tests)
+            context = "interactive" if interactive else "non-interactive"
+            LOG.info(f"{image} passed all {num_successful_tests} {context} path tests")
         else:
-            LOG.error("%s failed a path test", image)
+            context = "an interactive" if interactive else "a non-interactive"
+            LOG.error(f"{image} failed {context} path test")
             sys.exit(1)
 
 
