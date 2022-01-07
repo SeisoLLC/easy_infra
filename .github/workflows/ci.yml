@@ -27,12 +27,12 @@ jobs:
         run: |
           python -m pip install --upgrade pipenv
           pipenv install --dev
-          mkdir "${GITHUB_WORKSPACE}/bin"
-          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b "${GITHUB_WORKSPACE}/bin"
-          chmod +x "${GITHUB_WORKSPACE}/bin/syft"
-          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b "${GITHUB_WORKSPACE}/bin"
-          chmod +x "${GITHUB_WORKSPACE}/bin/grype"
-          echo "${GITHUB_WORKSPACE}/bin" >> "${GITHUB_PATH}"
+          mkdir "${RUNNER_TEMP}/bin"
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b "${RUNNER_TEMP}/bin"
+          chmod +x "${RUNNER_TEMP}/bin/syft"
+          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b "${RUNNER_TEMP}/bin"
+          chmod +x "${RUNNER_TEMP}/bin/grype"
+          echo "${RUNNER_TEMP}/bin" >> "${GITHUB_PATH}"
       - name: Run tests
         run: |
           find tests -mindepth 1 -type d -exec chmod o+w {} \;
