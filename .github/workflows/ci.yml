@@ -37,6 +37,8 @@ jobs:
         run: |
           find tests -mindepth 1 -type d -exec chmod o+w {} \;
           pipenv run invoke test
+      - name: Generate SBOMs
+        run: pipenv run invoke sbom
       - name: Upload SBOMs
         uses: actions/upload-artifact@v2
         with:
