@@ -17,6 +17,11 @@ jobs:
       - name: Checkout the repository
         uses: actions/checkout@v2
       - uses: satackey/action-docker-layer-caching@v0.0.11
+        continue-on-error: true
+        with:
+          key: docker-layer-caching-{hash}
+          restore-keys: docker-layer-caching-
+          concurrency: 5
       - uses: seisollc/goat@main
         with:
           disable_terrascan: true
