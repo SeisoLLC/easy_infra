@@ -277,7 +277,7 @@ def sbom(_c, debug=False):
 
             for iteration, label in enumerate(artifact_labels):
                 if iteration > 0:
-                    prior_label = artifact_labels[iteration-1]
+                    prior_label = artifact_labels[iteration - 1]
                     prior_file_name = f"sbom.{prior_label}.json"
                 file_name = f"sbom.{label}.json"
 
