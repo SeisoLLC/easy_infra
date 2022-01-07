@@ -312,7 +312,7 @@ def sbom(_c, debug=False):
             sys.exit(1)
 
 
-@task(pre=[lint, build])
+@task(pre=[lint, build, sbom])
 def test(_c, debug=False):
     """Test easy_infra"""
     if debug:
