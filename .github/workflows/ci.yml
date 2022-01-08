@@ -70,8 +70,6 @@ jobs:
           name: SBOM - ${{ matrix.stage }}
           path: sbom.${{ matrix.stage }}.*.json
           if-no-files-found: error
-      - name: Generate the Vulns
-        run: pipenv run invoke vulnscan --stage=${{ matrix.stage }}
       - name: Upload Vuln scan result
         uses: actions/upload-artifact@v2
         with:
