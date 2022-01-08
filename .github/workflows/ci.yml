@@ -73,12 +73,7 @@ jobs:
       - name: Update docker cache
         run: |
           mkdir -p "${RUNNER_TEMP}/cache" && \
-          if [[ "${STAGE}" == "final" ]]; then
-            tag="latest" ;
-          else
-            tag="latest-${STAGE}" ;
-          fi ;
-          docker save seiso/easy_infra:${STAGE} \
+          docker save "seiso/easy_infra:${STAGE}" \
             -o "${RUNNER_TEMP}/cache/image.tar" || true
         env:
           STAGE: ${{ matrix.stage }}
@@ -141,12 +136,7 @@ jobs:
       - name: Update docker cache
         run: |
           mkdir -p "${RUNNER_TEMP}/cache" && \
-          if [[ "${STAGE}" == "final" ]]; then
-            tag="latest" ;
-          else
-            tag="latest-${STAGE}" ;
-          fi ;
-          docker save seiso/easy_infra:${STAGE} \
+          docker save "seiso/easy_infra:${STAGE}" \
             -o "${RUNNER_TEMP}/cache/image.tar" || true
         env:
           STAGE: ${{ matrix.stage }}
