@@ -115,7 +115,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: "${RUNNER_TEMP}/cache"
-          key: ${{ matrix.stage }}-cache-${{ gitub.sha }}
+          key: ${{ matrix.stage }}-cache-${{ github.sha }}
           restore-keys: |
             ${{ matrix.stage }}-cache
       - name: Load the image cache
