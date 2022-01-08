@@ -252,6 +252,12 @@ def build(_c, stage="all", debug=False):
     variants = process_stages(stage=stage)
 
     for variant in variants:
+        # This pulls the appropriate latest image from Docker Hub to be used as a cache when building
+        latest_tag = CONTEXT[variant]["latest_tag"]
+        image_and_latest_tag = f"{constants.IMAGE}:{latest_tag}"
+        LOG.info(f"Pulling {image_and_latest_tag}...")
+        CLIENT.images.pull(image)
+
         buildargs.update(CONTEXT[variant]["buildargs"])
         versioned_tag = CONTEXT[variant]["buildargs"]["VERSION"]
         image_and_versioned_tag = f"{constants.IMAGE}:{versioned_tag}"
@@ -272,7 +278,6 @@ def build(_c, stage="all", debug=False):
             log_build_log(build_err=build_err)
             sys.exit(1)
 
-        latest_tag = CONTEXT[variant]["latest_tag"]
         LOG.info(f"Tagging {constants.IMAGE}:{latest_tag}...")
         image.tag(constants.IMAGE, tag=latest_tag)
 

@@ -30,16 +30,6 @@ jobs:
           curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b "${RUNNER_TEMP}/bin"
           chmod +x "${RUNNER_TEMP}/bin/grype"
           echo "${RUNNER_TEMP}/bin" >> "${GITHUB_PATH}"
-      - name: Restore the docker image cache
-        uses: actions/cache@v2
-        with:
-          path: "${HOME}/cache"
-          key: ${{ github.sha }}
-          restore-keys: final-cache
-      - name: Load the image cache
-        continue-on-error: true
-        run: |
-          docker load --input "${HOME}/cache/image.tar"
       - name: Build the images
         run: pipenv run invoke build
       - name: Generate SBOMs
