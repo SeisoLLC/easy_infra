@@ -34,7 +34,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: "${RUNNER_TEMP}/cache"
-          key: ${{ GITHUB_SHA }}
+          key: ${{ github.sha }}
           restore-keys: final-cache
       - name: Load the image cache
         continue-on-error: true
