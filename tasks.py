@@ -352,9 +352,13 @@ def test(_c, stage="all", debug=False):
             run_test.run_security(image=image_and_tag, variant=variant)
         elif variant == "az":
             run_test.run_az_stage(image=image_and_tag)
+            run_test.run_terraform(image=image_and_tag)
+            run_test.run_ansible(image=image_and_tag)
             run_test.run_security(image=image_and_tag, variant=variant)
         elif variant == "aws":
             run_test.run_aws_stage(image=image_and_tag)
+            run_test.run_terraform(image=image_and_tag)
+            run_test.run_ansible(image=image_and_tag)
             run_test.run_security(image=image_and_tag, variant=variant)
         elif variant == "final":
             run_test.run_path_check(image=image_and_tag)
