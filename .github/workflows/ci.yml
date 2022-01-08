@@ -27,20 +27,11 @@ jobs:
       matrix:
         stage: ["minimal", "aws", "az", "final"]
     steps:
-      # jscpd:ignore-start
       - name: Checkout the repository
         uses: actions/checkout@v2
-      - uses: satackey/action-docker-layer-caching@v0.0.11
-        continue-on-error: true
-        with:
-          key: docker-layer-caching-${{ matrix.stage }}-{hash}
-          restore-keys:
-            docker-layer-caching-${{ matrix.stage }}
-            docker-layer-caching
       - uses: actions/setup-python@v2
         with:
           python-version: "3.9"
-      # jscpd:ignore-end
       - name: Install the dependencies
         run: |
           python -m pip install --upgrade pipenv
@@ -51,6 +42,14 @@ jobs:
           curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b "${RUNNER_TEMP}/bin"
           chmod +x "${RUNNER_TEMP}/bin/grype"
           echo "${RUNNER_TEMP}/bin" >> "${GITHUB_PATH}"
+      - name: Restore the docker image cache
+        uses: actions/cache@v2
+        with:
+          path: "${RUNNER_TEMP}/cache"
+          key: ${{ matrix.stage }}-cache
+      - name: Load the image cache
+        run: |
+          docker load --input "${RUNNER_TEMP}/cache/image.tar" || true
       - name: Build the image
         run: pipenv run invoke build --stage=${{ matrix.stage }}
       - name: Generate the SBOM
@@ -71,6 +70,18 @@ jobs:
           name: Vulns - ${{ matrix.stage }}
           path: vulns.${{ matrix.stage }}.*.json
           if-no-files-found: error
+      - name: Update docker cache
+        run: |
+          mkdir -p "${RUNNER_TEMP}/cache" && \
+          if [[ "${STAGE}" == "final" ]]; then
+            tag="latest" ;
+          else
+            tag="latest-${STAGE}" ;
+          fi ;
+          docker save seiso/easy_infra:${STAGE} \
+            -o "${RUNNER_TEMP}/cache/image.tar" || true
+        env:
+          STAGE: ${{ matrix.stage }}
   distribute:
     name: Distribute
     runs-on: Ubuntu-20.04
@@ -82,24 +93,23 @@ jobs:
         stage: ["minimal", "aws", "az", "final"]
     if: ${{ github.event_name == 'push' }}
     steps:
-      # jscpd:ignore-start
       - name: Checkout the repository
         uses: actions/checkout@v2
-      - uses: satackey/action-docker-layer-caching@v0.0.11
-        continue-on-error: true
-        with:
-          key: docker-layer-caching-${{ matrix.stage }}-{hash}
-          restore-keys:
-            docker-layer-caching-${{ matrix.stage }}
-            docker-layer-caching
       - uses: actions/setup-python@v2
         with:
           python-version: "3.9"
-      # jscpd:ignore-end
       - name: Install the dependencies
         run: |
           python -m pip install --upgrade pipenv
           pipenv install --dev
+      - name: Restore the docker image cache
+        uses: actions/cache@v2
+        with:
+          path: "${RUNNER_TEMP}/cache"
+          key: ${{ matrix.stage }}-cache
+      - name: Load the image cache
+        run: |
+          docker load --input "${RUNNER_TEMP}/cache/image.tar" || true
       - name: Build the image
         run: pipenv run invoke build --stage=${{ matrix.stage }}
       - name: Log in to Docker Hub
@@ -127,4 +137,16 @@ jobs:
             "seiso/easy_infra@${DIGEST}"
         env:
           COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+          STAGE: ${{ matrix.stage }}
+      - name: Update docker cache
+        run: |
+          mkdir -p "${RUNNER_TEMP}/cache" && \
+          if [[ "${STAGE}" == "final" ]]; then
+            tag="latest" ;
+          else
+            tag="latest-${STAGE}" ;
+          fi ;
+          docker save seiso/easy_infra:${STAGE} \
+            -o "${RUNNER_TEMP}/cache/image.tar" || true
+        env:
           STAGE: ${{ matrix.stage }}
