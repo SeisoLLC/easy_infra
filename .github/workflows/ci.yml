@@ -47,9 +47,8 @@ jobs:
         uses: actions/cache@v2
         with:
           path: "${RUNNER_TEMP}/cache"
-          key: ${{ matrix.stage }}-cache-${{ hashFiles('easy_infra.yml') }}
+          key: ${{ matrix.stage }}-cache-${{ GITHUB_SHA }}
           restore-keys: |
-            ${{ matrix.stage }}-cache-${{ hashFiles('easy_infra.yml') }}
             ${{ matrix.stage }}-cache
       - name: Load the image cache
         continue-on-error: true
@@ -116,9 +115,8 @@ jobs:
         uses: actions/cache@v2
         with:
           path: "${RUNNER_TEMP}/cache"
-          key: ${{ matrix.stage }}-cache-${{ hashFiles('easy_infra.yml') }}
+          key: ${{ matrix.stage }}-cache-${{ GITHUB_SHA }}
           restore-keys: |
-            ${{ matrix.stage }}-cache-${{ hashFiles('easy_infra.yml') }}
             ${{ matrix.stage }}-cache
       - name: Load the image cache
         continue-on-error: true
