@@ -60,10 +60,6 @@ jobs:
       # jscpd:ignore-end
       - name: Generate the SBOM
         run: pipenv run invoke sbom --stage=${{ matrix.stage }}
-      - name: Run tests
-        run: |
-          find tests -mindepth 1 -type d -exec chmod o+w {} \;
-          pipenv run invoke test --stage=${{ matrix.stage }}
       - name: Upload SBOM
         uses: actions/upload-artifact@v2
         with:
