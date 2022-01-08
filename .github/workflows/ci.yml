@@ -47,14 +47,14 @@ jobs:
         uses: actions/cache@v2
         with:
           path: "${RUNNER_TEMP}/cache"
-          key: ${{ matrix.stage }}-cache-${{ hashFiles('easy_infra.yml') }}-${{ hashFiles('Dockerfile') }}
+          key: ${{ matrix.stage }}-cache-${{ hashFiles('easy_infra.yml') }}
           restore-keys: |
             ${{ matrix.stage }}-cache-${{ hashFiles('easy_infra.yml') }}
-            ${{ matrix.stage }}-cache-${{ hashFiles('Dockerfile') }}
-            ${{ matrix.stage }}-cache-
+            ${{ matrix.stage }}-cache
       - name: Load the image cache
+        continue-on-error: true
         run: |
-          docker load --input "${RUNNER_TEMP}/cache/image.tar" || true
+          docker load --input "${RUNNER_TEMP}/cache/image.tar"
       - name: Build the image
         run: pipenv run invoke build --stage=${{ matrix.stage }}
       # jscpd:ignore-end
@@ -78,6 +78,7 @@ jobs:
           if-no-files-found: error
       # jscpd:ignore-start
       - name: Update docker cache
+        continue-on-error: true
         run: |
           mkdir -p "${RUNNER_TEMP}/cache" ; \
           if [[ "${STAGE}" == "final" ]]; then
@@ -86,7 +87,7 @@ jobs:
             tag="latest-${STAGE}" ;
           fi ;
           docker save "seiso/easy_infra:${tag}" \
-            -o "${RUNNER_TEMP}/cache/image.tar" || true
+            -o "${RUNNER_TEMP}/cache/image.tar"
         env:
           STAGE: ${{ matrix.stage }}
       # jscpd:ignore-end
@@ -115,14 +116,14 @@ jobs:
         uses: actions/cache@v2
         with:
           path: "${RUNNER_TEMP}/cache"
-          key: ${{ matrix.stage }}-cache-${{ hashFiles('easy_infra.yml') }}-${{ hashFiles('Dockerfile') }}
+          key: ${{ matrix.stage }}-cache-${{ hashFiles('easy_infra.yml') }}
           restore-keys: |
             ${{ matrix.stage }}-cache-${{ hashFiles('easy_infra.yml') }}
-            ${{ matrix.stage }}-cache-${{ hashFiles('Dockerfile') }}
             ${{ matrix.stage }}-cache
       - name: Load the image cache
+        continue-on-error: true
         run: |
-          docker load --input "${RUNNER_TEMP}/cache/image.tar" || true
+          docker load --input "${RUNNER_TEMP}/cache/image.tar"
       - name: Build the image
         run: pipenv run invoke build --stage=${{ matrix.stage }}
       # jscpd:ignore-end
@@ -154,6 +155,7 @@ jobs:
           STAGE: ${{ matrix.stage }}
       # jscpd:ignore-start
       - name: Update docker cache
+        continue-on-error: true
         run: |
           mkdir -p "${RUNNER_TEMP}/cache" ; \
           if [[ "${STAGE}" == "final" ]]; then
@@ -162,7 +164,7 @@ jobs:
             tag="latest-${STAGE}" ;
           fi ;
           docker save "seiso/easy_infra:${tag}" \
-            -o "${RUNNER_TEMP}/cache/image.tar" || true
+            -o "${RUNNER_TEMP}/cache/image.tar"
         env:
           STAGE: ${{ matrix.stage }}
       # jscpd:ignore-end

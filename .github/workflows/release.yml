@@ -14,13 +14,6 @@ jobs:
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v2
-      - uses: satackey/action-docker-layer-caching@v0.0.11
-        continue-on-error: true
-        with:
-          key: docker-layer-caching-final-{hash}
-          restore-keys:
-            docker-layer-caching-final
-            docker-layer-caching
       - name: Retrieve the tag
         run: echo "TAG=${GITHUB_REF/refs\/tags\//}" >> "${GITHUB_ENV}"
       - name: Setup python
@@ -41,10 +34,11 @@ jobs:
         uses: actions/cache@v2
         with:
           path: "${RUNNER_TEMP}/cache"
-          key: final-cache
+          restore-keys: final-cache
       - name: Load the image cache
+        continue-on-error: true
         run: |
-          docker load --input "${RUNNER_TEMP}/cache/image.tar" || true
+          docker load --input "${RUNNER_TEMP}/cache/image.tar"
       - name: Build the images
         run: pipenv run invoke build
       - name: Generate SBOMs
