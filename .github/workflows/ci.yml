@@ -47,7 +47,11 @@ jobs:
         uses: actions/cache@v2
         with:
           path: "${RUNNER_TEMP}/cache"
-          key: ${{ matrix.stage }}-cache
+          key: ${{ matrix.stage }}-cache-${{ hashFiles('easy_infra.yml') }}-${{ hashFiles('Dockerfile') }}
+          restore-keys: |
+            ${{ matrix.stage }}-cache-${{ hashFiles('easy_infra.yml') }}
+            ${{ matrix.stage }}-cache-${{ hashFiles('Dockerfile') }}
+            ${{ matrix.stage }}-cache-
       - name: Load the image cache
         run: |
           docker load --input "${RUNNER_TEMP}/cache/image.tar" || true
@@ -111,7 +115,11 @@ jobs:
         uses: actions/cache@v2
         with:
           path: "${RUNNER_TEMP}/cache"
-          key: ${{ matrix.stage }}-cache
+          key: ${{ matrix.stage }}-cache-${{ hashFiles('easy_infra.yml') }}-${{ hashFiles('Dockerfile') }}
+          restore-keys: |
+            ${{ matrix.stage }}-cache-${{ hashFiles('easy_infra.yml') }}
+            ${{ matrix.stage }}-cache-${{ hashFiles('Dockerfile') }}
+            ${{ matrix.stage }}-cache
       - name: Load the image cache
         run: |
           docker load --input "${RUNNER_TEMP}/cache/image.tar" || true
