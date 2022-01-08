@@ -46,16 +46,14 @@ jobs:
         run: pipenv run invoke build --stage=${{ matrix.stage }}
       - name: Generate the SBOM
         run: pipenv run invoke sbom --stage=${{ matrix.stage }}
-      - name: Run tests
-        run: |
-          find tests -mindepth 1 -type d -exec chmod o+w {} \;
-          pipenv run invoke test --stage=${{ matrix.stage }}
       - name: Upload SBOM
         uses: actions/upload-artifact@v2
         with:
           name: SBOM - ${{ matrix.stage }}
           path: sbom.${{ matrix.stage }}.*.json
           if-no-files-found: error
+      - name: Generate the Vulns
+        run: pipenv run invoke vulnscan --stage=${{ matrix.stage }}
       - name: Upload Vuln scan result
         uses: actions/upload-artifact@v2
         with:
