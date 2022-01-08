@@ -23,7 +23,6 @@ jobs:
   test:
     name: Test
     runs-on: Ubuntu-20.04
-    needs: Lint
     strategy:
       matrix:
         stage: ["minimal", "aws", "az", "final"]
@@ -72,7 +71,9 @@ jobs:
   distribute:
     name: Distribute
     runs-on: Ubuntu-20.04
-    needs: Test
+    needs:
+      - Lint
+      - Test
     strategy:
       matrix:
         stage: ["minimal", "aws", "az", "final"]
