@@ -46,14 +46,14 @@ jobs:
       - name: Restore the docker image cache
         uses: actions/cache@v2
         with:
-          path: "${RUNNER_TEMP}/cache"
+          path: "~/cache"
           key: ${{ matrix.stage }}-cache-${{ github.sha }}
           restore-keys: |
             ${{ matrix.stage }}-cache
       - name: Load the image cache
         continue-on-error: true
         run: |
-          docker load --input "${RUNNER_TEMP}/cache/image.tar"
+          docker load --input "~/cache/image.tar"
       - name: Build the image
         run: pipenv run invoke build --stage=${{ matrix.stage }}
       # jscpd:ignore-end
@@ -79,14 +79,14 @@ jobs:
       - name: Update docker cache
         continue-on-error: true
         run: |
-          mkdir -p "${RUNNER_TEMP}/cache" ; \
+          mkdir -p "~/cache" ; \
           if [[ "${STAGE}" == "final" ]]; then
             tag="latest" ;
           else
             tag="latest-${STAGE}" ;
           fi ;
           docker save "seiso/easy_infra:${tag}" \
-            -o "${RUNNER_TEMP}/cache/image.tar"
+            -o "~/cache/image.tar"
         env:
           STAGE: ${{ matrix.stage }}
       # jscpd:ignore-end
@@ -114,14 +114,14 @@ jobs:
       - name: Restore the docker image cache
         uses: actions/cache@v2
         with:
-          path: "${RUNNER_TEMP}/cache"
+          path: "~/cache"
           key: ${{ matrix.stage }}-cache-${{ github.sha }}
           restore-keys: |
             ${{ matrix.stage }}-cache
       - name: Load the image cache
         continue-on-error: true
         run: |
-          docker load --input "${RUNNER_TEMP}/cache/image.tar"
+          docker load --input "~/cache/image.tar"
       - name: Build the image
         run: pipenv run invoke build --stage=${{ matrix.stage }}
       # jscpd:ignore-end
@@ -155,14 +155,14 @@ jobs:
       - name: Update docker cache
         continue-on-error: true
         run: |
-          mkdir -p "${RUNNER_TEMP}/cache" ; \
+          mkdir -p "~/cache" ; \
           if [[ "${STAGE}" == "final" ]]; then
             tag="latest" ;
           else
             tag="latest-${STAGE}" ;
           fi ;
           docker save "seiso/easy_infra:${tag}" \
-            -o "${RUNNER_TEMP}/cache/image.tar"
+            -o "~/cache/image.tar"
         env:
           STAGE: ${{ matrix.stage }}
       # jscpd:ignore-end

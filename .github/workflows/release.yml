@@ -33,13 +33,13 @@ jobs:
       - name: Restore the docker image cache
         uses: actions/cache@v2
         with:
-          path: "${RUNNER_TEMP}/cache"
+          path: "~/cache"
           key: ${{ github.sha }}
           restore-keys: final-cache
       - name: Load the image cache
         continue-on-error: true
         run: |
-          docker load --input "${RUNNER_TEMP}/cache/image.tar"
+          docker load --input "~/cache/image.tar"
       - name: Build the images
         run: pipenv run invoke build
       - name: Generate SBOMs
