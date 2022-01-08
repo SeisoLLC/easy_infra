@@ -34,6 +34,9 @@ jobs:
         continue-on-error: true
         with:
           key: docker-layer-caching-${{ matrix.stage }}-{hash}
+          restore-keys:
+            docker-layer-caching-${{ matrix.stage }}
+            docker-layer-caching
       - uses: actions/setup-python@v2
         with:
           python-version: "3.9"
@@ -86,6 +89,9 @@ jobs:
         continue-on-error: true
         with:
           key: docker-layer-caching-${{ matrix.stage }}-{hash}
+          restore-keys:
+            docker-layer-caching-${{ matrix.stage }}
+            docker-layer-caching
       - uses: actions/setup-python@v2
         with:
           python-version: "3.9"

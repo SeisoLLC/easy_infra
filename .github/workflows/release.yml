@@ -18,6 +18,9 @@ jobs:
         continue-on-error: true
         with:
           key: docker-layer-caching-final-{hash}
+          restore-keys:
+            docker-layer-caching-final
+            docker-layer-caching
       - name: Retrieve the tag
         run: echo "TAG=${GITHUB_REF/refs\/tags\//}" >> "${GITHUB_ENV}"
       - name: Setup python
