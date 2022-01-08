@@ -256,7 +256,7 @@ def build(_c, stage="all", debug=False):
         latest_tag = CONTEXT[variant]["latest_tag"]
         image_and_latest_tag = f"{constants.IMAGE}:{latest_tag}"
         LOG.info(f"Pulling {image_and_latest_tag}...")
-        CLIENT.images.pull(image)
+        CLIENT.images.pull(image_and_latest_tag)
 
         buildargs.update(CONTEXT[variant]["buildargs"])
         versioned_tag = CONTEXT[variant]["buildargs"]["VERSION"]
