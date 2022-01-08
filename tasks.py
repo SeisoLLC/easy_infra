@@ -270,6 +270,7 @@ def build(_c, stage="all", debug=False):
                 rm=True,
                 tag=image_and_versioned_tag,
                 buildargs=buildargs,
+                cache_from=[image_and_latest_tag],
             )[0]
         except docker.errors.BuildError as build_err:
             LOG.exception(
