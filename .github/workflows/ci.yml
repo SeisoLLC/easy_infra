@@ -72,13 +72,20 @@ jobs:
           name: Vulns - ${{ matrix.stage }}
           path: vulns.${{ matrix.stage }}.*.json
           if-no-files-found: error
+      # jscpd:ignore-start
       - name: Update docker cache
         run: |
           mkdir -p "${RUNNER_TEMP}/cache" ; \
-          docker save "seiso/easy_infra:${STAGE}" \
+          if [[ "${STAGE}" == "final" ]]; then
+            tag="latest" ;
+          else
+            tag="latest-${STAGE}" ;
+          fi ;
+          docker save "seiso/easy_infra:${tag}" \
             -o "${RUNNER_TEMP}/cache/image.tar" || true
         env:
           STAGE: ${{ matrix.stage }}
+      # jscpd:ignore-end
   distribute:
     name: Distribute
     runs-on: Ubuntu-20.04
@@ -137,10 +144,17 @@ jobs:
         env:
           COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
           STAGE: ${{ matrix.stage }}
+      # jscpd:ignore-start
       - name: Update docker cache
         run: |
           mkdir -p "${RUNNER_TEMP}/cache" ; \
-          docker save "seiso/easy_infra:${STAGE}" \
+          if [[ "${STAGE}" == "final" ]]; then
+            tag="latest" ;
+          else
+            tag="latest-${STAGE}" ;
+          fi ;
+          docker save "seiso/easy_infra:${tag}" \
             -o "${RUNNER_TEMP}/cache/image.tar" || true
         env:
           STAGE: ${{ matrix.stage }}
+      # jscpd:ignore-end
