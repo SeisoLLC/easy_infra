@@ -4,6 +4,7 @@ Test Functions
 """
 
 import copy
+import subprocess
 import sys
 from logging import getLogger
 from pathlib import Path
@@ -145,9 +146,11 @@ def run_path_check(*, image: str) -> None:
     for interactive in [True, False]:
         num_successful_tests = check_paths(interactive=interactive, image=image)
         if num_successful_tests > 0:
-            LOG.info("%s passed all %d path tests", image, num_successful_tests)
+            context = "interactive" if interactive else "non-interactive"
+            LOG.info(f"{image} passed all {num_successful_tests} {context} path tests")
         else:
-            LOG.error("%s failed a path test", image)
+            context = "an interactive" if interactive else "a non-interactive"
+            LOG.error(f"{image} failed {context} path test")
             sys.exit(1)
 
 
@@ -1035,44 +1038,36 @@ def run_cli(*, image: str):
     LOG.info("%s passed %d integration tests", image, num_tests_ran)
 
 
-def run_security(*, image: str):
+def run_security(*, image: str, variant: str):
     """Run the security tests"""
-    tag = image.split(":")[-1]
-    file_name = f"{tag}.tar"
-    file_path = utils.write_docker_image(image=image, file_name=file_name)
-    file_dir = file_path.parents[0]
+    artifact_labels = utils.get_artifact_labels(variant=variant)
+    label = artifact_labels[0]
+    sbom_file = Path(f"sbom.{label}.json")
 
-    working_dir = "/tmp/"
-    volumes = {file_dir: {"bind": working_dir, "mode": "ro"}}
+    if not sbom_file:
+        LOG.error(
+            f"{sbom_file} was not found; security scans require an SBOM. Please run `pipenv run invoke sbom`"
+        )
 
-    num_tests_ran = 0
-    scanner = constants.CONTAINER_SECURITY_SCANNER
+    # Run a vulnerability scan on the provided SBOM (derived from variant)
+    try:
+        LOG.info(f"Running a vulnerability scan on {sbom_file}...")
+        subprocess.run(
+            [
+                "grype",
+                f"sbom:{str(sbom_file)}",
+                "--output",
+                "json",
+                "--file",
+                f"vulns.{label}.json",
+            ],
+            capture_output=True,
+            check=True,
+        )
+    except subprocess.CalledProcessError as error:
+        LOG.error(
+            f"stdout: {error.stdout.decode('utf-8')}, stderr: {error.stderr.decode('utf-8')}"
+        )
+        sys.exit(1)
 
-    # Provide debug information about unknown, low, and medium severity
-    # findings
-    command = (
-        "--quiet image --exit-code 0 --severity "
-        + ",".join(constants.INFORMATIONAL_VULNS)
-        + " --format json --light --input "
-        + working_dir
-        + file_name
-    )
-    utils.opinionated_docker_run(
-        image=scanner, command=command, volumes=volumes, expected_exit=0
-    )
-    num_tests_ran += 1
-
-    # Ensure no critical vulnerabilities exist in the image
-    command = (
-        "--quiet image --exit-code 1 --severity "
-        + ",".join(constants.UNACCEPTABLE_VULNS)
-        + " --format json --light --input "
-        + working_dir
-        + file_name
-    )
-    utils.opinionated_docker_run(
-        image=scanner, command=command, volumes=volumes, expected_exit=0
-    )
-    num_tests_ran += 1
-
-    LOG.info("%s passed %d security tests", image, num_tests_ran)
+    LOG.info("%s passed the security tests", image)

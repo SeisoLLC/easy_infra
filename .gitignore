@@ -7,8 +7,9 @@ functions
 # Ignore .terraform.lock.hcl files
 .terraform.lock.hcl
 
-# Ignore generated SBOM files
-**/sbom.*.spdx.json
+# Ignore generated artifacts
+**/sbom.*.json
+**/vulns.*.json
 
 
 # Created by https://www.toptal.com/developers/gitignore/api/vim,macos,python,terraform

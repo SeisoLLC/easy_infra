@@ -1,12 +1,11 @@
-import os
-import re
 import sys
 from logging import getLogger
 from pathlib import Path
 
 import docker
+import git
 import requests
-from easy_infra import constants
+from easy_infra import __version__, constants
 from jinja2 import Environment, FileSystemLoader
 from yaml import YAMLError, dump, safe_load
 
@@ -121,34 +120,6 @@ def update_config_file(*, thing: str, version: str):
     write_config(config=config)
 
 
-def update_container_security_scanner(
-    *, image: str, tag: str, file_name: str = "easy_infra/constants.py"
-) -> None:
-    """Update the security scanner used in tests"""
-    file_object = Path(file_name)
-    pattern = re.compile(fr'^CONTAINER_SECURITY_SCANNER = "{image}:.+"$\n')
-    final_content = []
-
-    # Validate
-    if not file_object.is_file():
-        LOG.error("%s is not a valid file", file_name)
-        sys.exit(1)
-
-    # Extract
-    with open(file_object) as file:
-        file_contents = file.readlines()
-
-    # Transform
-    for line in file_contents:
-        if pattern.fullmatch(line):
-            line = f'CONTAINER_SECURITY_SCANNER = "{image}:{tag}"\n'
-        final_content.append(line)
-
-    # Load
-    with open(file_object, "w") as file:
-        file.writelines(final_content)
-
-
 def opinionated_docker_run(
     *,
     command: str,
@@ -208,25 +179,19 @@ def is_status_expected(*, expected: int, response: dict) -> bool:
     return True
 
 
-def write_docker_image(*, image: str, file_name: str) -> Path:
-    """Write the docker image to a file; returns path to the file"""
-    temp_dir = Path(".").joinpath("tests").joinpath("tmp").absolute()
+def get_artifact_labels(*, variant: str) -> list[str]:
+    """For the provided variant of easy_infra, return a list of labels to use in the related artifacts"""
+    cwd = Path(".").absolute()
+    repo = git.Repo(cwd)
+    commit_hash = repo.head.object.hexsha
+    commit_hash_short = repo.git.rev_parse(commit_hash, short=True)
 
-    if os.environ.get("GITHUB_ACTIONS") == "true":
-        if os.environ.get("RUNNER_TEMP"):
-            # Update the temp_dir if a temporary directory is indicated by the
-            # environment
-            temp_dir = Path(str(os.environ.get("RUNNER_TEMP"))).absolute()
-        else:
-            LOG.warning(
-                "Unable to determine the context due to inconsistent environment variables, falling back to %s",
-                str(temp_dir),
-            )
+    artifact_labels = [f"{variant}.{commit_hash_short}"]
 
-    image_file = temp_dir.joinpath(file_name)
-    raw_image = CLIENT.images.get(image).save(named=True)
-    with open(image_file, "wb") as file:
-        for chunk in raw_image:
-            file.write(chunk)
+    if (
+        f"v{__version__}" in repo.tags
+        and repo.tags[f"v{__version__}"].commit.hexsha == commit_hash
+    ):
+        artifact_labels.append(f"{variant}.v{__version__}")
 
-    return image_file
+    return artifact_labels
