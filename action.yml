@@ -2,7 +2,7 @@ name: 'Easy Infra[structure as Code]'
 description: 'A docker container to simplify and secure the use of Infrastructure as Code (IaC)'
 inputs:
   command:
-    description: 'Command to pass to and execute within the Docker container.'
+    description: 'Command to execute within the Docker container.'
     required: true
     default: 'terraform validate'
 runs:
