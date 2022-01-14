@@ -7,6 +7,6 @@ inputs:
     default: 'terraform validate'
 runs:
   using: 'docker'
-  image: 'docker://docker.io/seiso:easy_infra:latest'
+  image: 'docker://docker.io/seiso/easy_infra:latest'
   args:
     - ${{ inputs.command }}
