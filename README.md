@@ -69,4 +69,4 @@ docker run -e LOG_LEVEL=DEBUG -v $(pwd):/iac seiso/easy_infra terraform validate
 
 ### Automation with GitHub Actions
 
-A basic GitHub action defaults to passing command `terraform validate` to the container. This command is optional to allow using non-Terraform actions as well. 
+A basic GitHub action defaults to passing command `terraform validate` to the container. This command is optional to allow using non-Terraform actions as well.
