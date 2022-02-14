@@ -4,7 +4,9 @@
    contain the root `toctree` directive.
 
 
-.. mdinclude:: ../README.md
+.. mdinclude:: 
+   ../README.md
+   backlog.md
 
 .. toctree::
    Home <self>
