@@ -3,7 +3,7 @@ description: 'A docker container to simplify and secure the use of Infrastructur
 inputs:
   command:
     description: 'Command to execute within the Docker container.'
-    required: true
+    required: false
     default: 'terraform validate'
 runs:
   using: 'docker'
