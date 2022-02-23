@@ -5,7 +5,7 @@ inputs:
   command:
     description: 'Command to execute within the Docker container.'
     required: false
-    default: 'terraform validate'
+    default: terraform validate
 runs:
   using: 'docker'
   image: 'docker://docker.io/seiso/easy_infra:latest'
