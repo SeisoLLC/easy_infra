@@ -1041,7 +1041,8 @@ def run_cli(*, image: str):
 def run_security(*, image: str, variant: str):
     """Run the security tests"""
     artifact_labels = utils.get_artifact_labels(variant=variant)
-    label = artifact_labels[0]
+    # This assumes that the last element in the list is versioned, if it is a release
+    label = artifact_labels[-1]
     sbom_file = Path(f"sbom.{label}.json")
 
     if not sbom_file:
