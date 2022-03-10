@@ -292,8 +292,8 @@ def sbom(_c, stage="all", debug=False):
     variants = process_stages(stage=stage)
 
     for variant in variants:
-        versioned_tag = CONTEXT[variant]["buildargs"]["VERSION"]
-        image_and_tag = f"{constants.IMAGE}:{versioned_tag}"
+        latest_tag = CONTEXT[variant]["buildargs"]["VERSION"]
+        image_and_tag = f"{constants.IMAGE}:{latest_tag}"
 
         try:
             artifact_labels = utils.get_artifact_labels(variant=variant)

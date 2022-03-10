@@ -180,7 +180,10 @@ def is_status_expected(*, expected: int, response: dict) -> bool:
 
 
 def get_artifact_labels(*, variant: str) -> list[str]:
-    """For the provided variant of easy_infra, return a list of labels to use in the related artifacts"""
+    """
+    For the provided variant of easy_infra, return a list of labels to use in the related artifacts
+    The last element in the returned list MUST be the versioned label, if a release is detected
+    """
     cwd = Path(".").absolute()
     repo = git.Repo(cwd)
     commit_hash = repo.head.object.hexsha
@@ -192,6 +195,7 @@ def get_artifact_labels(*, variant: str) -> list[str]:
         f"v{__version__}" in repo.tags
         and repo.tags[f"v{__version__}"].commit.hexsha == commit_hash
     ):
+        # Release detected; appending a versioned artifact label
         artifact_labels.append(f"{variant}.v{__version__}")
 
     return artifact_labels
