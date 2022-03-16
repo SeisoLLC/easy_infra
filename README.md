@@ -1,4 +1,8 @@
-<p align="center"><img src="_static/easy_infra.png" alt="Easy Infra" width="15%" /></p>
+<p align="center">
+
+  ![](docs/_static/easy_infra.png)
+
+</p>
 
 easy_infra is a docker container that simplifies and secures Infrastructure as Code deployments.
 
