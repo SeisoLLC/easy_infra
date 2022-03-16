@@ -43,10 +43,14 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 # The theme to use for HTML and HTML Help pages.  See the documentation for a list of builtin themes.
 html_theme = "sphinx_rtd_theme"
 
+# A dictionary of options that influence the look and feel of the selected theme. These are theme-specific. For the options understood by the builtin
+# themes, see this section.
+html_theme_options = {"logo_only": True}
+
 # Add any paths that contain custom static files (such as style sheets) here, relative to this directory. They are copied after the builtin static
 # files, so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
 
 # If given, this must be the name of an image file (path relative to the configuration directory) that is the logo of the docs. It is placed at the
 # top of the sidebar; its width should therefore not exceed 200 pixels. Default: None.
-html_logo = "_static/easy_infra.jpg"
+html_logo = "_static/easy_infra.png"
