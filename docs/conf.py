@@ -18,7 +18,7 @@
 # -- Project information -----------------------------------------------------
 
 project = "easy_infra"
-copyright = "2021, Seiso, LLC"
+copyright = "2022, Seiso, LLC"
 author = "Jon Zeolla"
 
 # The full version, including alpha/beta/rc tags
