@@ -45,7 +45,7 @@ html_theme = "sphinx_rtd_theme"
 
 # A dictionary of options that influence the look and feel of the selected theme. These are theme-specific. For the options understood by the builtin
 # themes, see this section.
-html_theme_options = {"logo_only": True}
+html_theme_options = {"logo_only": True, "style_nav_header_background": "#FFFFFF"}
 
 # Add any paths that contain custom static files (such as style sheets) here, relative to this directory. They are copied after the builtin static
 # files, so a file named "default.css" will overwrite the builtin "default.css".
