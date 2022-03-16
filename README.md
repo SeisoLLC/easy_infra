@@ -1,4 +1,4 @@
-<h1 align="center">Easy Infra[structure as Code]</h1>
+<h1 align="center"><img src="assets/img/easy_infra.png" alt="Easy Infra" width="15%" /></h1>
 
 easy_infra is a docker container that simplifies and secures Infrastructure as Code deployments.
 
