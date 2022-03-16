@@ -1,10 +1,9 @@
-<p align="center"><img src="_static/easy_infra2.png" alt="Easy Infra" width="15%" /></p>
-
-easy_infra is a docker container that simplifies and secures Infrastructure as Code deployments.
+<h1 align="center">Easy Infra[structure as Code]</h1>
 
 ## Getting Started
 
-easy_infra runs security scans in response to any Ansible or Terraform command.  It supports three main use cases:
+easy_infra is a docker container that simplifies and secures Infrastructure as Code deployments by running security scans prior to running IaC tools.
+It supports three main use cases:
 
 1. **Experimentation** by supporting interactive use and secure troubleshooting.
 1. **Continuous Integration** as a part of Pull/Merge Request validation.
