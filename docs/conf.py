@@ -42,6 +42,10 @@ templates_path = ["_templates"]
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
+# Parse relative links into ref and doc directives; implementation in
+# https://github.com/CrossNox/m2r2/blob/b47d195275d39201c6bd0da4c26acbae28fcbcb9/m2r2.py#L402
+m2r_parse_relative_links= True
+
 
 # -- Options for HTML output -------------------------------------------------
 
