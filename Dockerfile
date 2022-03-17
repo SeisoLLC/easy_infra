@@ -41,6 +41,7 @@ RUN groupadd --gid 53150 -r easy_infra \
                                                time \
                                                tini \
                                                unzip \
+ && apt-get -y upgrade \
  && python3 -m pip install --upgrade --no-cache-dir pip \
  && su - easy_infra -c "pip install --user --no-cache-dir checkov==${CHECKOV_VERSION}" \
  && echo "export PATH=/home/easy_infra/.local/bin:${PATH}" >> /home/easy_infra/.bashrc \
