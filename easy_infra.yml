@@ -69,9 +69,9 @@ commands:
     version: v1.8.13
     version_argument: --version
   kics:
+    allow_update: false
     version: v1.5.1
     version_argument: version
-    allow_update: false
   packer:
     version: 1.8.0
     version_argument: version

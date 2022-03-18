@@ -117,6 +117,11 @@ def update_config_file(*, thing: str, version: str):
 
     config = parse_config(config_file=constants.CONFIG_FILE)
     allow_update = config["commands"][thing].get("allow_update", True)
+    current_version = config["commands"][thing]["version"]
+
+    if version == current_version:
+        LOG.debug(f'No new versions have been detected for {thing}')
+        return
 
     if not allow_update:
         LOG.warning(f'Not updating {thing} to version {version} because allow_update is set to false')
