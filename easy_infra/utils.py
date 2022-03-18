@@ -120,15 +120,17 @@ def update_config_file(*, thing: str, version: str):
     current_version = config["commands"][thing]["version"]
 
     if version == current_version:
-        LOG.debug(f'No new versions have been detected for {thing}')
+        LOG.debug(f"No new versions have been detected for {thing}")
         return
 
     if not allow_update:
-        LOG.warning(f'Not updating {thing} to version {version} because allow_update is set to false')
+        LOG.warning(
+            f"Not updating {thing} to version {version} because allow_update is set to false"
+        )
         return
 
     config["commands"][thing]["version"] = version
-    LOG.info(f'Updating {thing} to version {version}')
+    LOG.info(f"Updating {thing} to version {version}")
     write_config(config=config)
 
 
