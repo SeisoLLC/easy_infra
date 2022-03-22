@@ -19,9 +19,9 @@ jobs:
         run: |
           python -m pip install --upgrade pipenv
           pipenv install --dev
-      - name: Build the image
+      - name: Update the repository
         run: pipenv run invoke update
-      - name: Create Pull Request
+      - name: Create or update a pull request
         uses: peter-evans/create-pull-request@v3
         with:
           title: Automated update to primary components
