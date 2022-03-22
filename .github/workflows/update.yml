@@ -1,0 +1,30 @@
+---
+name: "Update"
+
+on:
+  schedule:
+    - cron: '17 3 * * *'
+
+jobs:
+  update:
+    name: Update
+    runs-on: Ubuntu-20.04
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: "3.9"
+      - name: Install the dependencies
+        run: |
+          python -m pip install --upgrade pipenv
+          pipenv install --dev
+      - name: Build the image
+        run: pipenv run invoke update
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v3
+        with:
+          title: Automated update to primary components
+          committer: Seiso Automation <automation@seisollc.com>
+          author: Seiso Automation <automation@seisollc.com>
+          delete-branch: true
