@@ -25,6 +25,7 @@ jobs:
         uses: peter-evans/create-pull-request@v3
         with:
           title: Automated update to primary components
+          commit-message: Automated update to primary components
           committer: Seiso Automation <automation@seisollc.com>
-          author: Seiso Automation <automation@seisollc.com>
           delete-branch: true
+          signoff: true
