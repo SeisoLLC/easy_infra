@@ -3,7 +3,7 @@ name: "Update"
 
 on:
   schedule:
-    - cron: '17 3 * * *'
+    - cron: '17 4 * * 1,4'
 
 jobs:
   update:
@@ -22,7 +22,7 @@ jobs:
       - name: Update the repository
         run: pipenv run invoke update
       - name: Create or update a pull request
-        uses: peter-evans/create-pull-request@v3
+        uses: peter-evans/create-pull-request@v4
         with:
           title: Automated update to primary components
           commit-message: Automated update to primary components
