@@ -12,7 +12,7 @@ OUTPUT_FILE = Path("functions").absolute()
 JINJA2_FILE = Path("functions.j2").absolute()
 LOG_DEFAULT = "INFO"
 IMAGE = f"seiso/{__project_name__}"
-VARIANTS = ["minimal", "aws", "az", "final"]
+VARIANTS = ["minimal", "aws", "az", "all"]
 
 LOG_FORMAT = json.dumps(
     {

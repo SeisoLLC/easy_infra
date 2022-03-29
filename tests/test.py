@@ -226,7 +226,7 @@ def exec_tests(
     return num_tests_ran
 
 
-def run_terraform(*, image: str, final: bool = False):
+def run_terraform(*, image: str, all: bool = False):
     """Run the terraform tests"""
     num_tests_ran = 0
     working_dir = "/iac/"
@@ -579,7 +579,7 @@ def run_terraform(*, image: str, final: bool = False):
     # following files, and should have 4 logs lines in the fluent bit log
     # regardless of which image is being tested
     files = ["/tmp/kics_complete"]
-    if final:
+    if all:
         files.append("/tmp/tfsec_complete")
         files.append("/tmp/terrascan_complete")
         files.append("/tmp/checkov_complete")
@@ -621,7 +621,7 @@ def run_terraform(*, image: str, final: bool = False):
     # following files, and should have 4 logs lines in the fluent bit log
     # regardless of which image is being tested
     files = ["/tmp/kics_complete"]
-    if final:
+    if all:
         files.append("/tmp/tfsec_complete")
         files.append("/tmp/terrascan_complete")
         files.append("/tmp/checkov_complete")
@@ -660,7 +660,7 @@ def run_terraform(*, image: str, final: bool = False):
         cmd='/bin/bash -c "terraform version"', tty=False
     )
     files = ["/tmp/kics_complete"]
-    if final:
+    if all:
         files.append("/tmp/tfsec_complete")
         files.append("/tmp/terrascan_complete")
         files.append("/tmp/checkov_complete")
@@ -676,7 +676,7 @@ def run_terraform(*, image: str, final: bool = False):
 
     num_tests_ran += num_successful_tests
 
-    if not final:
+    if not all:
         LOG.info("%s passed %d end to end terraform tests", image, num_tests_ran)
         return
 

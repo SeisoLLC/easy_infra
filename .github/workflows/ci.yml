@@ -25,7 +25,7 @@ jobs:
     runs-on: Ubuntu-20.04
     strategy:
       matrix:
-        stage: ["minimal", "aws", "az", "final"]
+        stage: ["minimal", "aws", "az", "all"]
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v2
@@ -70,7 +70,7 @@ jobs:
       - Test
     strategy:
       matrix:
-        stage: ["minimal", "aws", "az", "final"]
+        stage: ["minimal", "aws", "az", "all"]
     if: ${{ github.event_name == 'push' }}
     steps:
       - name: Checkout the repository
@@ -95,7 +95,7 @@ jobs:
         uses: sigstore/cosign-installer@main
       - name: Sign the image
         run:
-          if [[ "${STAGE}" == "final" ]]; then
+          if [[ "${STAGE}" == "all" ]]; then
             tag="latest" ;
           else
             tag="latest-${STAGE}" ;

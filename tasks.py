@@ -36,7 +36,7 @@ for VARIANT in constants.VARIANTS:
     CONTEXT[VARIANT]["buildargs"] = {"COMMIT_HASH": COMMIT_HASH}
 
     # Latest tag
-    if VARIANT == "final":
+    if VARIANT == "all":
         CONTEXT[VARIANT]["latest_tag"] = "latest"
     else:
         CONTEXT[VARIANT]["latest_tag"] = f"latest-{VARIANT}"
@@ -46,7 +46,7 @@ for VARIANT in constants.VARIANTS:
         f"v{__version__}" in REPO.tags
         and REPO.tags[f"v{__version__}"].commit.hexsha == COMMIT_HASH
     ):
-        if VARIANT == "final":
+        if VARIANT == "all":
             CONTEXT[VARIANT]["buildargs"] = {
                 "VERSION": __version__,
             }
@@ -55,7 +55,7 @@ for VARIANT in constants.VARIANTS:
                 "VERSION": f"{__version__}-{VARIANT}",
             }
     else:
-        if VARIANT == "final":
+        if VARIANT == "all":
             CONTEXT[VARIANT]["buildargs"] = {
                 "VERSION": f"{__version__}-{COMMIT_HASH_SHORT}",
             }
@@ -366,14 +366,14 @@ def test(_c, stage="all", debug=False):
             run_test.run_terraform(image=image_and_tag)
             run_test.run_ansible(image=image_and_tag)
             run_test.run_security(image=image_and_tag, variant=variant)
-        elif variant == "final":
+        elif variant == "all":
             run_test.run_path_check(image=image_and_tag)
             run_test.version_arguments(
                 image=image_and_tag,
                 volumes=default_volumes,
                 working_dir=default_working_dir,
             )
-            run_test.run_terraform(image=image_and_tag, final=True)
+            run_test.run_terraform(image=image_and_tag, all=True)
             run_test.run_ansible(image=image_and_tag)
             run_test.run_cli(image=image_and_tag)
             run_test.run_security(image=image_and_tag, variant=variant)
@@ -464,8 +464,14 @@ def clean(_c, debug=False):
     if debug:
         getLogger().setLevel("DEBUG")
 
-    for sbom_files in CWD.glob("sbom.*.json"):
-        sbom_files.unlink()
+    cleanup_list = []
+    cleanup_list.extend(list(CWD.glob("**/.mypy_cache")))
+    cleanup_list.extend(list(CWD.glob("**/*.pyc")))
+    cleanup_list.extend(list(CWD.glob("sbom.*.json")))
+    cleanup_list.extend(list(CWD.glob("vulns.*.json")))
 
-    for vuln_scan_files in CWD.glob("vulns.*.json"):
-        vuln_scan_files.unlink()
+    for item in cleanup_list:
+        if item.is_dir():
+            shutil.rmtree(item)
+        elif item.is_dir():
+            item.unlink()

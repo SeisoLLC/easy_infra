@@ -156,7 +156,7 @@ RUN curl -L https://awscli.amazonaws.com/awscli-exe-linux-x86_64-${AWS_CLI_VERSI
 USER easy_infra
 
 
-FROM minimal AS final
+FROM minimal AS all
 
 USER root
 # binary downloads and pip installs
