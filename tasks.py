@@ -493,7 +493,7 @@ def tag(_c, push=False, debug=False):
             "HEAD does not appear to be a release; pulling the remote main branch..."
         )
         remote.pull("main")
-        LOG.info("Completed a git pull")
+        LOG.debug("Completed a git pull")
         head_commit_message = REPO.head.commit.message
 
         if not head_commit_message.startswith("Bump version: "):
