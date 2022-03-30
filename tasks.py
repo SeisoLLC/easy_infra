@@ -436,8 +436,8 @@ def publish(_c, tag, stage="all", debug=False):
     if debug:
         getLogger().setLevel("DEBUG")
 
-    if tag not in ["latest", "release"]:
-        LOG.error("Please provide a tag of either latest or release")
+    if tag not in ["main", "release"]:
+        LOG.error("Please provide a tag of either main or release")
         sys.exit(1)
     elif tag == "release":
         tag = __version__
@@ -445,15 +445,18 @@ def publish(_c, tag, stage="all", debug=False):
     variants = process_stages(stage=stage)
 
     for variant in variants:
-        if tag == "latest":
-            latest_tag = CONTEXT[variant]["latest_tag"]
-            image_and_tag = f"{constants.IMAGE}:{latest_tag}"
-        else:
-            versioned_tag = CONTEXT[variant]["buildargs"]["VERSION"]
-            image_and_tag = f"{constants.IMAGE}:{versioned_tag}"
+        # Always push the versioned tag (should already have a unique ID when appropriate)
+        versioned_tag = CONTEXT[variant]["buildargs"]["VERSION"]
+        image_and_tags = [f"{constants.IMAGE}:{versioned_tag}"]
 
-        LOG.info(f"Pushing {image_and_tag} to docker hub...")
-        CLIENT.images.push(repository=image_and_tag)
+        # Add the latest tag for merges into main
+        if tag == "main":
+            latest_tag = CONTEXT[variant]["latest_tag"]
+            image_and_tags.append(f"{constants.IMAGE}:{latest_tag}")
+
+        for image_and_tag in image_and_tags:
+            LOG.info(f"Pushing {image_and_tag} to docker hub...")
+            CLIENT.images.push(repository=image_and_tag)
 
     LOG.info(f"Done publishing all of the {tag} easy_infra Docker images")
 
