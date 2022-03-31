@@ -89,8 +89,8 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Publish the latest image to Docker Hub
-        run: pipenv run invoke publish latest --stage=${{ matrix.stage }}
+      - name: Publish the images to Docker Hub
+        run: pipenv run invoke publish main --stage=${{ matrix.stage }}
       - name: Install cosign
         uses: sigstore/cosign-installer@main
       - name: Sign the image
