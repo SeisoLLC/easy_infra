@@ -97,18 +97,13 @@ jobs:
         run: |
           version_tag=$(pipenv run python -c "from easy_infra import constants; \
                                               print(constants.CONTEXT['${STAGE}']['buildargs']['VERSION'])")
-          latest_tag=$(pipenv run python -c "from easy_infra import constants; \
-                                             print(constants.CONTEXT['${STAGE}']['latest_tag'])")
-          tags=("${version_tag}" "${latest_tag}")
-          for tag in "${tags[@]}"; do
-            DIGEST=$(docker manifest inspect --verbose "seiso/easy_infra:$tag" |
-                     jq -r '.Descriptor.digest')
-            echo -n "${COSIGN_PASSWORD}" |
-            cosign sign --key cosign.key   \
-              -a git_sha="${GITHUB_SHA}"   \
-              -a tag="${tag}"              \
-              "seiso/easy_infra@${DIGEST}"
-          done
+          DIGEST=$(docker manifest inspect --verbose "seiso/easy_infra:${version_tag}" |
+                   jq -r '.Descriptor.digest')
+          echo -n "${COSIGN_PASSWORD}" |
+          cosign sign --key cosign.key   \
+            -a git_sha="${GITHUB_SHA}"   \
+            -a tag="${version_tag}"      \
+            "seiso/easy_infra@${DIGEST}"
         env:
           COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
           STAGE: ${{ matrix.stage }}
