@@ -3,10 +3,10 @@ easy_infra constants
 """
 
 import json
-import git
-from typing import Union
 from pathlib import Path
+from typing import Union
 
+import git
 from easy_infra import __project_name__, __version__, utils
 
 CONFIG_FILE = Path(f"{__project_name__}.yml").absolute()
