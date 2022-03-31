@@ -20,49 +20,8 @@ from easy_infra import __project_name__, __version__, constants, utils
 from invoke import task
 from tests import test as run_test
 
-CWD = Path(".").absolute()
-REPO = git.Repo(CWD)
-COMMIT_HASH = REPO.head.object.hexsha
-COMMIT_HASH_SHORT = REPO.git.rev_parse(COMMIT_HASH, short=True)
-TESTS_PATH = CWD.joinpath("tests")
 LOG = getLogger(__project_name__)
 CLIENT = docker.from_env()
-CONFIG = utils.parse_config(config_file=constants.CONFIG_FILE)
-
-CONTEXT: dict[str, dict[str, Union[str, dict[str, str]]]] = {}
-
-for VARIANT in constants.VARIANTS:
-    CONTEXT[VARIANT] = {}
-    CONTEXT[VARIANT]["buildargs"] = {"COMMIT_HASH": COMMIT_HASH}
-
-    # Latest tag
-    if VARIANT == "final":
-        CONTEXT[VARIANT]["latest_tag"] = "latest"
-    else:
-        CONTEXT[VARIANT]["latest_tag"] = f"latest-{VARIANT}"
-
-    # Versioned tag
-    if (
-        f"v{__version__}" in REPO.tags
-        and REPO.tags[f"v{__version__}"].commit.hexsha == COMMIT_HASH
-    ):
-        if VARIANT == "final":
-            CONTEXT[VARIANT]["buildargs"] = {
-                "VERSION": __version__,
-            }
-        else:
-            CONTEXT[VARIANT]["buildargs"] = {
-                "VERSION": f"{__version__}-{VARIANT}",
-            }
-    else:
-        if VARIANT == "final":
-            CONTEXT[VARIANT]["buildargs"] = {
-                "VERSION": f"{__version__}-{COMMIT_HASH_SHORT}",
-            }
-        else:
-            CONTEXT[VARIANT]["buildargs"] = {
-                "VERSION": f"{__version__}-{VARIANT}-{COMMIT_HASH_SHORT}",
-            }
 
 basicConfig(level=constants.LOG_DEFAULT, format=constants.LOG_FORMAT)
 
@@ -145,7 +104,7 @@ def update(_c, debug=False):
     # Update the CI dependencies
     image = "python:3.9"
     working_dir = "/usr/src/app/"
-    volumes = {CWD: {"bind": working_dir, "mode": "rw"}}
+    volumes = {constants.CWD: {"bind": working_dir, "mode": "rw"}}
     CLIENT.images.pull(repository=image)
     command = '/bin/bash -c "python3 -m pip install --upgrade pipenv &>/dev/null && pipenv update"'
     utils.opinionated_docker_run(
@@ -170,7 +129,7 @@ def reformat(_c, debug=False):
     ]
     image = "seiso/goat:latest"
     working_dir = "/goat/"
-    volumes = {CWD: {"bind": working_dir, "mode": "rw"}}
+    volumes = {constants.CWD: {"bind": working_dir, "mode": "rw"}}
 
     LOG.info(f"Pulling {image}...")
     CLIENT.images.pull(image)
@@ -199,7 +158,7 @@ def lint(_c, debug=False):
     environment["INPUT_DISABLE_TERRASCAN"] = "true"
     environment["INPUT_DISABLE_MYPY"] = "true"
 
-    if REPO.is_dirty(untracked_files=True):
+    if constants.REPO.is_dirty(untracked_files=True):
         LOG.error("Linting requires a clean git directory to function properly")
         sys.exit(1)
 
@@ -211,7 +170,7 @@ def lint(_c, debug=False):
     image = "seiso/goat:latest"
     environment["RUN_LOCAL"] = True
     working_dir = "/goat/"
-    volumes = {CWD: {"bind": working_dir, "mode": "rw"}}
+    volumes = {constants.CWD: {"bind": working_dir, "mode": "rw"}}
 
     LOG.info(f"Pulling {image}...")
     CLIENT.images.pull(image)
@@ -237,35 +196,35 @@ def build(_c, stage="all", debug=False):
 
     utils.render_jinja2(
         template_file=constants.JINJA2_FILE,
-        config=CONFIG,
+        config=constants.CONFIG,
         output_file=constants.OUTPUT_FILE,
     )
 
     buildargs = {}
 
-    for command in CONFIG["commands"]:
-        if "version" in CONFIG["commands"][command]:
+    for command in constants.CONFIG["commands"]:
+        if "version" in constants.CONFIG["commands"][command]:
             # Normalize the build args
             arg = command.upper().replace("-", "_") + "_VERSION"
-            buildargs[arg] = CONFIG["commands"][command]["version"]
+            buildargs[arg] = constants.CONFIG["commands"][command]["version"]
 
     variants = process_stages(stage=stage)
 
     for variant in variants:
         # This pulls the appropriate latest image from Docker Hub to be used as a cache when building
-        latest_tag = CONTEXT[variant]["latest_tag"]
+        latest_tag = constants.CONTEXT[variant]["latest_tag"]
         image_and_latest_tag = f"{constants.IMAGE}:{latest_tag}"
         LOG.info(f"Pulling {image_and_latest_tag}...")
         CLIENT.images.pull(image_and_latest_tag)
 
-        buildargs.update(CONTEXT[variant]["buildargs"])
-        versioned_tag = CONTEXT[variant]["buildargs"]["VERSION"]
+        buildargs.update(constants.CONTEXT[variant]["buildargs"])
+        versioned_tag = constants.CONTEXT[variant]["buildargs"]["VERSION"]
         image_and_versioned_tag = f"{constants.IMAGE}:{versioned_tag}"
 
         LOG.info(f"Building {image_and_versioned_tag}...")
         try:
             image = CLIENT.images.build(
-                path=str(CWD),
+                path=str(constants.CWD),
                 target=variant,
                 rm=True,
                 tag=image_and_versioned_tag,
@@ -292,7 +251,7 @@ def sbom(_c, stage="all", debug=False):
     variants = process_stages(stage=stage)
 
     for variant in variants:
-        latest_tag = CONTEXT[variant]["buildargs"]["VERSION"]
+        latest_tag = constants.CONTEXT[variant]["buildargs"]["VERSION"]
         image_and_tag = f"{constants.IMAGE}:{latest_tag}"
 
         try:
@@ -342,13 +301,14 @@ def test(_c, stage="all", debug=False):
         getLogger().setLevel("DEBUG")
 
     default_working_dir = "/iac/"
-    default_volumes = {TESTS_PATH: {"bind": default_working_dir, "mode": "ro"}}
+    tests_path = constants.CWD.joinpath("tests")
+    default_volumes = {tests_path: {"bind": default_working_dir, "mode": "ro"}}
 
     variants = process_stages(stage=stage)
 
     for variant in variants:
         # Only test using the current, versioned tag of each variant
-        versioned_tag = CONTEXT[variant]["buildargs"]["VERSION"]
+        versioned_tag = constants.CONTEXT[variant]["buildargs"]["VERSION"]
         image_and_tag = f"{constants.IMAGE}:{versioned_tag}"
 
         LOG.info(f"Testing {image_and_tag}...")
@@ -390,7 +350,7 @@ def vulnscan(_c, stage="all", debug=False):
     variants = process_stages(stage=stage)
 
     for variant in variants:
-        latest_tag = CONTEXT[variant]["latest_tag"]
+        latest_tag = constants.CONTEXT[variant]["latest_tag"]
         image_and_tag = f"{constants.IMAGE}:{latest_tag}"
 
         LOG.debug(f"Running run_test.run_security(image={image_and_tag})...")
@@ -403,7 +363,7 @@ def release(_c, debug=False):
     if debug:
         getLogger().setLevel("DEBUG")
 
-    if REPO.head.is_detached:
+    if constants.REPO.head.is_detached:
         LOG.error("In detached HEAD state, refusing to release")
         sys.exit(1)
 
@@ -413,7 +373,7 @@ def release(_c, debug=False):
     pattern = re.compile(r"v2[0-1][0-9]{2}.(0[0-9]|1[0-2]).[0-9]{2}")
 
     # Identify and set the increment
-    for tag in reversed(REPO.tags):
+    for tag in reversed(constants.REPO.tags):
         if pattern.fullmatch(tag.name):
             latest_release = tag.name
             break
@@ -446,12 +406,12 @@ def publish(_c, tag, stage="all", debug=False):
 
     for variant in variants:
         # Always push the versioned tag (should already have a unique ID when appropriate)
-        versioned_tag = CONTEXT[variant]["buildargs"]["VERSION"]
+        versioned_tag = constants.CONTEXT[variant]["buildargs"]["VERSION"]
         image_and_tags = [f"{constants.IMAGE}:{versioned_tag}"]
 
         # Add the latest tag for merges into main
         if tag == "main":
-            latest_tag = CONTEXT[variant]["latest_tag"]
+            latest_tag = constants.CONTEXT[variant]["latest_tag"]
             image_and_tags.append(f"{constants.IMAGE}:{latest_tag}")
 
         for image_and_tag in image_and_tags:
@@ -467,8 +427,8 @@ def clean(_c, debug=False):
     if debug:
         getLogger().setLevel("DEBUG")
 
-    for sbom_files in CWD.glob("sbom.*.json"):
+    for sbom_files in constants.CWD.glob("sbom.*.json"):
         sbom_files.unlink()
 
-    for vuln_scan_files in CWD.glob("vulns.*.json"):
+    for vuln_scan_files in constants.CWD.glob("vulns.*.json"):
         vuln_scan_files.unlink()
