@@ -11,10 +11,8 @@ import sys
 from datetime import datetime
 from logging import basicConfig, getLogger
 from pathlib import Path
-from typing import Union
 
 import docker
-import git
 from bumpversion.cli import main as bumpversion
 from easy_infra import __project_name__, __version__, constants, utils
 from invoke import task
