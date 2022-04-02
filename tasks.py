@@ -472,3 +472,37 @@ def clean(_c, debug=False):
 
     for vuln_scan_files in CWD.glob("vulns.*.json"):
         vuln_scan_files.unlink()
+
+
+@task
+def tag(_c, push=False, debug=False):
+    """Tag a release commit"""
+    if debug:
+        getLogger().setLevel("DEBUG")
+
+    if REPO.is_dirty(untracked_files=True):
+        LOG.error("Tagging a release requires a clean git directory to avoid confusion")
+        sys.exit(1)
+
+    version_tag = f"v{__version__}"
+    head_commit_message = REPO.head.commit.message
+    remote = REPO.remote()
+
+    if not head_commit_message.startswith("Bump version: "):
+        LOG.warning(
+            "HEAD does not appear to be a release; pulling the remote main branch..."
+        )
+        remote.pull("main")
+        LOG.debug("Completed a git pull")
+        head_commit_message = REPO.head.commit.message
+
+        if not head_commit_message.startswith("Bump version: "):
+            LOG.error("HEAD still does not appear to be a release")
+            sys.exit(1)
+
+    LOG.info(f"Tagging the local repo with {version_tag}...")
+    REPO.create_tag(version_tag, message=head_commit_message)
+
+    if push:
+        LOG.info(f"Pushing the {version_tag} tag to GitHub...")
+        remote.push(version_tag)
