@@ -8,7 +8,8 @@
 
 ## Getting started
 
-Ensure you have `docker`, `git`, `pipenv`, and `python3` installed locally, and the `docker` daemon is running.
+Ensure you have `docker`, `git`, `pipenv`, and `python3` installed locally, and the `docker` daemon is running. Then run `pipenv install --deploy
+--ignore-pipfile --dev` to install the dependencies onto your local system.
 
 If you'd like to [run the test suite](#running-tests), you will also need `grype` downloaded and in your `PATH`.
 
