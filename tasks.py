@@ -438,13 +438,13 @@ def tag(_c, push=False, debug=False):
     if debug:
         getLogger().setLevel("DEBUG")
 
-    if REPO.is_dirty(untracked_files=True):
+    if constants.REPO.is_dirty(untracked_files=True):
         LOG.error("Tagging a release requires a clean git directory to avoid confusion")
         sys.exit(1)
 
     version_tag = f"v{__version__}"
-    head_commit_message = REPO.head.commit.message
-    remote = REPO.remote()
+    head_commit_message = constants.REPO.head.commit.message
+    remote = constants.REPO.remote()
 
     if not head_commit_message.startswith("Bump version: "):
         LOG.warning(
@@ -452,14 +452,14 @@ def tag(_c, push=False, debug=False):
         )
         remote.pull("main")
         LOG.debug("Completed a git pull")
-        head_commit_message = REPO.head.commit.message
+        head_commit_message = constants.REPO.head.commit.message
 
         if not head_commit_message.startswith("Bump version: "):
             LOG.error("HEAD still does not appear to be a release")
             sys.exit(1)
 
     LOG.info(f"Tagging the local repo with {version_tag}...")
-    REPO.create_tag(version_tag, message=head_commit_message)
+    constants.REPO.create_tag(version_tag, message=head_commit_message)
 
     if push:
         LOG.info(f"Pushing the {version_tag} tag to GitHub...")
