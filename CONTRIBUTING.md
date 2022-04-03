@@ -33,3 +33,16 @@ pipenv run invoke sbom
 ```
 
 You will now see various `sbom.*.json` files in your current directory.
+
+### Preparing a release
+
+```bash
+pipenv run invoke release
+# Manually inspect and then open a PR
+```
+
+### Tagging a release
+
+```bash
+pipenv run invoke tag --push
+```
