@@ -35,7 +35,7 @@ jobs:
       - name: Install the dependencies
         run: |
           python -m pip install --upgrade pipenv
-          pipenv install --dev
+          pipenv install --deploy --ignore-pipfile --dev
           mkdir "${RUNNER_TEMP}/bin"
           curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b "${RUNNER_TEMP}/bin"
           chmod +x "${RUNNER_TEMP}/bin/syft"
@@ -81,7 +81,7 @@ jobs:
       - name: Install the dependencies
         run: |
           python -m pip install --upgrade pipenv
-          pipenv install --dev
+          pipenv install --deploy --ignore-pipfile --dev
       - name: Build the image
         run: pipenv run invoke build --stage=${{ matrix.stage }}
       - name: Log in to Docker Hub
@@ -94,18 +94,15 @@ jobs:
       - name: Install cosign
         uses: sigstore/cosign-installer@main
       - name: Sign the image
-        run:
-          if [[ "${STAGE}" == "final" ]]; then
-            tag="latest" ;
-          else
-            tag="latest-${STAGE}" ;
-          fi ;
-          DIGEST=$(docker manifest inspect --verbose "seiso/easy_infra:$tag" |
-                   jq -r '.Descriptor.digest') ;
+        run: |
+          version_tag=$(pipenv run python -c "from easy_infra import constants; \
+                                              print(constants.CONTEXT['${STAGE}']['buildargs']['VERSION'])")
+          DIGEST=$(docker manifest inspect --verbose "seiso/easy_infra:${version_tag}" |
+                   jq -r '.Descriptor.digest')
           echo -n "${COSIGN_PASSWORD}" |
-          cosign sign --key cosign.key
-            -a git_sha="${GITHUB_SHA}"
-            -a tag="${tag}"
+          cosign sign --key cosign.key   \
+            -a git_sha="${GITHUB_SHA}"   \
+            -a tag="${version_tag}"      \
             "seiso/easy_infra@${DIGEST}"
         env:
           COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}

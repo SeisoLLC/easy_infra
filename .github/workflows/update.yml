@@ -18,7 +18,7 @@ jobs:
       - name: Install the dependencies
         run: |
           python -m pip install --upgrade pipenv
-          pipenv install --dev
+          pipenv install --deploy --ignore-pipfile --dev
       - name: Update the repository
         run: pipenv run invoke update
       - name: Create or update a pull request
