@@ -1,11 +1,5 @@
 # Contributing
 
-1. [Fork the repository](https://github.com/SeisoLLC/easy_infra/fork)
-1. Create a feature branch via `git checkout -b feature/description`
-1. Make your changes
-1. Commit your changes via `git commit -am 'Summarize the changes here'`
-1. Create a new pull request ([how-to](https://help.github.com/articles/creating-a-pull-request/))
-
 ## Getting started
 
 Ensure you have `docker`, `git`, `pipenv`, and `python3` installed locally, and the `docker` daemon is running. Then run `pipenv install --deploy
