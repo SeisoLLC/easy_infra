@@ -100,7 +100,7 @@ def update(_c, debug=False):
         utils.update_config_file(thing=package, version=version)
 
     # Update the CI dependencies
-    image = "python:3.9"
+    image = "python:3.10"
     working_dir = "/usr/src/app/"
     volumes = {constants.CWD: {"bind": working_dir, "mode": "rw"}}
     CLIENT.images.pull(repository=image)
