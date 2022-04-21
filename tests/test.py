@@ -294,23 +294,19 @@ def run_terraform(*, image: str, final: bool = False):
     )
     num_tests_ran += 1
 
-    # Ensure autodetect finds the appropriate terraform configs, which can be
-    # inferred by the number of logs written to /var/log/easy_infra.log
+    # Ensure autodetect finds the appropriate terraform configs, which can be inferred by the number of logs written to /var/log/easy_infra.log
     #
-    # This test requires LEARNING_MODE to be true because the autodetect
-    # functionality traverses into the testing sub-directories, including those
-    # which are purposefully insecure, which otherwise would exit non-zero
-    # early, resulting in a limited set of logs
+    # This test requires LEARNING_MODE to be true because the autodetect functionality traverses into the testing sub-directories, including those
+    # which are purposefully insecure, which otherwise would exit non-zero early, resulting in a limited set of logs.
     test_terraform_dir = tests_test_dir.joinpath("terraform")
-    # There is always one log for each security tool, regardless of if that
-    # tool is installed in the image being used.  If a tool is not in the PATH
-    # and executable, a log message indicating that is generated
-    LOG.debug("Testing autodetect mode")
+    # There is always one log for each security tool, regardless of if that tool is installed in the image being used.  If a tool is not in the PATH
+    # and executable, a log message indicating that is generated.
+    LOG.debug("Testing autodetect mode with LEARNING_MODE on")
     number_of_security_tools = len(CONFIG["commands"]["terraform"]["security"])
     number_of_testing_folders = len(
         [dir for dir in test_terraform_dir.iterdir() if dir.is_dir()]
     )
-    autodetect_environment = copy.deepcopy(informational_environment)
+    learning_mode_and_autodetect_environment = copy.deepcopy(informational_environment)
     for autodetect_status in ["true", "false"]:
         if autodetect_status == "true":
             expected_number_of_logs = (
@@ -320,14 +316,47 @@ def run_terraform(*, image: str, final: bool = False):
             expected_number_of_logs = number_of_security_tools
         test_log_length = f"if [[ $(wc -l /var/log/easy_infra.log | awk '{{print $1}}') != {expected_number_of_logs} ]]; then exit 1; fi"
         command = f'/bin/bash -c "terraform init -backend=false && {test_log_length}"'
-        autodetect_environment["AUTODETECT"] = autodetect_status
+        learning_mode_and_autodetect_environment["AUTODETECT"] = autodetect_status
         utils.opinionated_docker_run(
             image=image,
             volumes=terraform_autodetect_volumes,
             command=command,
-            environment=autodetect_environment,
+            environment=learning_mode_and_autodetect_environment,
             expected_exit=0,
         )
+        num_tests_ran += 1
+
+    # Ensure autodetect finds the appropriate terraform configs, which can be inferred by the number of logs written to /var/log/easy_infra.log
+    #
+    # This test ensure that, when DISABLE_SECURITY is true, the provided command is still run for each of the testing sub-directories.  It will exit
+    # non-zero on the first instance of a failed command, which should occur only when it encounters an invalid configuration.
+    test_terraform_dir = tests_test_dir.joinpath("terraform")
+    # There is always one log for each security tool, regardless of if that tool is installed in the image being used.  If a tool is not in the PATH
+    # and executable, a log message indicating that is generated.
+    LOG.debug("Testing autodetect mode with DISABLE_SECURITY on")
+    disable_security_environment = copy.deepcopy(environment)
+    disable_security_environment["DISABLE_SECURITY"] = "true"
+    disable_security_and_autodetect_environment = copy.deepcopy(
+        disable_security_environment
+    )
+    for autodetect_status in ["true", "false"]:
+        if autodetect_status == "true":
+            # number_of_* vars come from the above LEARNING_MODE test
+            expected_number_of_logs = (
+                number_of_security_tools * number_of_testing_folders
+            )  # TODO: Need to account for the order of the globbing here
+        else:
+            expected_number_of_logs = number_of_security_tools
+        test_log_length = f"if [[ $(wc -l /var/log/easy_infra.log | awk '{{print $1}}') != {expected_number_of_logs} ]]; then exit 1; fi"
+        command = f'/bin/bash -c "terraform init -backend=false && {test_log_length}"'
+        disable_security_and_autodetect_environment["AUTODETECT"] = autodetect_status
+        utils.opinionated_docker_run(
+            image=image,
+            volumes=terraform_autodetect_volumes,
+            command=command,
+            environment=disable_security_and_autodetect_environment,
+            expected_exit=1,
+        )  # The expected exit of 1 is due to invalid.tf
         num_tests_ran += 1
 
     # Ensure secure configurations pass
