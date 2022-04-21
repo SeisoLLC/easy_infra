@@ -49,24 +49,24 @@ commands:
   aws-cli:
     aliases:
     - aws
-    version: 2.5.0
+    version: 2.5.7
     version_argument: --version
   azure-cli:
     aliases:
     - az
-    version: 2.34.1-1~focal
+    version: 2.35.0-1~focal
     version_argument: version
   checkov:
-    version: 2.0.1008
+    version: 2.0.1075
     version_argument: --version
   consul-template:
-    version: v0.28.0
+    version: v0.29.0
     version_command: consul-template --version
   envconsul:
     version: v0.12.1
     version_command: envconsul --version
   fluent-bit:
-    version: v1.9.1
+    version: v1.9.2
     version_argument: --version
   kics:
     allow_update: false
@@ -79,13 +79,13 @@ commands:
     file_extensions: *id001
     security: *id002
     validation: *id003
-    version: 1.1.7
+    version: 1.1.9
     version_argument: version
   terrascan:
-    version: v1.13.2
+    version: v1.14.0
     version_argument: version
   terratag:
-    version: v0.1.35
+    version: v0.1.37
   tfenv:
     allow_filter:
     - match: exec
@@ -96,5 +96,5 @@ commands:
     version: v2.2.3
     version_argument: --version
   tfsec:
-    version: v1.15.1
+    version: v1.18.0
     version_argument: --version
