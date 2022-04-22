@@ -347,7 +347,7 @@ def run_terraform(*, image: str, final: bool = False):
             )  # TODO: Need to account for the order of the globbing here
         else:
             expected_number_of_logs = number_of_security_tools
-        test_log_length = f"if [[ $(wc -l /var/log/easy_infra.log | awk '{{print $1}}') != {expected_number_of_logs} ]]; then exit 1; fi"
+        test_log_length = f"if [[ $(wc -l /var/log/easy_infra.log | awk '{{print $1}}') != {expected_number_of_logs} ]]; then exit 2; fi"
         command = f'/bin/bash -c "terraform init -backend=false && {test_log_length}"'
         disable_security_and_autodetect_environment["AUTODETECT"] = autodetect_status
         utils.opinionated_docker_run(
