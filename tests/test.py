@@ -233,17 +233,17 @@ def run_terraform(*, image: str, final: bool = False):
     environment = {"TF_DATA_DIR": "/tmp"}
     tests_test_dir = TESTS_PATH
     tests_volumes = {tests_test_dir: {"bind": working_dir, "mode": "ro"}}
-    invalid_test_dir = TESTS_PATH.joinpath("terraform/invalid")
+    invalid_test_dir = TESTS_PATH.joinpath("terraform/general/invalid")
     invalid_volumes = {invalid_test_dir: {"bind": working_dir, "mode": "rw"}}
-    tfsec_test_dir = TESTS_PATH.joinpath("terraform/tfsec")
+    tfsec_test_dir = TESTS_PATH.joinpath("terraform/general/tfsec")
     tfsec_volumes = {tfsec_test_dir: {"bind": working_dir, "mode": "rw"}}
-    checkov_test_dir = TESTS_PATH.joinpath("terraform/checkov")
+    checkov_test_dir = TESTS_PATH.joinpath("terraform/tool/checkov")
     checkov_volumes = {checkov_test_dir: {"bind": working_dir, "mode": "rw"}}
-    terrascan_test_dir = TESTS_PATH.joinpath("terraform/terrascan")
+    terrascan_test_dir = TESTS_PATH.joinpath("terraform/tool/terrascan")
     terrascan_volumes = {terrascan_test_dir: {"bind": working_dir, "mode": "rw"}}
-    kics_config_dir = TESTS_PATH.joinpath("terraform/kics")
+    kics_config_dir = TESTS_PATH.joinpath("terraform/tool/kics")
     kics_volumes = {kics_config_dir: {"bind": working_dir, "mode": "rw"}}
-    secure_config_dir = TESTS_PATH.joinpath("terraform/secure")
+    secure_config_dir = TESTS_PATH.joinpath("terraform/general/secure")
     secure_volumes = {secure_config_dir: {"bind": working_dir, "mode": "rw"}}
     secure_volumes_with_log_config = copy.deepcopy(secure_volumes)
     fluent_bit_config_host = TESTS_PATH.joinpath("fluent-bit.outputs.conf")
@@ -255,6 +255,14 @@ def run_terraform(*, image: str, final: bool = False):
     terraform_autodetect_dir = TESTS_PATH.joinpath("terraform")
     terraform_autodetect_volumes = {
         terraform_autodetect_dir: {"bind": working_dir, "mode": "rw"}
+    }
+    terraform_general_autodetect_dir = terraform_autodetect_dir.joinpath("general")
+    terraform_general_autodetect_volumes = {
+        terraform_general_autodetect_dir: {"bind": working_dir, "mode": "rw"}
+    }
+    terraform_tool_autodetect_dir = terraform_autodetect_dir.joinpath("tool")
+    terraform_tool_autodetect_volumes = {
+        terraform_tool_autodetect_dir: {"bind": working_dir, "mode": "rw"}
     }
 
     # Base tests
@@ -333,10 +341,11 @@ def run_terraform(*, image: str, final: bool = False):
     # This test ensure that, when DISABLE_SECURITY is true, the provided command is still run for each of the testing sub-directories.  It will exit
     # non-zero on the first instance of a failed command, which should occur only when it encounters an invalid configuration.
     test_terraform_dir = tests_test_dir.joinpath("terraform")
+    test_terraform_general_dir = test_terraform_dir.joinpath("general")
     # There is always one log for each security tool, regardless of if that tool is installed in the image being used.  If a tool is not in the PATH
     # and executable, a log message indicating that is generated.
     number_of_security_tools = len(CONFIG["commands"]["terraform"]["security"])
-    testing_folders = [dir for dir in test_terraform_dir.iterdir() if dir.is_dir()]
+    testing_folders = [dir for dir in test_terraform_general_dir.iterdir() if dir.is_dir()]
     number_of_testing_folders = len(testing_folders)
     disable_security_environment = copy.deepcopy(environment)
     disable_security_status = "true"
@@ -344,35 +353,35 @@ def run_terraform(*, image: str, final: bool = False):
     disable_security_and_autodetect_environment = copy.deepcopy(
         disable_security_environment
     )
+    LOG.debug(
+        f"Testing the exit statuses based on various autodetect and disable security settings"
+    )
     for autodetect_status in ["true", "false"]:
         disable_security_and_autodetect_environment["AUTODETECT"] = autodetect_status
         if autodetect_status == "true":
             # Use the index of the 'invalid' folder as the expected number of logs, since it fails at invalid, and add one because indexes are
             # 0-indexed
-            invalid_dir = test_terraform_dir.joinpath('invalid')
+            invalid_dir = test_terraform_general_dir.joinpath("invalid")
             expected_number_of_logs = testing_folders.index(invalid_dir) + 1
         else:
             expected_number_of_logs = number_of_security_tools
 
-        LOG.debug(
-            f"Testing the exit statuses based on various autodetect and disable security settings"
-        )
         command = "terraform validate"
         if autodetect_status == "true":
-            # Expect exit 1 due to the discovery of terraform/invalid/invalid.tf
+            # Expect exit 1 due to the discovery of terraform/general/invalid/invalid.tf
             utils.opinionated_docker_run(
                 image=image,
                 command=command,
-                volumes=terraform_autodetect_volumes,
+                volumes=terraform_general_autodetect_volumes,
                 environment=disable_security_and_autodetect_environment,
                 expected_exit=1,
             )
         elif autodetect_status == "false":
-            # Expect exit 0 because the command is ran in terraform/ and doesn't discover subfolders
+            # Expect exit 0 because the command is ran in terraform/general and doesn't discover subfolders
             utils.opinionated_docker_run(
                 image=image,
                 command=command,
-                volumes=terraform_autodetect_volumes,
+                volumes=terraform_general_autodetect_volumes,
                 environment=disable_security_and_autodetect_environment,
                 expected_exit=0,
             )
@@ -488,7 +497,7 @@ def run_terraform(*, image: str, final: bool = False):
         ),  # Not supported; reproduce "Too many command line
         #     arguments. Configuration path expected." error locally with
         #     `docker run -e DISABLE_SECURITY=true -v
-        #     $(pwd)/tests/terraform/terrascan:/iac
+        #     $(pwd)/tests/terraform/tool/terrascan:/iac
         #     seiso/easy_infra:latest terraform plan \|\| false`, prefer
         #     passing the commands through bash like the following test
         (
@@ -874,9 +883,9 @@ def run_ansible(*, image: str):
     """Run the ansible-playbook tests"""
     num_tests_ran = 0
     working_dir = "/iac/"
-    kics_config_dir = TESTS_PATH.joinpath("ansible/kics")
+    kics_config_dir = TESTS_PATH.joinpath("ansible/tool/kics")
     kics_volumes = {kics_config_dir: {"bind": working_dir, "mode": "rw"}}
-    secure_config_dir = TESTS_PATH.joinpath("ansible/secure")
+    secure_config_dir = TESTS_PATH.joinpath("ansible/general/secure")
     secure_volumes = {secure_config_dir: {"bind": working_dir, "mode": "rw"}}
     secure_volumes_with_log_config = copy.deepcopy(secure_volumes)
     fluent_bit_config_host = TESTS_PATH.joinpath("fluent-bit.outputs.conf")
