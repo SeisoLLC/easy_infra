@@ -317,7 +317,7 @@ def run_terraform(*, image: str, final: bool = False):
         else:
             expected_number_of_logs = number_of_security_tools
         test_log_length = f"if [[ $(wc -l /var/log/easy_infra.log | awk '{{print $1}}') != {expected_number_of_logs} ]]; then exit 230; fi"
-        command = f'/bin/bash -c "terraform init -backend=false && {test_log_length}"'
+        command = f'/bin/bash -c "terraform validate && {test_log_length}"'
         learning_mode_and_autodetect_environment["AUTODETECT"] = autodetect_status
         utils.opinionated_docker_run(
             image=image,
@@ -336,9 +336,8 @@ def run_terraform(*, image: str, final: bool = False):
     # There is always one log for each security tool, regardless of if that tool is installed in the image being used.  If a tool is not in the PATH
     # and executable, a log message indicating that is generated.
     number_of_security_tools = len(CONFIG["commands"]["terraform"]["security"])
-    number_of_testing_folders = len(
-        [dir for dir in test_terraform_dir.iterdir() if dir.is_dir()]
-    )
+    testing_folders = [dir for dir in test_terraform_dir.iterdir() if dir.is_dir()]
+    number_of_testing_folders = len(testing_folders)
     disable_security_environment = copy.deepcopy(environment)
     disable_security_status = "true"
     disable_security_environment["DISABLE_SECURITY"] = disable_security_status
@@ -348,18 +347,17 @@ def run_terraform(*, image: str, final: bool = False):
     for autodetect_status in ["true", "false"]:
         disable_security_and_autodetect_environment["AUTODETECT"] = autodetect_status
         if autodetect_status == "true":
-            # TODO: Need to customize this
-            expected_number_of_logs = (
-                number_of_security_tools * number_of_testing_folders
-            )
+            # Use the index of the 'invalid' folder as the expected number of logs, since it fails at invalid, and add one because indexes are
+            # 0-indexed
+            invalid_dir = test_terraform_dir.joinpath('invalid')
+            expected_number_of_logs = testing_folders.index(invalid_dir) + 1
         else:
-            # TODO: Need to customize this
             expected_number_of_logs = number_of_security_tools
 
         LOG.debug(
-            f"Testing AUTODETECT={autodetect_status} and DISABLE_SECURITY={disable_security_status} exit statuses"
+            f"Testing the exit statuses based on various autodetect and disable security settings"
         )
-        command = "terraform init -backend=false"
+        command = "terraform validate"
         if autodetect_status == "true":
             # Expect exit 1 due to the discovery of terraform/invalid/invalid.tf
             utils.opinionated_docker_run(
@@ -392,7 +390,7 @@ def run_terraform(*, image: str, final: bool = False):
     #         # TODO: DO
     #         # Expect an exit 0 if the expected number of logs exist
     #         LOG.debug(
-    #             f"Testing AUTODETECT={autodetect_status} and DISABLE_SECURITY={disable_security_status} generate the correct number of logs when encountering invalid terraform"
+    #             f"Testing the number of logs generated based on various autodetect and disable security settings"
     #         )
     # #         utils.is_status_expected()
     #         test_log_length = f"if [[ $(wc -l /var/log/easy_infra.log | awk '{{print $1}}') != {expected_number_of_logs} ]]; then exit 230; fi"
