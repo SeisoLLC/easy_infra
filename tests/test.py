@@ -365,6 +365,7 @@ def run_terraform(*, image: str, final: bool = False):
             utils.opinionated_docker_run(
                 image=image,
                 command=command,
+                volumes=terraform_autodetect_volumes,
                 environment=disable_security_and_autodetect_environment,
                 expected_exit=1,
             )
@@ -373,6 +374,7 @@ def run_terraform(*, image: str, final: bool = False):
             utils.opinionated_docker_run(
                 image=image,
                 command=command,
+                volumes=terraform_autodetect_volumes,
                 environment=disable_security_and_autodetect_environment,
                 expected_exit=0,
             )
