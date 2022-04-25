@@ -301,20 +301,22 @@ def run_terraform(*, image: str, final: bool = False):
     test_terraform_dir = tests_test_dir.joinpath("terraform")
     # There is always one log for each security tool, regardless of if that tool is installed in the image being used.  If a tool is not in the PATH
     # and executable, a log message indicating that is generated.
-    LOG.debug("Testing autodetect mode with LEARNING_MODE on")
     number_of_security_tools = len(CONFIG["commands"]["terraform"]["security"])
     number_of_testing_folders = len(
         [dir for dir in test_terraform_dir.iterdir() if dir.is_dir()]
     )
     learning_mode_and_autodetect_environment = copy.deepcopy(informational_environment)
     for autodetect_status in ["true", "false"]:
+        LOG.debug(
+            f"Testing AUTODETECT={autodetect_status} with LEARNING_MODE={informational_environment['LEARNING_MODE']}"
+        )
         if autodetect_status == "true":
             expected_number_of_logs = (
                 number_of_security_tools * number_of_testing_folders
             )
         else:
             expected_number_of_logs = number_of_security_tools
-        test_log_length = f"if [[ $(wc -l /var/log/easy_infra.log | awk '{{print $1}}') != {expected_number_of_logs} ]]; then exit 1; fi"
+        test_log_length = f"if [[ $(wc -l /var/log/easy_infra.log | awk '{{print $1}}') != {expected_number_of_logs} ]]; then exit 230; fi"
         command = f'/bin/bash -c "terraform init -backend=false && {test_log_length}"'
         learning_mode_and_autodetect_environment["AUTODETECT"] = autodetect_status
         utils.opinionated_docker_run(
@@ -333,31 +335,88 @@ def run_terraform(*, image: str, final: bool = False):
     test_terraform_dir = tests_test_dir.joinpath("terraform")
     # There is always one log for each security tool, regardless of if that tool is installed in the image being used.  If a tool is not in the PATH
     # and executable, a log message indicating that is generated.
-    LOG.debug("Testing autodetect mode with DISABLE_SECURITY on")
+    number_of_security_tools = len(CONFIG["commands"]["terraform"]["security"])
+    number_of_testing_folders = len(
+        [dir for dir in test_terraform_dir.iterdir() if dir.is_dir()]
+    )
     disable_security_environment = copy.deepcopy(environment)
-    disable_security_environment["DISABLE_SECURITY"] = "true"
+    disable_security_status = "true"
+    disable_security_environment["DISABLE_SECURITY"] = disable_security_status
     disable_security_and_autodetect_environment = copy.deepcopy(
         disable_security_environment
     )
     for autodetect_status in ["true", "false"]:
+        disable_security_and_autodetect_environment["AUTODETECT"] = autodetect_status
         if autodetect_status == "true":
-            # number_of_* vars come from the above LEARNING_MODE test
+            # TODO: Need to customize this
             expected_number_of_logs = (
                 number_of_security_tools * number_of_testing_folders
-            )  # TODO: Need to account for the order of the globbing here
+            )
         else:
+            # TODO: Need to customize this
             expected_number_of_logs = number_of_security_tools
-        test_log_length = f"if [[ $(wc -l /var/log/easy_infra.log | awk '{{print $1}}') != {expected_number_of_logs} ]]; then exit 2; fi"
-        command = f'/bin/bash -c "terraform init -backend=false && {test_log_length}"'
-        disable_security_and_autodetect_environment["AUTODETECT"] = autodetect_status
-        utils.opinionated_docker_run(
-            image=image,
-            volumes=terraform_autodetect_volumes,
-            command=command,
-            environment=disable_security_and_autodetect_environment,
-            expected_exit=1,
-        )  # The expected exit of 1 is due to invalid.tf
+
+        LOG.debug(
+            f"Testing AUTODETECT={autodetect_status} and DISABLE_SECURITY={disable_security_status} exit statuses"
+        )
+        command = "terraform init -backend=false"
+        if autodetect_status == "true":
+            # Expect exit 1 due to the discovery of terraform/invalid/invalid.tf
+            utils.opinionated_docker_run(
+                image=image,
+                command=command,
+                environment=disable_security_and_autodetect_environment,
+                expected_exit=1,
+            )
+        elif autodetect_status == "false":
+            # Expect exit 0 because the command is ran in terraform/ and doesn't discover subfolders
+            utils.opinionated_docker_run(
+                image=image,
+                command=command,
+                environment=disable_security_and_autodetect_environment,
+                expected_exit=0,
+            )
+
         num_tests_ran += 1
+
+    #         test_nonint_autodetect_disable_security_container = CLIENT.containers.run(
+    #             image=image,
+    #             detach=True,
+    #             auto_remove=False,
+    #             tty=True,
+    #             volumes=disable_security_and_autodetect_environment,
+    #             environment=environment,
+    #         )
+    #         # TODO: DO
+    #         # Expect an exit 0 if the expected number of logs exist
+    #         LOG.debug(
+    #             f"Testing AUTODETECT={autodetect_status} and DISABLE_SECURITY={disable_security_status} generate the correct number of logs when encountering invalid terraform"
+    #         )
+    # #         utils.is_status_expected()
+    #         test_log_length = f"if [[ $(wc -l /var/log/easy_infra.log | awk '{{print $1}}') != {expected_number_of_logs} ]]; then exit 230; fi"
+    #         test_nonint_autodetect_disable_security_container.exec_run(
+    #             cmd=test_log_length, tty=False
+    #         )
+    #         if is_expected_file_length(container=test_nonint_autodetect_disable_security_container, log_path="/var/log/easy_infra.log", expected_log_length=expected_number_of_logs):
+    #             test_nonint_autodetect_disable_security_container.kill()
+    #         num_tests_ran += 1
+    #
+    #     # Check the container
+    #     if (
+    #         num_successful_tests := check_container(
+    #             container=test_noninteractive_container,
+    #             files=files,
+    #             files_expected_to_exist=True,
+    #             log_path="/tmp/fluent_bit.log",
+    #             expected_log_length=4,
+    #         )
+    #     ) == 0:
+    #         test_nonint_autodetect_disable_security_container.kill()
+    #         sys.exit(1)
+    #
+    #     test_nonint_autodetect_disable_security_container.kill()
+
+    num_tests_ran += num_successful_tests
 
     # Ensure secure configurations pass
     # Tests is a list of tuples containing the test environment, command, and
