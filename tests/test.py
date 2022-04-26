@@ -260,10 +260,6 @@ def run_terraform(*, image: str, final: bool = False):
     terraform_general_autodetect_volumes = {
         terraform_general_autodetect_dir: {"bind": working_dir, "mode": "rw"}
     }
-    terraform_tool_autodetect_dir = terraform_autodetect_dir.joinpath("tool")
-    terraform_tool_autodetect_volumes = {
-        terraform_tool_autodetect_dir: {"bind": working_dir, "mode": "rw"}
-    }
 
     # Base tests
     command = "./test.sh"
@@ -361,7 +357,7 @@ def run_terraform(*, image: str, final: bool = False):
         disable_security_environment
     )
     LOG.debug(
-        f"Testing the exit statuses based on various autodetect and disable security settings"
+        "Testing the exit statuses based on various autodetect and disable security settings"
     )
     for autodetect_status in ["true", "false"]:
         disable_security_and_autodetect_environment["AUTODETECT"] = autodetect_status
@@ -413,7 +409,8 @@ def run_terraform(*, image: str, final: bool = False):
     #         test_nonint_autodetect_disable_security_container.exec_run(
     #             cmd=test_log_length, tty=False
     #         )
-    #         if is_expected_file_length(container=test_nonint_autodetect_disable_security_container, log_path="/var/log/easy_infra.log", expected_log_length=expected_number_of_logs):
+    #         if is_expected_file_length(container=test_nonint_autodetect_disable_security_container,
+    # CONTINUED: log_path="/var/log/easy_infra.log", expected_log_length=expected_number_of_logs):
     #             test_nonint_autodetect_disable_security_container.kill()
     #         num_tests_ran += 1
     #
