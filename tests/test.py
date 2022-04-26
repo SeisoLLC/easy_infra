@@ -344,9 +344,6 @@ def run_terraform(*, image: str, final: bool = False):
     # non-zero on the first instance of a failed command, which should occur only when it encounters an invalid configuration.
     test_terraform_dir = tests_test_dir.joinpath("terraform")
     test_terraform_general_dir = test_terraform_dir.joinpath("general")
-    # There is always one log for each security tool, regardless of if that tool is installed in the image being used.  If a tool is not in the PATH
-    # and executable, a log message indicating that is generated.
-    number_of_security_tools = len(CONFIG["commands"]["terraform"]["security"])
     general_testing_folders = [
         dir for dir in test_terraform_general_dir.iterdir() if dir.is_dir()
     ]
@@ -397,7 +394,9 @@ def run_terraform(*, image: str, final: bool = False):
             invalid_dir = test_terraform_general_dir.joinpath("invalid")
             expected_number_of_logs = general_testing_folders.index(invalid_dir) + 1
         else:
-            expected_number_of_logs = number_of_security_tools
+            # If DISABLE_SECURITY is true, only one log is generated per folder where the related command is run. Since AUTODETECT is false, the
+            # related command is only run in a single folder.
+            expected_number_of_logs = 1
 
         if (
             num_successful_tests := check_container(
