@@ -125,7 +125,9 @@ def check_container(
     if files:
         if (
             num_successful_tests := check_for_files(
-                container=container, files=files, expected_to_exist=files_expected_to_exist
+                container=container,
+                files=files,
+                expected_to_exist=files_expected_to_exist,
             )
         ) == 0:
             return 0
@@ -396,7 +398,6 @@ def run_terraform(*, image: str, final: bool = False):
             expected_number_of_logs = general_testing_folders.index(invalid_dir) + 1
         else:
             expected_number_of_logs = number_of_security_tools
-
 
         if (
             num_successful_tests := check_container(
