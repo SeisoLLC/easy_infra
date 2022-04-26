@@ -310,14 +310,19 @@ def run_terraform(*, image: str, final: bool = False):
     # There is always one log for each security tool, regardless of if that tool is installed in the image being used.  If a tool is not in the PATH
     # and executable, a log message indicating that is generated.
     number_of_security_tools = len(CONFIG["commands"]["terraform"]["security"])
-    number_of_testing_folders = len(
-        [dir for dir in test_terraform_dir.iterdir() if dir.is_dir()]
-    )
+    all_test_folders = [dir for dir in test_terraform_dir.rglob("*") if dir.is_dir()]
+    test_folders_containing_only_files = []
+    for directory in all_test_folders:
+        items_in_dir = directory.iterdir()
+        for item in items_in_dir:
+            if item.is_dir():
+                break
+        else:
+            test_folders_containing_only_files.append(directory)
+    number_of_testing_folders = len(test_folders_containing_only_files)
     learning_mode_and_autodetect_environment = copy.deepcopy(informational_environment)
+    LOG.debug("Testing LEARNING_MODE with various AUTODETECT configurations")
     for autodetect_status in ["true", "false"]:
-        LOG.debug(
-            f"Testing AUTODETECT={autodetect_status} with LEARNING_MODE={informational_environment['LEARNING_MODE']}"
-        )
         if autodetect_status == "true":
             expected_number_of_logs = (
                 number_of_security_tools * number_of_testing_folders
@@ -345,7 +350,9 @@ def run_terraform(*, image: str, final: bool = False):
     # There is always one log for each security tool, regardless of if that tool is installed in the image being used.  If a tool is not in the PATH
     # and executable, a log message indicating that is generated.
     number_of_security_tools = len(CONFIG["commands"]["terraform"]["security"])
-    testing_folders = [dir for dir in test_terraform_general_dir.iterdir() if dir.is_dir()]
+    testing_folders = [
+        dir for dir in test_terraform_general_dir.iterdir() if dir.is_dir()
+    ]
     number_of_testing_folders = len(testing_folders)
     disable_security_environment = copy.deepcopy(environment)
     disable_security_status = "true"
@@ -424,8 +431,7 @@ def run_terraform(*, image: str, final: bool = False):
     #         sys.exit(1)
     #
     #     test_nonint_autodetect_disable_security_container.kill()
-
-    num_tests_ran += num_successful_tests
+    #     num_tests_ran += num_successful_tests
 
     # Ensure secure configurations pass
     # Tests is a list of tuples containing the test environment, command, and

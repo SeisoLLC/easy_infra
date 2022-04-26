@@ -425,11 +425,27 @@ def clean(_c, debug=False):
     if debug:
         getLogger().setLevel("DEBUG")
 
-    for sbom_files in constants.CWD.glob("sbom.*.json"):
-        sbom_files.unlink()
+    cleanup_list = []
+    # OS files
+    cleanup_list.extend(list(constants.CWD.glob("**/.DS_Store")))
+    cleanup_list.extend(list(constants.CWD.glob("**/.Thumbs.db")))
 
-    for vuln_scan_files in constants.CWD.glob("vulns.*.json"):
-        vuln_scan_files.unlink()
+    # Terraform files
+    cleanup_list.extend(list(constants.CWD.glob("**/.terraform")))
+
+    # Python files
+    cleanup_list.extend(list(constants.CWD.glob("**/*.mypy_cache")))
+    cleanup_list.extend(list(constants.CWD.glob("**/*.pyc")))
+
+    # easy_infra specific files
+    cleanup_list.extend(list(constants.CWD.glob("sbom.*.json")))
+    cleanup_list.extend(list(constants.CWD.glob("vulns.*.json")))
+
+    for item in cleanup_list:
+        if item.is_dir():
+            shutil.rmtree(item)
+        elif item.is_file():
+            item.unlink()
 
 
 @task
