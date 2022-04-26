@@ -8,6 +8,7 @@ import subprocess
 import sys
 from logging import getLogger
 from pathlib import Path
+from typing import Union
 
 import docker
 from easy_infra import constants, utils
@@ -107,30 +108,28 @@ def is_expected_file_length(
 
 def check_container(
     container: docker.models.containers.Container,
-    files: list,
-    files_expected_to_exist: bool,
     log_path: str,
     expected_log_length: int,
+    files: Union[list, None] = None,
+    files_expected_to_exist: bool = True,
 ) -> int:
     """
     Checks a provided container for:
-    - Whether the provided files list exists as expected
+    - Whether the provided files list exists as expected (optional)
     - Whether the fluent bit log length is expected
 
     Returns 0 if any test fails, otherwise the number of successful tests
     """
     num_successful_tests = 0
 
-    if (
-        num_successful_tests := check_for_files(
-            container=container, files=files, expected_to_exist=files_expected_to_exist
-        )
-    ) == 0:
-        return 0
+    if files:
+        if (
+            num_successful_tests := check_for_files(
+                container=container, files=files, expected_to_exist=files_expected_to_exist
+            )
+        ) == 0:
+            return 0
 
-    # Should have one log for each security tool that easy_infra supports,
-    # regardless of if it was skipped, not installed, or whether it was
-    # interactive or not
     if not is_expected_file_length(
         container=container, log_path=log_path, expected_log_length=expected_log_length
     ):
@@ -346,10 +345,10 @@ def run_terraform(*, image: str, final: bool = False):
     # There is always one log for each security tool, regardless of if that tool is installed in the image being used.  If a tool is not in the PATH
     # and executable, a log message indicating that is generated.
     number_of_security_tools = len(CONFIG["commands"]["terraform"]["security"])
-    testing_folders = [
+    general_testing_folders = [
         dir for dir in test_terraform_general_dir.iterdir() if dir.is_dir()
     ]
-    number_of_testing_folders = len(testing_folders)
+    number_of_testing_folders = len(general_testing_folders)
     disable_security_environment = copy.deepcopy(environment)
     disable_security_status = "true"
     disable_security_environment["DISABLE_SECURITY"] = disable_security_status
@@ -357,78 +356,61 @@ def run_terraform(*, image: str, final: bool = False):
         disable_security_environment
     )
     LOG.debug(
-        "Testing the exit statuses based on various autodetect and disable security settings"
+        "Testing the exit statuses and the number of logs generated based on various autodetect and disable security settings"
     )
     for autodetect_status in ["true", "false"]:
         disable_security_and_autodetect_environment["AUTODETECT"] = autodetect_status
+        command = "terraform validate"
+
+        if autodetect_status == "true":
+            # Expect exit 1 due to the discovery of terraform/general/invalid/invalid.tf
+            expected_exit = 1
+        elif autodetect_status == "false":
+            # Expect exit 0 because the command is ran in terraform/general and doesn't discover subfolders
+            expected_exit = 0
+
+        utils.opinionated_docker_run(
+            image=image,
+            command=command,
+            volumes=terraform_general_autodetect_volumes,
+            environment=disable_security_and_autodetect_environment,
+            expected_exit=expected_exit,
+        )
+
+        num_tests_ran += 1
+
+        # Test the number of logs generated based on the current autodetect and disable security environment variables
+        test_autodetect_disable_security_container = CLIENT.containers.run(
+            image=image,
+            detach=True,
+            auto_remove=False,
+            tty=True,
+            volumes=terraform_general_autodetect_volumes,
+            environment=disable_security_and_autodetect_environment,
+        )
+
         if autodetect_status == "true":
             # Use the index of the 'invalid' folder as the expected number of logs, since it fails at invalid, and add one because indexes are
             # 0-indexed
             invalid_dir = test_terraform_general_dir.joinpath("invalid")
-            expected_number_of_logs = testing_folders.index(invalid_dir) + 1
+            expected_number_of_logs = general_testing_folders.index(invalid_dir) + 1
         else:
             expected_number_of_logs = number_of_security_tools
 
-        command = "terraform validate"
-        if autodetect_status == "true":
-            # Expect exit 1 due to the discovery of terraform/general/invalid/invalid.tf
-            utils.opinionated_docker_run(
-                image=image,
-                command=command,
-                volumes=terraform_general_autodetect_volumes,
-                environment=disable_security_and_autodetect_environment,
-                expected_exit=1,
-            )
-        elif autodetect_status == "false":
-            # Expect exit 0 because the command is ran in terraform/general and doesn't discover subfolders
-            utils.opinionated_docker_run(
-                image=image,
-                command=command,
-                volumes=terraform_general_autodetect_volumes,
-                environment=disable_security_and_autodetect_environment,
-                expected_exit=0,
-            )
 
-        num_tests_ran += 1
+        if (
+            num_successful_tests := check_container(
+                container=test_autodetect_disable_security_container,
+                log_path="/var/log/easy_infra.log",
+                expected_log_length=expected_number_of_logs,
+            )
+        ) == 0:
+            test_autodetect_disable_security_container.kill()
+            sys.exit(230)
 
-    #         test_nonint_autodetect_disable_security_container = CLIENT.containers.run(
-    #             image=image,
-    #             detach=True,
-    #             auto_remove=False,
-    #             tty=True,
-    #             volumes=disable_security_and_autodetect_environment,
-    #             environment=environment,
-    #         )
-    #         # TODO: DO
-    #         # Expect an exit 0 if the expected number of logs exist
-    #         LOG.debug(
-    #             f"Testing the number of logs generated based on various autodetect and disable security settings"
-    #         )
-    # #         utils.is_status_expected()
-    #         test_log_length = f"if [[ $(wc -l /var/log/easy_infra.log | awk '{{print $1}}') != {expected_number_of_logs} ]]; then exit 230; fi"
-    #         test_nonint_autodetect_disable_security_container.exec_run(
-    #             cmd=test_log_length, tty=False
-    #         )
-    #         if is_expected_file_length(container=test_nonint_autodetect_disable_security_container,
-    # CONTINUED: log_path="/var/log/easy_infra.log", expected_log_length=expected_number_of_logs):
-    #             test_nonint_autodetect_disable_security_container.kill()
-    #         num_tests_ran += 1
-    #
-    #     # Check the container
-    #     if (
-    #         num_successful_tests := check_container(
-    #             container=test_noninteractive_container,
-    #             files=files,
-    #             files_expected_to_exist=True,
-    #             log_path="/tmp/fluent_bit.log",
-    #             expected_log_length=4,
-    #         )
-    #     ) == 0:
-    #         test_nonint_autodetect_disable_security_container.kill()
-    #         sys.exit(1)
-    #
-    #     test_nonint_autodetect_disable_security_container.kill()
-    #     num_tests_ran += num_successful_tests
+        test_autodetect_disable_security_container.kill()
+
+        num_tests_ran += num_successful_tests
 
     # Ensure secure configurations pass
     # Tests is a list of tuples containing the test environment, command, and
@@ -679,10 +661,10 @@ def run_terraform(*, image: str, final: bool = False):
     # following files, and should have 4 logs lines in the fluent bit log
     # regardless of which image is being tested
     files = ["/tmp/kics_complete"]
+    files.append("/tmp/checkov_complete")
     if final:
         files.append("/tmp/tfsec_complete")
         files.append("/tmp/terrascan_complete")
-        files.append("/tmp/checkov_complete")
     LOG.debug("Testing interactive terraform commands")
 
     # Check the container
@@ -696,7 +678,7 @@ def run_terraform(*, image: str, final: bool = False):
         )
     ) == 0:
         test_interactive_container.kill()
-        sys.exit(1)
+        sys.exit(230)
 
     test_interactive_container.kill()
 
@@ -721,10 +703,10 @@ def run_terraform(*, image: str, final: bool = False):
     # following files, and should have 4 logs lines in the fluent bit log
     # regardless of which image is being tested
     files = ["/tmp/kics_complete"]
+    files.append("/tmp/checkov_complete")
     if final:
         files.append("/tmp/tfsec_complete")
         files.append("/tmp/terrascan_complete")
-        files.append("/tmp/checkov_complete")
     LOG.debug("Testing non-interactive terraform commands")
 
     # Check the container
@@ -738,7 +720,7 @@ def run_terraform(*, image: str, final: bool = False):
         )
     ) == 0:
         test_noninteractive_container.kill()
-        sys.exit(1)
+        sys.exit(230)
 
     test_noninteractive_container.kill()
 
@@ -760,10 +742,10 @@ def run_terraform(*, image: str, final: bool = False):
         cmd='/bin/bash -c "terraform version"', tty=False
     )
     files = ["/tmp/kics_complete"]
+    files.append("/tmp/checkov_complete")
     if final:
         files.append("/tmp/tfsec_complete")
         files.append("/tmp/terrascan_complete")
-        files.append("/tmp/checkov_complete")
     LOG.debug("Testing non-interactive terraform version")
     if (
         num_successful_tests := check_for_files(
@@ -1014,7 +996,7 @@ def run_ansible(*, image: str):
         )
     ) == 0:
         test_interactive_container.kill()
-        sys.exit(1)
+        sys.exit(230)
 
     test_interactive_container.kill()
 
@@ -1029,7 +1011,9 @@ def run_ansible(*, image: str):
         volumes=secure_volumes_with_log_config,
     )
 
-    # Running a non-interactive ansible-playbook command
+    # A non-interactive ansible-playbook command should cause the creation of
+    # the following files, and should have 1 log line in the fluent bit log
+    # regardless of which image is being tested
     test_noninteractive_container.exec_run(
         cmd='/bin/bash -c "ansible-playbook secure.yml --check"', tty=False
     )
@@ -1049,7 +1033,7 @@ def run_ansible(*, image: str):
         )
     ) == 0:
         test_noninteractive_container.kill()
-        sys.exit(1)
+        sys.exit(230)
 
     test_noninteractive_container.kill()
 
