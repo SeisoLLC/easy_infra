@@ -436,6 +436,7 @@ def clean(_c, debug=False):
     # Python files
     cleanup_list.extend(list(constants.CWD.glob("**/*.mypy_cache")))
     cleanup_list.extend(list(constants.CWD.glob("**/*.pyc")))
+    cleanup_list.extend(list(constants.CWD.glob("**/__pycache__")))
 
     # easy_infra specific files
     cleanup_list.extend(list(constants.CWD.glob("sbom.*.json")))
