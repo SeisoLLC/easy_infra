@@ -210,33 +210,21 @@ function {{ function }}() {
     # Allow piping of the version command into other commands
     command "${FUNCNAME[0]}" "${arguments[@]}"
     return $?
+  elif [[ "${security_skipped:-false}" == "argument" ]]; then
+    _feedback WARNING "Skipping all security checks for {{ function }} due to the --disable-security argument"
+    _log "easy_infra.stdouterr" info unknown "{{ function }}" "${dir}" string "All security checks for {{ function }} were skipped due to the --disable-security argument"
+    unset 'security_skipped'
+    command "${FUNCNAME[0]}" "${arguments[@]}"
+    return $?
+  elif [[ "${DISABLE_SECURITY,,}" == "true" ]]; then
+    _feedback WARNING "Skipping all security checks for {{ function }} due to the DISABLE_SECURITY environment variable value"
+    _log "easy_infra.stdouterr" info unknown "{{ function }}" "${dir}" string "All security checks for {{ function }} were skipped due to the DISABLE_SECURITY environment variable value"
+    command "${FUNCNAME[0]}" "${arguments[@]}"
+    return $?
   fi
 
   for dir in "${dirs[@]}"; do
     pushd "${dir}" > /dev/null
-
-    if [[ "${security_skipped:-false}" == "argument" ]]; then
-      _feedback WARNING "Skipping all security checks for {{ function }} due to the --disable-security argument"
-      _log "easy_infra.stdouterr" info unknown "{{ function }}" "${dir}" string "All security checks for {{ function }} were skipped due to the --disable-security argument"
-      unset 'security_skipped'
-      command "${FUNCNAME[0]}" "${arguments[@]}"
-      return=${?}
-      popd > /dev/null
-      if [[ ${return:-1} != 0 ]]; then
-        return "${return}"
-      fi
-      continue
-    elif [[ "${DISABLE_SECURITY,,}" == "true" ]]; then
-      _feedback WARNING "Skipping all security checks for {{ function }} due to the DISABLE_SECURITY environment variable value"
-      _log "easy_infra.stdouterr" info unknown "{{ function }}" "${dir}" string "All security checks for {{ function }} were skipped due to the DISABLE_SECURITY environment variable value"
-      command "${FUNCNAME[0]}" "${arguments[@]}"
-      return=${?}
-      popd > /dev/null
-      if [[ ${return:-1} != 0 ]]; then
-        return "${return}"
-      fi
-      continue
-    fi
 
   {%- if validations is defined %}
     ## Validate the input prior to running security tooling
