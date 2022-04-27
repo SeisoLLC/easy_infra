@@ -94,7 +94,11 @@ def is_expected_file_length(
         cmd=f"/bin/bash -c \"wc -l {log_path} | awk '{{print $1}}'\""
     )
     sanitized_output = int(output.decode("utf-8").strip())
-    if exit_code != 0 or sanitized_output != expected_log_length:
+    if exit_code != 0:
+        LOG.error("The provided container exited with an exit code of %s", exit_code)
+        return False
+
+    if sanitized_output != expected_log_length:
         LOG.error(
             "The file %s had a length of %s when a length of %s was expected",
             log_path,
@@ -397,6 +401,10 @@ def run_terraform(*, image: str, final: bool = False):
             # If DISABLE_SECURITY is true, only one log is generated per folder where the related command is run. Since AUTODETECT is false, the
             # related command is only run in a single folder.
             expected_number_of_logs = 1
+
+        test_autodetect_disable_security_container.exec_run(
+            cmd='/bin/bash -c "terraform validate || true"', tty=False
+        )
 
         if (
             num_successful_tests := check_container(
