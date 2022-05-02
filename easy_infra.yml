@@ -49,15 +49,15 @@ commands:
   aws-cli:
     aliases:
     - aws
-    version: 2.5.8
+    version: 2.6.1
     version_argument: --version
   azure-cli:
     aliases:
     - az
-    version: 2.35.0-1~focal
+    version: 2.36.0-1~focal
     version_argument: version
   checkov:
-    version: 2.0.1079
+    version: 2.0.1102
     version_argument: --version
   consul-template:
     version: v0.29.0
@@ -66,7 +66,7 @@ commands:
     version: v0.12.1
     version_command: envconsul --version
   fluent-bit:
-    version: v1.9.2
+    version: v1.9.3
     version_argument: --version
   kics:
     allow_update: false
@@ -96,5 +96,5 @@ commands:
     version: v2.2.3
     version_argument: --version
   tfsec:
-    version: v1.18.0
+    version: v1.19.1
     version_argument: --version
