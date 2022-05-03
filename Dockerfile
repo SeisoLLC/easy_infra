@@ -5,15 +5,24 @@ FROM "${FROM_IMAGE}":"${FROM_IMAGE_TAG}" AS minimal
 
 # minimal setup
 ARG FLUENT_BIT_VERSION
+ENV FLUENT_BIT_VERSION="${FLUENT_BIT_VERSION}"
 ARG CONSUL_TEMPLATE_VERSION
+ENV CONSUL_TEMPLATE_VERSION="${CONSUL_TEMPLATE_VERSION}"
 ARG ENVCONSUL_VERSION
+ENV ENVCONSUL_VERSION="${ENVCONSUL_VERSION}"
 ARG ANSIBLE_VERSION
+ENV ANSIBLE_VERSION="${ANSIBLE_VERSION}"
 ARG TERRAFORM_VERSION
+ENV TERRAFORM_VERSION="${TERRAFORM_VERSION}"
 ARG TERRATAG_VERSION
+ENV TERRATAG_VERSION="${TERRATAG_VERSION}"
 ARG TFENV_VERSION
+ENV TFENV_VERSION="${TFENV_VERSION}"
 ARG CHECKOV_VERSION
+ENV CHECKOV_VERSION="${CHECKOV_VERSION}"
 ENV SKIP_CHECKOV="false"
 ARG KICS_VERSION
+ENV KICS_VERSION="${KICS_VERSION}"
 ENV SKIP_KICS="false"
 ENV AUTODETECT="false"
 ENV KICS_INCLUDE_QUERIES_PATH="/home/easy_infra/.kics/assets/queries"
@@ -117,6 +126,7 @@ LABEL org.opencontainers.image.revision="${COMMIT_HASH}"
 FROM minimal AS az
 USER root
 ARG AZURE_CLI_VERSION
+ENV AZURE_CLI_VERSION="${AZURE_CLI_VERSION}"
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 # hadolint ignore=DL3008
 RUN apt-get update \
@@ -145,6 +155,7 @@ USER easy_infra
 FROM minimal AS aws
 USER root
 ARG AWS_CLI_VERSION
+ENV AWS_CLI_VERSION="${AWS_CLI_VERSION}"
 RUN curl -L https://awscli.amazonaws.com/awscli-exe-linux-x86_64-${AWS_CLI_VERSION}.zip -o /tmp/awscliv2.zip \
  && unzip /tmp/awscliv2.zip -d /tmp/ \
  && /tmp/aws/install --bin-dir /aws-cli-bin/ \
@@ -161,9 +172,12 @@ FROM minimal AS final
 USER root
 # binary downloads and pip installs
 ARG PACKER_VERSION
+ENV PACKER_VERSION="${PACKER_VERSION}"
 ARG TERRASCAN_VERSION
+ENV TERRASCAN_VERSION="${TERRASCAN_VERSION}"
 ENV SKIP_TERRASCAN="false"
 ARG TFSEC_VERSION
+ENV TFSEC_VERSION="${TFSEC_VERSION}"
 ENV SKIP_TFSEC="false"
 RUN curl -L https://releases.hashicorp.com/packer/${PACKER_VERSION}/packer_${PACKER_VERSION}_linux_amd64.zip -o /usr/local/bin/packer.zip \
  && unzip /usr/local/bin/packer.zip -d /usr/local/bin/ \
@@ -185,6 +199,7 @@ COPY --from=aws --chown=easy_infra:easy_infra /usr/local/aws-cli/ /usr/local/aws
 COPY --from=aws --chown=easy_infra:easy_infra /aws-cli-bin/ /usr/local/bin/
 COPY --from=aws --chown=easy_infra:easy_infra /home/easy_infra/.bashrc /home/easy_infra/.bashrc
 COPY --from=aws --chown=easy_infra:easy_infra /home/easy_infra/.ansible/collections/ansible_collections/amazon /home/easy_infra/.ansible/collections/ansible_collections/amazon
+ENV AWS_CLI_VERSION="${AWS_CLI_VERSION}"
 
 # Workaround due to moby/moby#37965 and docker-py BuildKit support is pending
 # docker/docker-py#2230
@@ -196,3 +211,4 @@ COPY --from=az --chown=easy_infra:easy_infra /usr/bin/az /usr/bin/az
 COPY --from=az --chown=easy_infra:easy_infra /etc/apt/trusted.gpg.d/microsoft.gpg /etc/apt/trusted.gpg.d/microsoft.gpg
 COPY --from=az --chown=easy_infra:easy_infra /etc/apt/sources.list.d/azure-cli.list /etc/apt/sources.list.d/azure-cli.list
 COPY --from=az --chown=easy_infra:easy_infra /home/easy_infra/.ansible/collections/ansible_collections/azure /home/easy_infra/.ansible/collections/ansible_collections/azure
+ENV AZURE_CLI_VERSION="${AZURE_CLI_VERSION}"
