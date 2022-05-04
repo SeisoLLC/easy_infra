@@ -29,11 +29,11 @@ function _log() {
   event_dataset="\"${1}\"" # event.dataset
   event_type="\"${2}\"" # event.type
   event_outcome="\"${3}\"" # event.outcome
-  event_action="$(jq -R <<< ${4})" # event.action (JSON-escaped string)
+  event_action="$(jq -R <<< "${4}")" # event.action (JSON-escaped string)
   label_cwd="\"${5}\""
   message_type="${6}"
   if [[ "${message_type}" == "string" ]]; then
-    message="$(jq -R <<< ${7})" # message (JSON-escaped string)
+    message="$(jq -R <<< "${7}")" # message (JSON-escaped string)
   elif [[ "${message_type}" == "json" ]]; then
     message="${7}" # message (JSON)
   else

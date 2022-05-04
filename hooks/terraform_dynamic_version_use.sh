@@ -2,6 +2,7 @@
 # register_hook: terraform
 
 # All private functions (start with _) come from here
+# shellcheck disable=SC1091
 source /usr/local/bin/common.sh
 
 # This script is not relevant if AUTODETECT is not set to true
