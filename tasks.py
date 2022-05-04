@@ -357,7 +357,9 @@ def vulnscan(_c, stage="all", debug=False):
         latest_tag = constants.CONTEXT[variant]["latest_tag"]
         image_and_tag = f"{constants.IMAGE}:{latest_tag}"
 
-        LOG.debug(f"Running run_test.run_security(image={image_and_tag}, variant={variant})...")
+        LOG.debug(
+            f"Running run_test.run_security(image={image_and_tag}, variant={variant})..."
+        )
         run_test.run_security(image=image_and_tag, variant=variant)
 
 
@@ -422,7 +424,9 @@ def publish(_c, tag, stage="all", debug=False):
             LOG.info(f"Pushing {image_and_tag} to docker hub...")
             CLIENT.images.push(repository=image_and_tag)
 
-    LOG.info(f"Done publishing all of the {tag} easy_infra Docker images for platform {PLATFORM}")
+    LOG.info(
+        f"Done publishing all of the {tag} easy_infra Docker images for platform {PLATFORM}"
+    )
 
 
 @task
