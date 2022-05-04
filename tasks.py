@@ -20,7 +20,7 @@ from easy_infra import __project_name__, __version__, constants, utils
 from invoke import task
 from tests import test as run_test
 
-if platform.machine() == 'arm64':
+if platform.machine() == "arm64":
     PLATFORM: Union[str, None] = "linux/arm64/v8"
 else:
     PLATFORM = None
