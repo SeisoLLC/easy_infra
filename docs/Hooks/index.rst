@@ -1,0 +1,46 @@
+*****
+Hooks
+*****
+
+``easy_infra`` provides a method for dynamically adding hooks at runtime to any of the components.
+
+When hooks are used in conjunction with ``AUTODETECT``, the registered hooks will be executed in each of the detected folders.
+
+Writing a Hook
+--------------
+
+Write a ``.sh`` script and put it in ``/opt/hooks/bin/``, with a comment that follows the below format, where ``terraform`` is the command that you'd
+like to hook::
+
+    # register_hook: terraform
+
+.. note::
+    Only commands listed in ``easy_infra.yml`` at build time are supported
+
+Example
+^^^^^^^
+
+An example minimal hook is as follows::
+
+    #!/usr/bin/env bash
+    # register_hook: terraform
+    echo "Running hook"
+
+If you want to add a single hook at runtime, consider::
+
+    docker run -v /path/to/hook/example_hook.sh:/opt/hooks/bin/example_hook.sh seiso/easy_infra terraform validate
+
+If you want to overwrite all of the built-in hooks with your own folder of hooks, consider::
+
+    docker run -v /path/to/hooks:/opt/hooks/bin/ seiso/easy_infra terraform validate
+
+Configuring Hooks
+-----------------
+
+If you'd like to disable hooks, set the environment variable ``DISABLE_HOOKS`` to ``true``.
+
++----------------------+-----------+----------------------------------------+
+| Environment variable | Default   | Result                                 |
++======================+===========+========================================+
+| ``DISABLE_HOOKS``    | ``false`` | Disable all hooks when set to ``true`` |
++----------------------+-----------+----------------------------------------+

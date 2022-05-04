@@ -4,6 +4,7 @@
 # 1:  https://www.tldp.org/LDP/abs/html/list-cons.html
 
 set -o pipefail
+shopt -s dotglob
 
 # The fluent-bit banner and other logs go to stderr, but warnings and errors go
 # to stdout
