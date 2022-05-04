@@ -49,7 +49,7 @@ jobs:
       - name: Run tests
         run: |
           find tests -mindepth 1 -type d -exec chmod o+w {} \;
-          pipenv run invoke test --stage=${{ matrix.stage }}
+          pipenv run invoke test --stage=${{ matrix.stage }} --debug
       - name: Upload SBOM
         uses: actions/upload-artifact@v2
         with:
