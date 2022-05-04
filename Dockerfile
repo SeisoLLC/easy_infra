@@ -202,6 +202,7 @@ COPY --from=aws --chown=easy_infra:easy_infra /usr/local/aws-cli/ /usr/local/aws
 COPY --from=aws --chown=easy_infra:easy_infra /aws-cli-bin/ /usr/local/bin/
 COPY --from=aws --chown=easy_infra:easy_infra /home/easy_infra/.bashrc /home/easy_infra/.bashrc
 COPY --from=aws --chown=easy_infra:easy_infra /home/easy_infra/.ansible/collections/ansible_collections/amazon /home/easy_infra/.ansible/collections/ansible_collections/amazon
+ARG AWS_CLI_VERSION
 ENV AWS_CLI_VERSION="${AWS_CLI_VERSION}"
 
 # Workaround due to moby/moby#37965 and docker-py BuildKit support is pending
@@ -214,4 +215,5 @@ COPY --from=az --chown=easy_infra:easy_infra /usr/bin/az /usr/bin/az
 COPY --from=az --chown=easy_infra:easy_infra /etc/apt/trusted.gpg.d/microsoft.gpg /etc/apt/trusted.gpg.d/microsoft.gpg
 COPY --from=az --chown=easy_infra:easy_infra /etc/apt/sources.list.d/azure-cli.list /etc/apt/sources.list.d/azure-cli.list
 COPY --from=az --chown=easy_infra:easy_infra /home/easy_infra/.ansible/collections/ansible_collections/azure /home/easy_infra/.ansible/collections/ansible_collections/azure
+ARG AZURE_CLI_VERSION
 ENV AZURE_CLI_VERSION="${AZURE_CLI_VERSION}"
