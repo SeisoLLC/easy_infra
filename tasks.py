@@ -12,12 +12,18 @@ import sys
 from datetime import datetime
 from logging import basicConfig, getLogger
 from pathlib import Path
+from typing import Union
 
 import docker
 from bumpversion.cli import main as bumpversion
 from easy_infra import __project_name__, __version__, constants, utils
 from invoke import task
 from tests import test as run_test
+
+if platform.machine() == 'arm64':
+    PLATFORM: Union[str, None] = "linux/arm64/v8"
+else:
+    PLATFORM = None
 
 LOG = getLogger(__project_name__)
 CLIENT = docker.from_env()
