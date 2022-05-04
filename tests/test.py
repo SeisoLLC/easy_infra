@@ -393,10 +393,9 @@ def run_terraform(*, image: str, final: bool = False):
         )
 
         if autodetect_status == "true":
-            # Use the index of the 'invalid' folder as the expected number of logs, since it fails at invalid, and add one because indexes are
-            # 0-indexed
+            # Use the index of the 'invalid' folder as the expected number of logs, since it fails at invalid
             invalid_dir = test_terraform_general_dir.joinpath("invalid")
-            expected_number_of_logs = general_testing_folders.index(invalid_dir) + 1
+            expected_number_of_logs = general_testing_folders.index(invalid_dir)
         else:
             # If DISABLE_SECURITY is true, only one log is generated per folder where the related command is run. Since AUTODETECT is false, the
             # related command is only run in a single folder.
