@@ -3,7 +3,7 @@ _anchors:
   - tf
   security: &id002
     checkov:
-      command: checkov -d . --download-external-modules True --no-guide
+      command: checkov -d . --download-external-modules True --skip-download
       customizations:
         CHECKOV_BASELINE: --baseline
         CHECKOV_EXTERNAL_CHECKS_DIR: --external-checks-dir
