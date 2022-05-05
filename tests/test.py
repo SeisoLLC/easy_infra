@@ -323,6 +323,11 @@ def run_terraform(*, image: str, final: bool = False):
     number_of_testing_folders = len(test_folders_containing_only_files)
     learning_mode_and_autodetect_environment = copy.deepcopy(informational_environment)
     LOG.debug("Testing LEARNING_MODE with various AUTODETECT configurations")
+
+    # Test LEARNING_MODE and AUTODETECT interactions
+    # Tests is a list of tuples containing the test environment, command, and
+    # expected exit code
+    tests: list[tuple[dict, str, int]] = []
     for autodetect_status in ["true", "false"]:
         if autodetect_status == "true":
             expected_number_of_logs = (
@@ -333,14 +338,9 @@ def run_terraform(*, image: str, final: bool = False):
         test_log_length = f"if [[ $(wc -l /var/log/easy_infra.log | awk '{{print $1}}') != {expected_number_of_logs} ]]; then exit 230; fi"
         command = f'/bin/bash -c "terraform init -backend=false && {test_log_length}"'
         learning_mode_and_autodetect_environment["AUTODETECT"] = autodetect_status
-        utils.opinionated_docker_run(
-            image=image,
-            volumes=terraform_autodetect_volumes,
-            command=command,
-            environment=learning_mode_and_autodetect_environment,
-            expected_exit=0,
-        )
-        num_tests_ran += 1
+        tests.append((learning_mode_and_autodetect_environment, command, 0))
+
+    num_tests_ran += exec_tests(tests=tests, volumes=terraform_autodetect_volumes, image=image)
 
     # Ensure autodetect finds the appropriate terraform configs, which can be inferred by the number of logs written to /var/log/easy_infra.log
     #
