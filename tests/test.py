@@ -214,9 +214,7 @@ def exec_tests(
     working_dir = volumes[config_dir]["bind"]
 
     for environment, command, expected_exit in tests:
-        LOG.debug(
-            f'{environment=}, {command=}, {expected_exit=}'
-        )
+        LOG.debug(f"{environment=}, {command=}, {expected_exit=}")
         utils.opinionated_docker_run(
             command=command,
             environment=environment,
