@@ -1,6 +1,7 @@
 import sys
 from logging import getLogger
 from pathlib import Path
+from typing import Union
 
 import docker
 import git
@@ -145,19 +146,11 @@ def opinionated_docker_run(
     volumes: dict = {},
     working_dir: str = "/iac/",
     expected_exit: int = 0,
+    network_mode: Union[str, None] = None,
 ):
     """Perform an opinionated docker run"""
     LOG.debug(
-        "Invoking CLIENT.containers.run() with the following arguments: "
-        + "auto_remove=%s, command=%s, detach=%s, environment=%s, image=%s, tty=%s, volumes=%s, working_dir=%s",
-        auto_remove,
-        command,
-        detach,
-        environment,
-        image,
-        tty,
-        volumes,
-        working_dir,
+        f"Invoking CLIENT.containers.run() with the following arguments: {auto_remove=}, {command=}, {detach=}, {environment=}, {image=}, {network_mode=}, {tty=}, {volumes=}, {working_dir=}"
     )
     container = CLIENT.containers.run(
         auto_remove=auto_remove,
@@ -165,6 +158,7 @@ def opinionated_docker_run(
         detach=detach,
         environment=environment,
         image=image,
+        network_mode=network_mode,
         tty=tty,
         volumes=volumes,
         working_dir=working_dir,

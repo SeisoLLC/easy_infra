@@ -206,6 +206,7 @@ def exec_tests(
     tests: list[tuple[dict, str, int]],
     volumes: dict,
     image: str,
+    network_mode: Union[str, None] = None,
 ) -> int:
     """Execute the provided tests and return a count of tests run"""
     num_tests_ran = 0
@@ -214,10 +215,7 @@ def exec_tests(
 
     for environment, command, expected_exit in tests:
         LOG.debug(
-            '{"environment": %s, "command": "%s", "expected_exit": %s}',
-            environment,
-            command,
-            expected_exit,
+            f'{environment=}, {command=}, {expected_exit=}'
         )
         utils.opinionated_docker_run(
             command=command,
@@ -226,6 +224,7 @@ def exec_tests(
             image=image,
             volumes=volumes,
             working_dir=working_dir,
+            network_mode=network_mode,
         )
         num_tests_ran += 1
     return num_tests_ran
@@ -340,7 +339,9 @@ def run_terraform(*, image: str, final: bool = False):
         learning_mode_and_autodetect_environment["AUTODETECT"] = autodetect_status
         tests.append((learning_mode_and_autodetect_environment, command, 0))
 
-    num_tests_ran += exec_tests(tests=tests, volumes=terraform_autodetect_volumes, image=image)
+    num_tests_ran += exec_tests(
+        tests=tests, volumes=terraform_autodetect_volumes, image=image
+    )
 
     # Ensure autodetect finds the appropriate terraform configs, which can be inferred by the number of logs written to /var/log/easy_infra.log
     #
