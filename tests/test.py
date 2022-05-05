@@ -335,7 +335,7 @@ def run_terraform(*, image: str, final: bool = False):
         test_log_length = (
             "actual_number_of_logs=$(wc -l /var/log/easy_infra.log | awk '{print $1}'); "
             + f"if [[ ${{actual_number_of_logs}} != {expected_number_of_logs} ]]; then "
-            + 'echo \"${actual_number_of_logs} was not expected\"; exit 230; fi'
+            + 'echo \\"${actual_number_of_logs} was not expected\\"; exit 230; fi'
         )
         command = f'/bin/bash -c "terraform init -backend=false && {test_log_length}"'
         learning_mode_and_autodetect_environment["AUTODETECT"] = autodetect_status
