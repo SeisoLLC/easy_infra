@@ -341,8 +341,7 @@ def run_terraform(*, image: str, final: bool = False):
         )
         command = f'/bin/bash -c "terraform init -backend=false && {test_log_length}"'
         learning_mode_and_autodetect_environment["AUTODETECT"] = autodetect_status
-        LOG.debug(f"something is up with {learning_mode_and_autodetect_environment=}")
-        tests.append((learning_mode_and_autodetect_environment, command, 0))
+        tests.append((copy.deepcopy(learning_mode_and_autodetect_environment), command, 0))
 
     num_tests_ran += exec_tests(
         tests=tests, volumes=terraform_autodetect_volumes, image=image
