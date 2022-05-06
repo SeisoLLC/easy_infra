@@ -26,6 +26,12 @@ An example minimal hook is as follows::
     # register_hook: terraform
     echo "Running hook"
 
+Certain information is also available in the hook, such as the calling directory. You can access it by simply refering the variable ``${dir}``::
+
+    #!/usr/bin/env bash
+    # register_hook: terraform
+    echo "Running hook from ${dir}"
+
 If you want to add a single hook at runtime, consider::
 
     docker run -v /path/to/hook/example_hook.sh:/opt/hooks/bin/example_hook.sh seiso/easy_infra terraform validate

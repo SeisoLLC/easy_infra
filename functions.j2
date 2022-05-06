@@ -117,9 +117,16 @@ function {{ function }}() {
   for dir in "${dirs[@]}"; do
     pushd "${dir}" > /dev/null
 
+    # Export variables to be used in the hooks
+    export dir
+
     # Run the registered hooks
     for hook in ${easy_infra_{{ function | replace("-", "_") }}_hooks[@]}; do
       bash "${hook}"
+      return=$?
+      if [[ ${return:-1} != 0 ]]; then
+        return "${return}"
+      fi
     done
 
     if [[ "${security_skipped:-false}" == "argument" ]]; then
@@ -127,7 +134,7 @@ function {{ function }}() {
       _log "easy_infra.stdouterr" info unknown "{{ function }}" "${dir}" string "All security checks for {{ function }} were skipped due to the --disable-security argument"
       unset 'security_skipped'
       command "${FUNCNAME[0]}" "${arguments[@]}"
-      return=${?}
+      return=$?
       popd > /dev/null
       if [[ ${return:-1} != 0 ]]; then
         return "${return}"
@@ -137,7 +144,7 @@ function {{ function }}() {
       _feedback WARNING "Skipping all security checks for {{ function }} due to the DISABLE_SECURITY environment variable value"
       _log "easy_infra.stdouterr" info unknown "{{ function }}" "${dir}" string "All security checks for {{ function }} were skipped due to the DISABLE_SECURITY environment variable value"
       command "${FUNCNAME[0]}" "${arguments[@]}"
-      return=${?}
+      return=$?
       popd > /dev/null
       if [[ ${return:-1} != 0 ]]; then
         return "${return}"
@@ -154,8 +161,8 @@ function {{ function }}() {
       _feedback INFORMATIONAL "Skipping \`{{ validation.command }}\` because it was already run on $(date -d @"$(cat /tmp/{{ validation.command | replace(" ", "_") }}_complete)")"
     else
       command {{ validation.command }} &>/tmp/{{ validation.command | replace(" ", "_") }}_stdouterr
-      process_command_exit_status "${?}" "{{ validation.command }}" "{{ validation.description }}"
-      return=${?}
+      process_command_exit_status "$?" "{{ validation.command }}" "{{ validation.description }}"
+      return=$?
       if [[ ${return:-1} != 0 ]]; then
         cat /tmp/{{ validation.command | replace(" ", "_") }}_stdouterr
         if [[ "${LEARNING_MODE,,}" != "true" ]]; then
@@ -206,8 +213,8 @@ function {{ function }}() {
         {%- endif %}
         _feedback DEBUGGING "Running '${security_tool_command} &>/tmp/{{ security_tool | replace("-", "_") }}_stdouterr'"
         eval "${security_tool_command} &>/tmp/{{ security_tool | replace("-", "_") }}_stdouterr"
-        process_command_exit_status "${?}" "{{ security_tool | replace("-", "_") }}" "{{ security_tools[security_tool].description }}"
-        return=${?}
+        process_command_exit_status "$?" "{{ security_tool | replace("-", "_") }}" "{{ security_tools[security_tool].description }}"
+        return=$?
 
         # Identify the best message content to log
         if [[ -v {{ security_tool | upper | replace("-", "_") }}_JSON_REPORT_PATH && -r "{{ '${' }}{{ security_tool | upper | replace("-", "_") }}{{ '_JSON_REPORT_PATH}' }}/{{ security_tool | replace("-", "_") }}.json" ]]; then
@@ -255,7 +262,7 @@ function {{ function }}() {
     # Run the command per a PATH lookup, after any easy_infra specific arguments
     # are removed
     command "${FUNCNAME[0]}" "${arguments[@]}"
-    return=${?}
+    return=$?
     if [[ ${return:-1} != 0 ]]; then
       _feedback ERROR "${FUNCNAME[0]} ${arguments[@]} exited ${return} in ${dir}"
       return ${return}
