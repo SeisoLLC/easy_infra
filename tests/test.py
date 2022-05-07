@@ -79,11 +79,11 @@ def check_for_files(
     return successful_tests
 
 
-def is_expected_file_length(
+def is_minimum_file_length(
     *,
     container: docker.models.containers.Container,
     log_path: str,
-    expected_log_length: int,
+    minimum_log_length: int,
 ) -> bool:
     """
     Compare the number of lines in the provided file_path to the provided
@@ -98,12 +98,12 @@ def is_expected_file_length(
         LOG.error("The provided container exited with an exit code of %s", exit_code)
         return False
 
-    if sanitized_output != expected_log_length:
+    if sanitized_output != minimum_log_length:
         LOG.error(
             "The file %s had a length of %s when a length of %s was expected",
             log_path,
             sanitized_output,
-            expected_log_length,
+            minimum_log_length,
         )
         return False
 
@@ -113,7 +113,7 @@ def is_expected_file_length(
 def check_container(
     container: docker.models.containers.Container,
     log_path: str,
-    expected_log_length: int,
+    minimum_log_length: int,
     files: Union[list, None] = None,
     files_expected_to_exist: bool = True,
 ) -> int:
@@ -136,8 +136,8 @@ def check_container(
         ) == 0:
             return 0
 
-    if not is_expected_file_length(
-        container=container, log_path=log_path, expected_log_length=expected_log_length
+    if not is_minimum_file_length(
+        container=container, log_path=log_path, minimum_log_length=minimum_log_length
     ):
         return 0
 
@@ -327,14 +327,14 @@ def run_terraform(*, image: str, final: bool = False):
     tests: list[tuple[dict, str, int]] = []
     for autodetect_status in ["true", "false"]:
         if autodetect_status == "true":
-            expected_number_of_logs = (
+            minimum_number_of_logs = (
                 number_of_security_tools * number_of_testing_folders
             )
         else:
-            expected_number_of_logs = number_of_security_tools
+            minimum_number_of_logs = number_of_security_tools
         test_log_length = (
             "actual_number_of_logs=$(wc -l /var/log/easy_infra.log | awk '{print $1}'); "
-            + f"if [[ ${{actual_number_of_logs}} != {expected_number_of_logs} ]]; then "
+            + f"if [[ ${{actual_number_of_logs}} -lt {minimum_number_of_logs} ]]; then "
             + 'echo \\"${actual_number_of_logs} was not expected\\"; '
             + "cat /var/log/easy_infra.log; "
             + "exit 230; fi"
@@ -402,11 +402,11 @@ def run_terraform(*, image: str, final: bool = False):
         if autodetect_status == "true":
             # Use the index of the 'invalid' folder as the expected number of logs, since it fails at invalid
             invalid_dir = test_terraform_general_dir.joinpath("invalid")
-            expected_number_of_logs = general_testing_folders.index(invalid_dir)
+            minimum_number_of_logs = general_testing_folders.index(invalid_dir)
         else:
             # If DISABLE_SECURITY is true, only one log is generated per folder where the related command is run. Since AUTODETECT is false, the
             # related command is only run in a single folder.
-            expected_number_of_logs = 1
+            minimum_number_of_logs = 1
 
         test_autodetect_disable_security_container.exec_run(
             cmd='/bin/bash -c "terraform validate || true"', tty=False
@@ -416,7 +416,7 @@ def run_terraform(*, image: str, final: bool = False):
             num_successful_tests := check_container(
                 container=test_autodetect_disable_security_container,
                 log_path="/var/log/easy_infra.log",
-                expected_log_length=expected_number_of_logs,
+                minimum_log_length=minimum_number_of_logs,
             )
         ) == 0:
             test_autodetect_disable_security_container.kill()
@@ -688,7 +688,7 @@ def run_terraform(*, image: str, final: bool = False):
             files=files,
             files_expected_to_exist=False,
             log_path="/tmp/fluent_bit.log",
-            expected_log_length=4,
+            minimum_log_length=4,
         )
     ) == 0:
         test_interactive_container.kill()
@@ -730,7 +730,7 @@ def run_terraform(*, image: str, final: bool = False):
             files=files,
             files_expected_to_exist=True,
             log_path="/tmp/fluent_bit.log",
-            expected_log_length=4,
+            minimum_log_length=4,
         )
     ) == 0:
         test_noninteractive_container.kill()
@@ -1006,7 +1006,7 @@ def run_ansible(*, image: str):
             files=files,
             files_expected_to_exist=False,
             log_path="/tmp/fluent_bit.log",
-            expected_log_length=1,
+            minimum_log_length=1,
         )
     ) == 0:
         test_interactive_container.kill()
@@ -1043,7 +1043,7 @@ def run_ansible(*, image: str):
             files=files,
             files_expected_to_exist=True,
             log_path="/tmp/fluent_bit.log",
-            expected_log_length=1,
+            minimum_log_length=1,
         )
     ) == 0:
         test_noninteractive_container.kill()
