@@ -407,8 +407,8 @@ def run_terraform(*, image: str, final: bool = False):
             # Use the index of the 'invalid' folder as the expected number of logs, since it fails at invalid
             invalid_dir = test_terraform_general_dir.joinpath("invalid")
             invalid_dir_index = general_testing_folders.index(invalid_dir)
-            # This is the number of tests (invalid, secure) where the terraform min version could not be detected
-            expected_number_of_logs_from_hooks = 2
+            # This is the number of tests (invalid, since secure was never hit) where the terraform min version could not be detected
+            expected_number_of_logs_from_hooks = 1
             expected_number_of_logs = invalid_dir_index + expected_number_of_logs_from_hooks
         else:
             # If DISABLE_SECURITY is true, one log is generated per folder where the related command is run. Since AUTODETECT is false, the related
