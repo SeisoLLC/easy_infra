@@ -330,12 +330,15 @@ def run_terraform(*, image: str, final: bool = False):
             # This is the number of tests (general/{invalid,secure}, tool/*) where the terraform min version could not be detected
             expected_number_of_logs_from_hooks = 6
             expected_number_of_logs = (
-                number_of_security_tools * number_of_testing_folders + expected_number_of_logs_from_hooks
+                number_of_security_tools * number_of_testing_folders
+                + expected_number_of_logs_from_hooks
             )
         else:
             # Since autodetect is false, the current hooks will exit early and not log anything
             expected_number_of_logs_from_hooks = 0
-            expected_number_of_logs = number_of_security_tools + expected_number_of_logs_from_hooks
+            expected_number_of_logs = (
+                number_of_security_tools + expected_number_of_logs_from_hooks
+            )
         test_log_length = (
             "actual_number_of_logs=$(wc -l /var/log/easy_infra.log | awk '{print $1}'); "
             + f"if [[ ${{actual_number_of_logs}} != {expected_number_of_logs} ]]; then "
@@ -409,14 +412,19 @@ def run_terraform(*, image: str, final: bool = False):
             invalid_dir_index = general_testing_folders.index(invalid_dir)
             # This is the number of tests (invalid, since secure was never hit) where the terraform min version could not be detected
             expected_number_of_logs_from_hooks = 1
-            expected_number_of_logs = invalid_dir_index + expected_number_of_logs_from_hooks
+            expected_number_of_logs = (
+                invalid_dir_index + expected_number_of_logs_from_hooks
+            )
         else:
             # If DISABLE_SECURITY is true, one log is generated per folder where the related command is run. Since AUTODETECT is false, the related
             # command is only run in a single folder. Then you also need to add in the expected number of logs from hooks
             number_of_commands = 1
             number_of_folders = 1
             expected_number_of_logs_from_hooks = 2
-            expected_number_of_logs = number_of_commands * number_of_folders + expected_number_of_logs_from_hooks
+            expected_number_of_logs = (
+                number_of_commands * number_of_folders
+                + expected_number_of_logs_from_hooks
+            )
 
         test_autodetect_disable_security_container.exec_run(
             cmd='/bin/bash -c "terraform validate || true"', tty=False
