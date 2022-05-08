@@ -333,8 +333,8 @@ def run_terraform(*, image: str, final: bool = False):
                 number_of_security_tools * number_of_testing_folders + expected_number_of_logs_from_hooks
             )
         else:
-            # Since autodetect is false, this test is run in tests/terraform, which will fail to detect the terraform min version
-            expected_number_of_logs_from_hooks = 1
+            # Since autodetect is false, the current hooks will exit early and not log anything
+            expected_number_of_logs_from_hooks = 0
             expected_number_of_logs = number_of_security_tools + expected_number_of_logs_from_hooks
         test_log_length = (
             "actual_number_of_logs=$(wc -l /var/log/easy_infra.log | awk '{print $1}'); "
