@@ -420,7 +420,8 @@ def run_terraform(*, image: str, final: bool = False):
             # command is only run in a single folder. Then you also need to add in the expected number of logs from hooks
             number_of_commands = 1
             number_of_folders = 1
-            expected_number_of_logs_from_hooks = 2
+            # Since autodetect is false, the current hooks will exit early and not log anything
+            expected_number_of_logs_from_hooks = 0
             expected_number_of_logs = (
                 number_of_commands * number_of_folders
                 + expected_number_of_logs_from_hooks
