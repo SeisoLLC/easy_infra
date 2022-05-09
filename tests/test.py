@@ -321,9 +321,7 @@ def run_terraform(*, image: str, final: bool = False):
     tests: list[tuple[dict, str, int]] = []
     for autodetect_status in ["true", "false"]:
         if autodetect_status == "true":
-            expected_number_of_logs = (
-                number_of_security_tools * number_of_testing_dirs
-            )
+            expected_number_of_logs = number_of_security_tools * number_of_testing_dirs
         else:
             expected_number_of_logs = number_of_security_tools
         test_log_length = (
