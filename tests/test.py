@@ -249,9 +249,7 @@ def run_terraform(*, image: str, final: bool = False):
     secure_config_dir = TESTS_PATH.joinpath("terraform/general/secure")
     secure_volumes = {secure_config_dir: {"bind": working_dir, "mode": "rw"}}
     general_test_dir = TESTS_PATH.joinpath("terraform/general")
-    general_test_volumes = {
-        general_test_dir: {"bind": working_dir, "mode": "rw"}
-    }
+    general_test_volumes = {general_test_dir: {"bind": working_dir, "mode": "rw"}}
     hooks_config_dir = TESTS_PATH.joinpath("terraform/hooks")
     hooks_config_volumes = {hooks_config_dir: {"bind": working_dir, "mode": "rw"}}
     fluent_bit_config_host = TESTS_PATH.joinpath("fluent-bit.outputs.conf")
@@ -343,9 +341,7 @@ def run_terraform(*, image: str, final: bool = False):
             (copy.deepcopy(learning_mode_and_autodetect_environment), command, 0)
         )
 
-    num_tests_ran += exec_tests(
-        tests=tests, volumes=general_test_volumes, image=image
-    )
+    num_tests_ran += exec_tests(tests=tests, volumes=general_test_volumes, image=image)
 
     # Ensure autodetect finds the appropriate terraform configs, which can be inferred by the number of logs written to /var/log/easy_infra.log
     #
