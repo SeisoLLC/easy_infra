@@ -321,7 +321,10 @@ def run_terraform(*, image: str, final: bool = False):
     for autodetect_status in ["true", "false"]:
         if autodetect_status == "true":
             # Since DISABLE_HOOKS is true, there is one log per number_of_testing_dirs saying that hooks are disabled
-            expected_number_of_logs = number_of_security_tools * number_of_testing_dirs + number_of_testing_dirs
+            expected_number_of_logs = (
+                number_of_security_tools * number_of_testing_dirs
+                + number_of_testing_dirs
+            )
         else:
             # Since DISABLE_HOOKS is true, there is one log per number_of_testing_dirs saying that hooks are disabled
             expected_number_of_logs = number_of_security_tools + number_of_testing_dirs
