@@ -320,9 +320,11 @@ def run_terraform(*, image: str, final: bool = False):
     tests: list[tuple[dict, str, int]] = []
     for autodetect_status in ["true", "false"]:
         if autodetect_status == "true":
-            expected_number_of_logs = number_of_security_tools * number_of_testing_dirs
+            # Since DISABLE_HOOKS is true, there is one log per number_of_testing_dirs saying that hooks are disabled
+            expected_number_of_logs = number_of_security_tools * number_of_testing_dirs + number_of_testing_dirs
         else:
-            expected_number_of_logs = number_of_security_tools
+            # Since DISABLE_HOOKS is true, there is one log per number_of_testing_dirs saying that hooks are disabled
+            expected_number_of_logs = number_of_security_tools + number_of_testing_dirs
         test_log_length = (
             "actual_number_of_logs=$(wc -l /var/log/easy_infra.log | awk '{print $1}'); "
             + f"if [[ ${{actual_number_of_logs}} != {expected_number_of_logs} ]]; then "
@@ -383,6 +385,7 @@ def run_terraform(*, image: str, final: bool = False):
 
         if autodetect_status == "true":
             # Use the index of the 'invalid' dir as the expected number of logs, since it fails at invalid
+            # TODO: Add in per folder because DISABLE_HOOKS is true?
             invalid_dir_index = general_test_dirs.index(invalid_test_dir)
             expected_number_of_logs = invalid_dir_index
         else:
