@@ -391,10 +391,8 @@ def run_terraform(*, image: str, final: bool = False):
         if autodetect_status == "true":
             # Use the index of the 'invalid' dir as the expected number of logs, since it fails at invalid
             invalid_dir_index = general_test_dirs.index(invalid_test_dir)
-            LOG.debug(f"{invalid_test_dir=}")
-            LOG.debug(f"{invalid_dir_index=}")
             # One log for each folder that would be encountered
-            logs_from_disable_hooks = invalid_dir_index + 1
+            logs_from_disable_hooks = invalid_dir_index
             expected_number_of_logs = invalid_dir_index + logs_from_disable_hooks
         else:
             # If DISABLE_SECURITY is true, one log is generated per dir where the related command is run. Since AUTODETECT is false, the related
