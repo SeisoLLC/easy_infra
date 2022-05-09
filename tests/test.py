@@ -344,16 +344,18 @@ def run_terraform(*, image: str, final: bool = False):
 
     # Ensure autodetect finds the appropriate terraform configs, which can be inferred by the number of logs written to /var/log/easy_infra.log
     #
-    # This test ensure that, when DISABLE_SECURITY is true, the provided command is still run for each of the testing sub-directories.  It will exit
-    # non-zero on the first instance of a failed command, which should occur only when it encounters an invalid configuration.
+    # This test ensure that, when DISABLE_SECURITY is true, the provided command is still run for each of the testing sub-directories. It will exit
+    # non-zero on the first instance of a failed command, which should occur only when it encounters an invalid configuration. Hooks are also disabled
+    # for simplicity
     disable_security_environment = copy.deepcopy(environment)
     disable_security_status = "true"
     disable_security_environment["DISABLE_SECURITY"] = disable_security_status
     disable_security_and_autodetect_environment = copy.deepcopy(
         disable_security_environment
     )
+    disable_security_and_autodetect_environment["DISABLE_HOOKS"] = "true"
     LOG.debug(
-        "Testing the exit statuses and the number of logs generated based on various autodetect and disable security settings"
+        "Testing the exit statuses and the number of logs generated based on various autodetect and disable security settings (Hooks are disabled)"
     )
     for autodetect_status in ["true", "false"]:
         disable_security_and_autodetect_environment["AUTODETECT"] = autodetect_status
@@ -388,15 +390,19 @@ def run_terraform(*, image: str, final: bool = False):
 
         if autodetect_status == "true":
             # Use the index of the 'invalid' dir as the expected number of logs, since it fails at invalid
-            # TODO: Add in per folder because DISABLE_HOOKS is true?
             invalid_dir_index = general_test_dirs.index(invalid_test_dir)
-            expected_number_of_logs = invalid_dir_index
+            LOG.debug(f"{invalid_test_dir=}")
+            LOG.debug(f"{invalid_dir_index=}")
+            # One log for each folder that would be encountered
+            logs_from_disable_hooks = invalid_dir_index + 1
+            expected_number_of_logs = invalid_dir_index + logs_from_disable_hooks
         else:
             # If DISABLE_SECURITY is true, one log is generated per dir where the related command is run. Since AUTODETECT is false, the related
             # command is only run in a single dir.
             number_of_commands = 1
             number_of_dirs = 1
-            expected_number_of_logs = number_of_commands * number_of_dirs
+            logs_from_disable_hooks = 1
+            expected_number_of_logs = number_of_commands * number_of_dirs + logs_from_disable_hooks
 
         test_autodetect_disable_security_container.exec_run(
             cmd='/bin/bash -c "terraform validate || true"', tty=False
