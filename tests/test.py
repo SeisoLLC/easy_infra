@@ -304,28 +304,25 @@ def run_terraform(*, image: str, final: bool = False):
     # There is always one log for each security tool, regardless of if that tool is installed in the image being used.  If a tool is not in the PATH
     # and executable, a log message indicating that is generated.
     number_of_security_tools = len(CONFIG["commands"]["terraform"]["security"])
-    all_test_folders = [dir for dir in terraform_test_dir.rglob("*") if dir.is_dir()]
-    test_folders_containing_only_files = []
-    for directory in all_test_folders:
+    general_test_dirs = [dir for dir in general_test_dir.rglob("*") if dir.is_dir()]
+    general_test_dirs_containing_only_files = []
+    for directory in general_test_dirs:
         items_in_dir = directory.iterdir()
         for item in items_in_dir:
             if item.is_dir():
                 break
         else:
-            test_folders_containing_only_files.append(directory)
-    number_of_testing_folders = len(test_folders_containing_only_files)
+            general_test_dirs_containing_only_files.append(directory)
+    number_of_testing_dirs = len(general_test_dirs_containing_only_files)
     learning_mode_and_autodetect_environment = copy.deepcopy(informational_environment)
     learning_mode_and_autodetect_environment["DISABLE_HOOKS"] = "true"
     LOG.debug("Testing LEARNING_MODE with various AUTODETECT configurations")
 
-    # Test logging when LEARNING_MODE and AUTODETECT interact
-    # Tests is a list of tuples containing the test environment, command, and
-    # expected exit code
     tests: list[tuple[dict, str, int]] = []
     for autodetect_status in ["true", "false"]:
         if autodetect_status == "true":
             expected_number_of_logs = (
-                number_of_security_tools * number_of_testing_folders
+                number_of_security_tools * number_of_testing_dirs
             )
         else:
             expected_number_of_logs = number_of_security_tools
@@ -347,10 +344,6 @@ def run_terraform(*, image: str, final: bool = False):
     #
     # This test ensure that, when DISABLE_SECURITY is true, the provided command is still run for each of the testing sub-directories.  It will exit
     # non-zero on the first instance of a failed command, which should occur only when it encounters an invalid configuration.
-    general_testing_folders = [
-        dir for dir in general_test_dir.iterdir() if dir.is_dir()
-    ]
-    number_of_testing_folders = len(general_testing_folders)
     disable_security_environment = copy.deepcopy(environment)
     disable_security_status = "true"
     disable_security_environment["DISABLE_SECURITY"] = disable_security_status
@@ -368,7 +361,7 @@ def run_terraform(*, image: str, final: bool = False):
             # Expect exit 1 due to the discovery of terraform/general/invalid/invalid.tf
             expected_exit = 1
         elif autodetect_status == "false":
-            # Expect exit 0 because the command is ran in terraform/general and doesn't discover subfolders
+            # Expect exit 0 because the command is ran in terraform/general and doesn't discover subdirs
             expected_exit = 0
 
         utils.opinionated_docker_run(
@@ -392,15 +385,15 @@ def run_terraform(*, image: str, final: bool = False):
         )
 
         if autodetect_status == "true":
-            # Use the index of the 'invalid' folder as the expected number of logs, since it fails at invalid
-            invalid_dir_index = general_testing_folders.index(invalid_test_dir)
+            # Use the index of the 'invalid' dir as the expected number of logs, since it fails at invalid
+            invalid_dir_index = general_test_dirs.index(invalid_test_dir)
             expected_number_of_logs = invalid_dir_index
         else:
-            # If DISABLE_SECURITY is true, one log is generated per folder where the related command is run. Since AUTODETECT is false, the related
-            # command is only run in a single folder.
+            # If DISABLE_SECURITY is true, one log is generated per dir where the related command is run. Since AUTODETECT is false, the related
+            # command is only run in a single dir.
             number_of_commands = 1
-            number_of_folders = 1
-            expected_number_of_logs = number_of_commands * number_of_folders
+            number_of_dirs = 1
+            expected_number_of_logs = number_of_commands * number_of_dirs
 
         test_autodetect_disable_security_container.exec_run(
             cmd='/bin/bash -c "terraform validate || true"', tty=False
