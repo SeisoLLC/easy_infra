@@ -235,7 +235,6 @@ def run_terraform(*, image: str, final: bool = False):
     environment = {"TF_DATA_DIR": "/tmp"}
     tests_test_dir = TESTS_PATH
     tests_volumes = {tests_test_dir: {"bind": working_dir, "mode": "ro"}}
-    terraform_test_dir = TESTS_PATH.joinpath("terraform")
     invalid_test_dir = TESTS_PATH.joinpath("terraform/general/invalid")
     invalid_volumes = {invalid_test_dir: {"bind": working_dir, "mode": "rw"}}
     tfsec_test_dir = TESTS_PATH.joinpath("terraform/tool/tfsec")
