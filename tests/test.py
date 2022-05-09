@@ -326,8 +326,8 @@ def run_terraform(*, image: str, final: bool = False):
                 + number_of_testing_dirs
             )
         else:
-            # Since DISABLE_HOOKS is true, there is one log per number_of_testing_dirs saying that hooks are disabled
-            expected_number_of_logs = number_of_security_tools + number_of_testing_dirs
+            # Since DISABLE_HOOKS is true and AUTODETECT is false, there is one log added saying that hooks are disabled in the working dir
+            expected_number_of_logs = number_of_security_tools + 1
         test_log_length = (
             "actual_number_of_logs=$(wc -l /var/log/easy_infra.log | awk '{print $1}'); "
             + f"if [[ ${{actual_number_of_logs}} != {expected_number_of_logs} ]]; then "
