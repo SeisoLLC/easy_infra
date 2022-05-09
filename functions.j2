@@ -118,7 +118,7 @@ function {{ function }}() {
     export dir
 
     # Process the registered hooks
-    if [[ "${DISABLE_HOOKS:-false}" != "true" ]]; then
+    if [[ "${DISABLE_HOOKS:-false}" == "true" ]]; then
       _feedback WARNING "DISABLE_HOOKS is set to ${DISABLE_HOOKS}; skipping all hooks for the {{ function }} command..."
       _log "easy_infra.stdouterr" info unknown "{{ function }}" "${dir}" string "The DISABLE_HOOKS environment variable is set to ${DISABLE_HOOKS}, skipping all hooks for the {{ function }} command"
     else
@@ -126,6 +126,7 @@ function {{ function }}() {
         bash "${hook}"
         return=$?
         if [[ ${return:-1} != 0 ]]; then
+          popd > /dev/null
           return "${return}"
         fi
       done
@@ -266,6 +267,7 @@ function {{ function }}() {
     command "${FUNCNAME[0]}" "${arguments[@]}"
     return=$?
     if [[ ${return:-1} != 0 ]]; then
+      popd > /dev/null
       _feedback ERROR "${FUNCNAME[0]} ${arguments[@]} exited ${return} in ${dir}"
       return ${return}
     fi
