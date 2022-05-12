@@ -478,6 +478,15 @@ def run_terraform(*, image: str, final: bool = False):
             '/bin/bash -c "terraform init -backend=false && terraform validate"',
             0,
         ),  # This tests the terraform version switching hook, regardless of the built-in security tools
+        (
+            {
+                "DISABLE_HOOKS": "true",
+                "AUTODETECT": "true",
+                "DISABLE_SECURITY": "true",
+            },
+            '/bin/bash -c "terraform init -backend=false && terraform validate"',
+            1,
+        ),  # This tests DISABLE_HOOKS; it fails because the terraform version used is incorrect
     ]
     LOG.debug("Testing the easy_infra hooks against various terraform configurations")
     num_tests_ran += exec_tests(tests=tests, volumes=hooks_config_volumes, image=image)
