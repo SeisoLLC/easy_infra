@@ -400,7 +400,9 @@ def run_terraform(*, image: str, final: bool = False):
             number_of_commands = 1
             number_of_dirs = 1
             logs_from_disable_hooks = 1
-            expected_number_of_logs = number_of_commands * number_of_dirs + logs_from_disable_hooks
+            expected_number_of_logs = (
+                number_of_commands * number_of_dirs + logs_from_disable_hooks
+            )
 
         test_autodetect_disable_security_container.exec_run(
             cmd='/bin/bash -c "terraform validate || true"', tty=False
