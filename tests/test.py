@@ -473,7 +473,7 @@ def run_terraform(*, image: str, final: bool = False):
                 "AUTODETECT": "true",
                 "DISABLE_SECURITY": "true",
             },
-            "terraform validate",
+            '/bin/bash -c "terraform init -backend=false && terraform validate"',
             0,
         ),  # This tests the terraform version switching hook, regardless of the built-in security tools
     ]
