@@ -4,6 +4,7 @@
 # 1:  https://www.tldp.org/LDP/abs/html/list-cons.html
 
 set -o pipefail
+shopt -s dotglob
 
 # The fluent-bit banner and other logs go to stderr, but warnings and errors go
 # to stdout
@@ -12,21 +13,20 @@ fluent-bit -c /usr/local/etc/fluent-bit/fluent-bit.conf --verbose 2>/dev/null
 if [ "$#" -eq 0 ]; then
   # Print select tool versions then open an bash shell
   if [ -x "$(which aws)" ]; then
-    echo -e "aws-cli\t\t $(command aws --version | awk -F' ' '{print $1}' | awk -F'/' '{print $2}')" &
+    echo -e "aws-cli\t\t ${AWS_CLI_VERSION}"
   fi
   if [ -x "$(which az)" ]; then
-    echo -e "azure-cli\t $(command az version | jq -r '.["azure-cli"]')" &
-  fi
-  if [ -x "$(which terraform)" ]; then
-    echo -e "terraform\t $(command terraform version | head -1 | awk -F' ' '{print $2}' | sed 's/^v//')" &
+    echo -e "azure-cli\t ${AZURE_CLI_VERSION}"
   fi
   if [ -x "$(which ansible)" ]; then
-    echo -e "ansible\t\t $(command ansible --version | head -1 | awk -F' ' '{print $2}')" &
+    echo -e "ansible\t\t ${ANSIBLE_VERSION}"
   fi
   if [ -x "$(which packer)" ]; then
-    echo -e "packer\t\t $(command packer --version)" &
+    echo -e "packer\t\t ${PACKER_VERSION}"
   fi
-  wait
+  if [ -x "$(which terraform)" ]; then
+    echo -e "terraform\t ${TERRAFORM_VERSION}"
+  fi
 
   exec bash
 else
