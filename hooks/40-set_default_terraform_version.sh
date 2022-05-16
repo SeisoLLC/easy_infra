@@ -24,6 +24,6 @@ if [[ "${return}" != 0 ]]; then
   exit 0
 fi
 
-_feedback INFORMATIONAL "Switching Terraform version to ${TERRAFORM_VERSION}..."
+_feedback INFORMATIONAL "Switching Terraform version to ${TERRAFORM_VERSION} due to the provided TERRAFORM_VERSION environment variable..."
 tfenv use "${TERRAFORM_VERSION}" &>/dev/null
 exit $?
