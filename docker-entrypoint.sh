@@ -24,8 +24,13 @@ if [ "$#" -eq 0 ]; then
   if [ -x "$(which packer)" ]; then
     echo -e "packer\t\t ${PACKER_VERSION}"
   fi
+  current_version=$(cat /home/easy_infra/.tfenv/version)
   if [ -x "$(which terraform)" ]; then
-    echo -e "terraform\t ${TERRAFORM_VERSION}"
+    if [[ "${TERRAFORM_VERSION}" != "${current_version}" ]]; then
+      echo -e "terraform\t ${TERRAFORM_VERSION} (customized)"
+    else
+      echo -e "terraform\t ${TERRAFORM_VERSION}"
+    fi
   fi
 
   exec bash
