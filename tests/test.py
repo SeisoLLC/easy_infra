@@ -491,6 +491,18 @@ def run_terraform(*, image: str, final: bool = False):
             '/bin/bash -c "terraform init -backend=false && terraform validate"',
             1,
         ),  # This tests DISABLE_HOOKS; it fails because the terraform version used is incorrect
+        (
+            {
+                "DISABLE_HOOKS": "false",
+                "AUTODETECT": "false",
+                "DISABLE_SECURITY": "true",
+                "TERRAFORM_VERSION": "1.1.8",
+            },
+            '/bin/bash -c "terraform init -backend=false && terraform validate"',
+            1,
+        ),  # This tests the bring-your-own TERRAFORM_VERSION hook, regardless of the built-in security tools
+        # It succeeds because only terraform/hooks/secure_1_1/secure.tf is tested, and it fails because it requires a version of terraform newer then
+        # the provided TERRAFORM_VERSION environment variable specifies
     ]
     LOG.debug("Testing the easy_infra hooks against various terraform configurations")
     num_tests_ran += exec_tests(tests=tests, volumes=hooks_config_volumes, image=image)
@@ -538,10 +550,10 @@ def run_terraform(*, image: str, final: bool = False):
                 "TERRAFORM_VERSION": "1.1.8",
             },
             '/bin/bash -c "terraform init -backend=false && terraform validate"',
-            1,
+            0,
         ),  # This tests the bring-your-own TERRAFORM_VERSION hook, regardless of the built-in security tools
-        # It fails because only terraform/hooks/secure_1_1/secure.tf is tested, but it requires a version of terraform newer then the provided
-        # TERRAFORM_VERSION environment variable specifies
+        # It succeeds because only terraform/hooks/secure_1_1/secure.tf is tested, and it requires a version of terraform newer then the provided
+        # TERRAFORM_VERSION environment variable specifies, but because there is no network access the change does not take place
     ]
     LOG.debug(
         "Testing the easy_infra hooks with no network access, against various terraform configurations, expecting successes"
