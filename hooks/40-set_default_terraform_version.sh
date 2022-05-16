@@ -5,7 +5,6 @@
 # shellcheck disable=SC1091
 source /usr/local/bin/common.sh
 
-fully_qualified_script=$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )
 
 current_version=$(cat /home/easy_infra/.tfenv/version)
 
@@ -19,6 +18,7 @@ return=$?
 if [[ "${return}" != 0 ]]; then
   message="Unable to install Terraform ${TERRAFORM_VERSION}, continuing to use version ${current_version}..."
   _feedback WARNING "${message}"
+  fully_qualified_script=$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )
   # shellcheck disable=SC2154 # dir is exported in the parent process, see functions.j2
   _log "easy_infra.hook" info failure "${fully_qualified_script}" "${dir}" string "${message}"
   exit 0
