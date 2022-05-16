@@ -206,6 +206,7 @@ def exec_tests(
     tests: list[tuple[dict, str, int]],
     volumes: dict,
     image: str,
+    network_mode: Union[str, None] = None,
 ) -> int:
     """Execute the provided tests and return a count of tests run"""
     num_tests_ran = 0
@@ -213,12 +214,7 @@ def exec_tests(
     working_dir = volumes[config_dir]["bind"]
 
     for environment, command, expected_exit in tests:
-        LOG.debug(
-            '{"environment": %s, "command": "%s", "expected_exit": %s}',
-            environment,
-            command,
-            expected_exit,
-        )
+        LOG.debug(f"{environment=}, {command=}, {expected_exit=}")
         utils.opinionated_docker_run(
             command=command,
             environment=environment,
@@ -226,6 +222,7 @@ def exec_tests(
             image=image,
             volumes=volumes,
             working_dir=working_dir,
+            network_mode=network_mode,
         )
         num_tests_ran += 1
     return num_tests_ran
@@ -250,21 +247,19 @@ def run_terraform(*, image: str, final: bool = False):
     kics_volumes = {kics_config_dir: {"bind": working_dir, "mode": "rw"}}
     secure_config_dir = TESTS_PATH.joinpath("terraform/general/secure")
     secure_volumes = {secure_config_dir: {"bind": working_dir, "mode": "rw"}}
-    secure_volumes_with_log_config = copy.deepcopy(secure_volumes)
+    general_test_dir = TESTS_PATH.joinpath("terraform/general")
+    general_test_volumes = {general_test_dir: {"bind": working_dir, "mode": "rw"}}
+    hooks_config_dir = TESTS_PATH.joinpath("terraform/hooks")
+    hooks_config_volumes = {hooks_config_dir: {"bind": working_dir, "mode": "rw"}}
     fluent_bit_config_host = TESTS_PATH.joinpath("fluent-bit.outputs.conf")
     fluent_bit_config_container = "/usr/local/etc/fluent-bit/fluent-bit.outputs.conf"
+    secure_volumes_with_log_config = copy.deepcopy(secure_volumes)
     secure_volumes_with_log_config[fluent_bit_config_host] = {
         "bind": fluent_bit_config_container,
         "mode": "ro",
     }
-    terraform_autodetect_dir = TESTS_PATH.joinpath("terraform")
-    terraform_autodetect_volumes = {
-        terraform_autodetect_dir: {"bind": working_dir, "mode": "rw"}
-    }
-    terraform_general_autodetect_dir = terraform_autodetect_dir.joinpath("general")
-    terraform_general_autodetect_volumes = {
-        terraform_general_autodetect_dir: {"bind": working_dir, "mode": "rw"}
-    }
+    hooks_no_network_success_dir = TESTS_PATH.joinpath("terraform/hooks/secure_1_1")
+    hooks_no_network_success_volumes = {hooks_no_network_success_dir: {"bind": working_dir, "mode": "rw"}}
 
     # Base tests
     command = "./test.sh"
@@ -307,59 +302,62 @@ def run_terraform(*, image: str, final: bool = False):
     #
     # This test requires LEARNING_MODE to be true because the autodetect functionality traverses into the testing sub-directories, including those
     # which are purposefully insecure, which otherwise would exit non-zero early, resulting in a limited set of logs.
-    test_terraform_dir = tests_test_dir.joinpath("terraform")
     # There is always one log for each security tool, regardless of if that tool is installed in the image being used.  If a tool is not in the PATH
     # and executable, a log message indicating that is generated.
     number_of_security_tools = len(CONFIG["commands"]["terraform"]["security"])
-    all_test_folders = [dir for dir in test_terraform_dir.rglob("*") if dir.is_dir()]
-    test_folders_containing_only_files = []
-    for directory in all_test_folders:
+    general_test_dirs = [dir for dir in general_test_dir.rglob("*") if dir.is_dir()]
+    general_test_dirs_containing_only_files = []
+    for directory in general_test_dirs:
         items_in_dir = directory.iterdir()
         for item in items_in_dir:
             if item.is_dir():
                 break
         else:
-            test_folders_containing_only_files.append(directory)
-    number_of_testing_folders = len(test_folders_containing_only_files)
+            general_test_dirs_containing_only_files.append(directory)
+    number_of_testing_dirs = len(general_test_dirs_containing_only_files)
     learning_mode_and_autodetect_environment = copy.deepcopy(informational_environment)
+    learning_mode_and_autodetect_environment["DISABLE_HOOKS"] = "true"
     LOG.debug("Testing LEARNING_MODE with various AUTODETECT configurations")
+
+    tests: list[tuple[dict, str, int]] = []
     for autodetect_status in ["true", "false"]:
         if autodetect_status == "true":
+            # Since DISABLE_HOOKS is true, there is one log per number_of_testing_dirs saying that hooks are disabled
             expected_number_of_logs = (
-                number_of_security_tools * number_of_testing_folders
+                number_of_security_tools * number_of_testing_dirs
+                + number_of_testing_dirs
             )
         else:
-            expected_number_of_logs = number_of_security_tools
-        test_log_length = f"if [[ $(wc -l /var/log/easy_infra.log | awk '{{print $1}}') != {expected_number_of_logs} ]]; then exit 230; fi"
+            # Since DISABLE_HOOKS is true and AUTODETECT is false, there is one log added saying that hooks are disabled in the working dir
+            expected_number_of_logs = number_of_security_tools + 1
+        test_log_length = (
+            "actual_number_of_logs=$(wc -l /var/log/easy_infra.log | awk '{print $1}'); "
+            + f"if [[ ${{actual_number_of_logs}} != {expected_number_of_logs} ]]; then "
+            + 'echo \\"${actual_number_of_logs} was not expected\\"; '
+            + "exit 230; fi"
+        )
         command = f'/bin/bash -c "terraform init -backend=false && {test_log_length}"'
         learning_mode_and_autodetect_environment["AUTODETECT"] = autodetect_status
-        utils.opinionated_docker_run(
-            image=image,
-            volumes=terraform_autodetect_volumes,
-            command=command,
-            environment=learning_mode_and_autodetect_environment,
-            expected_exit=0,
+        tests.append(
+            (copy.deepcopy(learning_mode_and_autodetect_environment), command, 0)
         )
-        num_tests_ran += 1
+
+    num_tests_ran += exec_tests(tests=tests, volumes=general_test_volumes, image=image)
 
     # Ensure autodetect finds the appropriate terraform configs, which can be inferred by the number of logs written to /var/log/easy_infra.log
     #
-    # This test ensure that, when DISABLE_SECURITY is true, the provided command is still run for each of the testing sub-directories.  It will exit
-    # non-zero on the first instance of a failed command, which should occur only when it encounters an invalid configuration.
-    test_terraform_dir = tests_test_dir.joinpath("terraform")
-    test_terraform_general_dir = test_terraform_dir.joinpath("general")
-    general_testing_folders = [
-        dir for dir in test_terraform_general_dir.iterdir() if dir.is_dir()
-    ]
-    number_of_testing_folders = len(general_testing_folders)
+    # This test ensure that, when DISABLE_SECURITY is true, the provided command is still run for each of the testing sub-directories. It will exit
+    # non-zero on the first instance of a failed command, which should occur only when it encounters an invalid configuration. Hooks are also disabled
+    # for simplicity
     disable_security_environment = copy.deepcopy(environment)
     disable_security_status = "true"
     disable_security_environment["DISABLE_SECURITY"] = disable_security_status
     disable_security_and_autodetect_environment = copy.deepcopy(
         disable_security_environment
     )
+    disable_security_and_autodetect_environment["DISABLE_HOOKS"] = "true"
     LOG.debug(
-        "Testing the exit statuses and the number of logs generated based on various autodetect and disable security settings"
+        "Testing the exit statuses and the number of logs generated based on various autodetect and disable security settings (Hooks are disabled)"
     )
     for autodetect_status in ["true", "false"]:
         disable_security_and_autodetect_environment["AUTODETECT"] = autodetect_status
@@ -369,13 +367,13 @@ def run_terraform(*, image: str, final: bool = False):
             # Expect exit 1 due to the discovery of terraform/general/invalid/invalid.tf
             expected_exit = 1
         elif autodetect_status == "false":
-            # Expect exit 0 because the command is ran in terraform/general and doesn't discover subfolders
+            # Expect exit 0 because the command is ran in terraform/general and doesn't discover subdirs
             expected_exit = 0
 
         utils.opinionated_docker_run(
             image=image,
             command=command,
-            volumes=terraform_general_autodetect_volumes,
+            volumes=general_test_volumes,
             environment=disable_security_and_autodetect_environment,
             expected_exit=expected_exit,
         )
@@ -388,18 +386,25 @@ def run_terraform(*, image: str, final: bool = False):
             detach=True,
             auto_remove=False,
             tty=True,
-            volumes=terraform_general_autodetect_volumes,
+            volumes=general_test_volumes,
             environment=disable_security_and_autodetect_environment,
         )
 
         if autodetect_status == "true":
-            # Use the index of the 'invalid' folder as the expected number of logs, since it fails at invalid
-            invalid_dir = test_terraform_general_dir.joinpath("invalid")
-            expected_number_of_logs = general_testing_folders.index(invalid_dir)
+            # Use the index of the 'invalid' dir as the expected number of logs, since it fails at invalid
+            invalid_dir_index = general_test_dirs.index(invalid_test_dir)
+            # One log for each folder that would be encountered
+            logs_from_disable_hooks = invalid_dir_index
+            expected_number_of_logs = invalid_dir_index + logs_from_disable_hooks
         else:
-            # If DISABLE_SECURITY is true, only one log is generated per folder where the related command is run. Since AUTODETECT is false, the
-            # related command is only run in a single folder.
-            expected_number_of_logs = 1
+            # If DISABLE_SECURITY is true, one log is generated per dir where the related command is run. Since AUTODETECT is false, the related
+            # command is only run in a single dir.
+            number_of_commands = 1
+            number_of_dirs = 1
+            logs_from_disable_hooks = 1
+            expected_number_of_logs = (
+                number_of_commands * number_of_dirs + logs_from_disable_hooks
+            )
 
         test_autodetect_disable_security_container.exec_run(
             cmd='/bin/bash -c "terraform validate || true"', tty=False
@@ -461,6 +466,75 @@ def run_terraform(*, image: str, final: bool = False):
 
     LOG.debug("Testing secure terraform configurations")
     num_tests_ran += exec_tests(tests=tests, volumes=secure_volumes, image=image)
+
+    # Ensure the easy_infra hooks work as expected when network access is available
+    # Tests is a list of tuples containing the test environment, command, and
+    # expected exit code
+    tests: list[tuple[dict, str, int]] = [  # type: ignore
+        (
+            {
+                "DISABLE_HOOKS": "false",
+                "AUTODETECT": "true",
+                "DISABLE_SECURITY": "true",
+            },
+            '/bin/bash -c "terraform init -backend=false && terraform validate"',
+            0,
+        ),  # This tests the terraform version switching hook, regardless of the built-in security tools
+        (
+            {
+                "DISABLE_HOOKS": "true",
+                "AUTODETECT": "true",
+                "DISABLE_SECURITY": "true",
+            },
+            '/bin/bash -c "terraform init -backend=false && terraform validate"',
+            1,
+        ),  # This tests DISABLE_HOOKS; it fails because the terraform version used is incorrect
+    ]
+    LOG.debug("Testing the easy_infra hooks against various terraform configurations")
+    num_tests_ran += exec_tests(tests=tests, volumes=hooks_config_volumes, image=image)
+
+    # Ensure the easy_infra hooks work as expected when network access is NOT available
+    # Tests is a list of tuples containing the test environment, command, and
+    # expected exit code
+    tests: list[tuple[dict, str, int]] = [  # type: ignore
+        (
+            {
+                "DISABLE_HOOKS": "false",
+                "AUTODETECT": "true",
+                "DISABLE_SECURITY": "true",
+            },
+            '/bin/bash -c "terraform init -backend=false && terraform validate"',
+            1,
+        ),  # This tests the terraform version switching hook failback due to no network (see exec_tests below)
+        # It fails because terraform/hooks/secure_0_14/secure.tf cannot be validated with the version of terraform
+        # that TERRAFORM_VERSION indicates
+    ]
+    LOG.debug(
+        "Testing the easy_infra hooks with no network access, against various terraform configurations, expecting failures"
+    )
+    num_tests_ran += exec_tests(
+        tests=tests, volumes=hooks_config_volumes, image=image, network_mode="none"
+    )
+
+    tests: list[tuple[dict, str, int]] = [  # type: ignore
+        (
+            {
+                "DISABLE_HOOKS": "false",
+                "AUTODETECT": "true",
+                "DISABLE_SECURITY": "true",
+            },
+            '/bin/bash -c "terraform init -backend=false && terraform validate"',
+            0,
+        ),  # This tests the terraform version switching hook failback due to no network (see exec_tests below)
+        # It succeeds because only terraform/hooks/secure_1_1/secure.tf is tested, which will validate properly with the version of terraform that
+        # TERRAFORM_VERSION indicates
+    ]
+    LOG.debug(
+        "Testing the easy_infra hooks with no network access, against various terraform configurations, expecting successes"
+    )
+    num_tests_ran += exec_tests(
+        tests=tests, volumes=hooks_no_network_success_volumes, image=image, network_mode="none"
+    )
 
     # Ensure insecure configurations still succeed when security checks are
     # disabled

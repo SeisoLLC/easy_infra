@@ -11,3 +11,4 @@
    Terraform/index
    Ansible/index
    Logging/index
+   Hooks/index
