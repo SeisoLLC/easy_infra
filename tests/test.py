@@ -262,6 +262,12 @@ def run_terraform(*, image: str, final: bool = False):
     hooks_secure_terraform_v_1_1_dir_volumes = {
         hooks_secure_terraform_v_1_1_dir: {"bind": working_dir, "mode": "rw"}
     }
+    hooks_secure_terraform_v_0_14_dir = TESTS_PATH.joinpath(
+        "terraform/hooks/secure_0_14"
+    )
+    hooks_secure_terraform_v_0_14_dir_volumes = {
+        hooks_secure_terraform_v_0_14_dir: {"bind": working_dir, "mode": "rw"}
+    }
 
     # Base tests
     command = "./test.sh"
@@ -491,6 +497,11 @@ def run_terraform(*, image: str, final: bool = False):
             '/bin/bash -c "terraform init -backend=false && terraform validate"',
             1,
         ),  # This tests DISABLE_HOOKS; it fails because the terraform version used is incorrect
+    ]
+    LOG.debug("Testing the easy_infra hooks against various terraform configurations")
+    num_tests_ran += exec_tests(tests=tests, volumes=hooks_config_volumes, image=image)
+
+    tests: list[tuple[dict, str, int]] = [  # type: ignore
         (
             {
                 "DISABLE_HOOKS": "false",
@@ -504,8 +515,12 @@ def run_terraform(*, image: str, final: bool = False):
         # It succeeds because only terraform/hooks/secure_1_1/secure.tf is tested, and it fails because it requires a version of terraform newer then
         # the provided TERRAFORM_VERSION environment variable specifies
     ]
-    LOG.debug("Testing the easy_infra hooks against various terraform configurations")
-    num_tests_ran += exec_tests(tests=tests, volumes=hooks_config_volumes, image=image)
+    LOG.debug("Fail when using terraform 1.1.8 in a repo which expects 0.14.x")
+    num_tests_ran += exec_tests(
+        tests=tests,
+        volumes=hooks_secure_terraform_v_0_14_dir_volumes,
+        image=image,
+    )
 
     # Ensure the easy_infra hooks work as expected when network access is NOT available
     # Tests is a list of tuples containing the test environment, command, and
