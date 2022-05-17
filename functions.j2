@@ -5,124 +5,9 @@
 
 # Globals
 EASY_INFRA_VERSION="2022.05.01"
-# Color code lookups
-ERROR='\033[0;31m'
-WARNING='\033[0;33m'
-DEBUGGING='\033[0;36m'
-INFORMATIONAL='\033[0m'
-DEFAULT='\033[0m'
 
-
-function _log() {
-  # Log fields, pulled from ECS
-  # (https://www.elastic.co/guide/en/ecs/1.11/ecs-field-reference.html)
-  timestamp="\"$(date --iso-8601=seconds --utc)\"" # @timestamp
-  container_image_name='"easy_infra"' # container.image.name
-  container_image_tag="[\"${EASY_INFRA_VERSION}\"]" # container.image.tag
-  ecs_version='"1.11"' # ecs.version
-  event_kind='"state"' # event.kind
-  event_category='"configuration"' # event.category
-  event_provider='"easy_infra"' # event.provider
-  git_labels="$(git rev-parse --is-inside-work-tree 2>/dev/null)"
-  if [[ "${git_labels}" == "true" ]]; then
-    git_labels_git_branch_name="\"$(git branch --show-current)\""
-    git_labels_git_branch_ref="\"$(git rev-parse HEAD)\""
-    git_labels_git_remote_origin_url="\"$(git config --get remote.origin.url)\""
-  fi
-
-  event_dataset="\"${1}\"" # event.dataset
-  event_type="\"${2}\"" # event.type
-  event_outcome="\"${3}\"" # event.outcome
-  event_action="$(jq -R <<< ${4})" # event.action (JSON-escaped string)
-  label_cwd="\"${5}\""
-  message_type="${6}"
-  if [[ "${message_type}" == "string" ]]; then
-    message="$(jq -R <<< ${7})" # message (JSON-escaped string)
-  elif [[ "${message_type}" == "json" ]]; then
-    message="${7}" # message (JSON)
-  else
-    _feedback ERROR "Incorrect message type of ${message_type:-null or unset} sent to the _log function"
-    exit 1
-  fi
-
-  # Validation
-  # Note: This technically is a deviation from ECS.  denied and allowed are not
-  # valid event types for an event category of configuration.  See
-  # https://www.elastic.co/guide/en/ecs/1.11/ecs-allowed-values-event-category.html#ecs-event-category-configuration
-  if [[ "${event_type}" != '"denied"' && "${event_type}" != '"allowed"' && "${event_type}" != '"info"' ]]; then
-    _feedback ERROR "Incorrect event.type of ${event_type} sent to the _log function"
-    exit 1
-  elif [[ "${event_outcome}" != '"failure"' && "${event_outcome}" != '"success"' && "${event_outcome}" != '"unknown"' ]]; then
-    _feedback ERROR "Incorrect event.outcome of ${event_outcome} sent to the _log function"
-    exit 1
-  fi
-
-  if [[ "${git_labels}" == "true" ]]; then
-    LOG_MESSAGE=$(jq -c -n                                             \
-      "{                                                               \
-      \"@timestamp\": ${timestamp},                                    \
-      \"container.image.name\": ${container_image_name},               \
-      \"container.image.tag\": ${container_image_tag},                 \
-      \"ecs.version\": ${ecs_version},                                 \
-      \"event.action\": ${event_action},                               \
-      \"event.category\": ${event_category},                           \
-      \"event.kind\": ${event_kind},                                   \
-      \"event.outcome\": ${event_outcome},                             \
-      \"event.provider\": ${event_provider},                           \
-      \"event.type\": ${event_type},                                   \
-      \"labels\": {                                                    \
-        \"cwd\": ${label_cwd},                                         \
-        \"git.branch.name\": ${git_labels_git_branch_name},            \
-        \"git.branch.ref\": ${git_labels_git_branch_ref},              \
-        \"git.remote.origin.url\": ${git_labels_git_remote_origin_url} \
-      },                                                               \
-      \"message\": ${message}                                          \
-      }"                                                               \
-    ) || { _feedback ERROR "Failed to generate a valid JSON log message"; _log "easy_infra.stdouterr" info unknown "easy_infra" "${label_cwd}" string "Failed to generate a valid JSON log message"; }
-  else
-    LOG_MESSAGE=$(jq -c -n                               \
-      "{                                                 \
-      \"@timestamp\": ${timestamp},                      \
-      \"container.image.name\": ${container_image_name}, \
-      \"container.image.tag\": ${container_image_tag},   \
-      \"ecs.version\": ${ecs_version},                   \
-      \"event.action\": ${event_action},                 \
-      \"event.category\": ${event_category},             \
-      \"event.kind\": ${event_kind},                     \
-      \"event.outcome\": ${event_outcome},               \
-      \"event.provider\": ${event_provider},             \
-      \"event.type\": ${event_type},                     \
-      \"labels\": {                                      \
-        \"cwd\": ${label_cwd}                            \
-      },                                                 \
-      \"message\": ${message}                            \
-      }"                                                 \
-    ) || { _feedback ERROR "Failed to generate a valid JSON log message"; _log "easy_infra.stdouterr" info unknown "easy_infra" "${label_cwd}" string "Failed to generate a valid JSON log message"; }
-  fi
-  echo "${LOG_MESSAGE}" &>> /var/log/easy_infra.log
-}
-
-
-function _feedback() {
-  # Use the provided color code label
-  color="${1}"
-  case "${1}" in
-    ERROR)
-      # echo to stderr with the appropriate coloring
-      >&2 echo -e "${!color}${1}:  ${2}${DEFAULT}" ;;
-    WARNING)
-      # echo to stderr with the appropriate coloring
-      >&2 echo -e "${!color}${1}:  ${2}${DEFAULT}" ;;
-    *)
-      if [[ "${1}" != "DEBUGGING" ]]; then
-        # echo to stdout with the appropriate coloring
-        echo -e "${!color}${1}:  ${2}${DEFAULT}"
-      elif [[ "${LOG_LEVEL}" == "DEBUG" && "${1}" == "DEBUGGING" ]]; then
-        # echo to stdout with the appropriate coloring
-        echo -e "${!color}${1}:  ${2}${DEFAULT}"
-      fi ;;
-  esac
-}
+# All private functions (start with _) come from here
+source /usr/local/bin/common.sh
 
 
 function process_command_exit_status() {
@@ -187,13 +72,27 @@ function {{ function }}() {
   done
 {%- endif %}
 
+  easy_infra_{{ function | replace("-", "_") }}_hooks=()
+  if [[ "${DISABLE_HOOKS:-false}" != "true" ]]; then
+    # Dynamically register hooks
+    for file in /opt/hooks/bin/*.sh; do
+      command=$(awk -F\: '/register_hook/ { gsub(/ /,""); print $2 }' "${file}")
+      if [[ "${command}" == "{{ function }}" ]]; then
+        easy_infra_{{ function | replace("-", "_") }}_hooks+=("${file}")
+      fi
+    done
+  fi
+
   # Methods to skip **all** security tools for {{ function }}
   DISABLE_SECURITY="${DISABLE_SECURITY:-false}"
   dirs=()
   if [[ "${AUTODETECT:-false}" == "true" ]]; then
 {%- if file_extensions is defined %}
 {%- for file_extension in file_extensions %}
-    IFS=$'\n' dirs+=($(find . -iname "*.{{ file_extension }}" -type f -exec dirname {} \; | sort -u | xargs readlink --canonicalize))
+    files=$(find . -iname "*.{{ file_extension }}" -type f)
+    if [[ "${files}" ]]; then
+      dirs+=($(for file in "${files}"; do dirname ${file}; done | sort -u | xargs readlink --canonicalize))
+    fi
 {%- endfor %}
 {%- else %}
     dir=$(pwd -P)
@@ -215,12 +114,30 @@ function {{ function }}() {
   for dir in "${dirs[@]}"; do
     pushd "${dir}" > /dev/null
 
+    # Export variables to be used in the hooks
+    export dir
+
+    # Process the registered hooks
+    if [[ "${DISABLE_HOOKS:-false}" == "true" ]]; then
+      _feedback WARNING "DISABLE_HOOKS is set to ${DISABLE_HOOKS}; skipping all hooks for the {{ function }} command..."
+      _log "easy_infra.stdouterr" info unknown "{{ function }}" "${dir}" string "The DISABLE_HOOKS environment variable is set to ${DISABLE_HOOKS}, skipping all hooks for the {{ function }} command"
+    else
+      for hook in ${easy_infra_{{ function | replace("-", "_") }}_hooks[@]}; do
+        bash "${hook}"
+        return=$?
+        if [[ ${return:-1} != 0 ]]; then
+          popd > /dev/null
+          return "${return}"
+        fi
+      done
+    fi
+
     if [[ "${security_skipped:-false}" == "argument" ]]; then
       _feedback WARNING "Skipping all security checks for {{ function }} due to the --disable-security argument"
       _log "easy_infra.stdouterr" info unknown "{{ function }}" "${dir}" string "All security checks for {{ function }} were skipped due to the --disable-security argument"
       unset 'security_skipped'
       command "${FUNCNAME[0]}" "${arguments[@]}"
-      return=${?}
+      return=$?
       popd > /dev/null
       if [[ ${return:-1} != 0 ]]; then
         return "${return}"
@@ -230,7 +147,7 @@ function {{ function }}() {
       _feedback WARNING "Skipping all security checks for {{ function }} due to the DISABLE_SECURITY environment variable value"
       _log "easy_infra.stdouterr" info unknown "{{ function }}" "${dir}" string "All security checks for {{ function }} were skipped due to the DISABLE_SECURITY environment variable value"
       command "${FUNCNAME[0]}" "${arguments[@]}"
-      return=${?}
+      return=$?
       popd > /dev/null
       if [[ ${return:-1} != 0 ]]; then
         return "${return}"
@@ -247,8 +164,8 @@ function {{ function }}() {
       _feedback INFORMATIONAL "Skipping \`{{ validation.command }}\` because it was already run on $(date -d @"$(cat /tmp/{{ validation.command | replace(" ", "_") }}_complete)")"
     else
       command {{ validation.command }} &>/tmp/{{ validation.command | replace(" ", "_") }}_stdouterr
-      process_command_exit_status "${?}" "{{ validation.command }}" "{{ validation.description }}"
-      return=${?}
+      process_command_exit_status "$?" "{{ validation.command }}" "{{ validation.description }}"
+      return=$?
       if [[ ${return:-1} != 0 ]]; then
         cat /tmp/{{ validation.command | replace(" ", "_") }}_stdouterr
         if [[ "${LEARNING_MODE,,}" != "true" ]]; then
@@ -299,8 +216,8 @@ function {{ function }}() {
         {%- endif %}
         _feedback DEBUGGING "Running '${security_tool_command} &>/tmp/{{ security_tool | replace("-", "_") }}_stdouterr'"
         eval "${security_tool_command} &>/tmp/{{ security_tool | replace("-", "_") }}_stdouterr"
-        process_command_exit_status "${?}" "{{ security_tool | replace("-", "_") }}" "{{ security_tools[security_tool].description }}"
-        return=${?}
+        process_command_exit_status "$?" "{{ security_tool | replace("-", "_") }}" "{{ security_tools[security_tool].description }}"
+        return=$?
 
         # Identify the best message content to log
         if [[ -v {{ security_tool | upper | replace("-", "_") }}_JSON_REPORT_PATH && -r "{{ '${' }}{{ security_tool | upper | replace("-", "_") }}{{ '_JSON_REPORT_PATH}' }}/{{ security_tool | replace("-", "_") }}.json" ]]; then
@@ -348,8 +265,9 @@ function {{ function }}() {
     # Run the command per a PATH lookup, after any easy_infra specific arguments
     # are removed
     command "${FUNCNAME[0]}" "${arguments[@]}"
-    return=${?}
+    return=$?
     if [[ ${return:-1} != 0 ]]; then
+      popd > /dev/null
       _feedback ERROR "${FUNCNAME[0]} ${arguments[@]} exited ${return} in ${dir}"
       return ${return}
     fi
