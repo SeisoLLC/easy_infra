@@ -258,8 +258,16 @@ def run_terraform(*, image: str, final: bool = False):
         "bind": fluent_bit_config_container,
         "mode": "ro",
     }
-    hooks_no_network_success_dir = TESTS_PATH.joinpath("terraform/hooks/secure_1_1")
-    hooks_no_network_success_volumes = {hooks_no_network_success_dir: {"bind": working_dir, "mode": "rw"}}
+    hooks_secure_terraform_v_1_1_dir = TESTS_PATH.joinpath("terraform/hooks/secure_1_1")
+    hooks_secure_terraform_v_1_1_dir_volumes = {
+        hooks_secure_terraform_v_1_1_dir: {"bind": working_dir, "mode": "rw"}
+    }
+    hooks_secure_terraform_v_0_14_dir = TESTS_PATH.joinpath(
+        "terraform/hooks/secure_0_14"
+    )
+    hooks_secure_terraform_v_0_14_dir_volumes = {
+        hooks_secure_terraform_v_0_14_dir: {"bind": working_dir, "mode": "rw"}
+    }
 
     # Base tests
     command = "./test.sh"
@@ -493,6 +501,27 @@ def run_terraform(*, image: str, final: bool = False):
     LOG.debug("Testing the easy_infra hooks against various terraform configurations")
     num_tests_ran += exec_tests(tests=tests, volumes=hooks_config_volumes, image=image)
 
+    tests: list[tuple[dict, str, int]] = [  # type: ignore
+        (
+            {
+                "DISABLE_HOOKS": "false",
+                "AUTODETECT": "false",
+                "DISABLE_SECURITY": "true",
+                "TERRAFORM_VERSION": "1.1.8",
+            },
+            '/bin/bash -c "terraform init -backend=false && terraform validate"',
+            1,
+        ),  # This tests the bring-your-own TERRAFORM_VERSION hook, regardless of the built-in security tools
+        # It succeeds because only terraform/hooks/secure_1_1/secure.tf is tested, and it fails because it requires a version of terraform newer then
+        # the provided TERRAFORM_VERSION environment variable specifies
+    ]
+    LOG.debug("Fail when using terraform 1.1.8 in a repo which expects 0.14.x")
+    num_tests_ran += exec_tests(
+        tests=tests,
+        volumes=hooks_secure_terraform_v_0_14_dir_volumes,
+        image=image,
+    )
+
     # Ensure the easy_infra hooks work as expected when network access is NOT available
     # Tests is a list of tuples containing the test environment, command, and
     # expected exit code
@@ -507,7 +536,7 @@ def run_terraform(*, image: str, final: bool = False):
             1,
         ),  # This tests the terraform version switching hook failback due to no network (see exec_tests below)
         # It fails because terraform/hooks/secure_0_14/secure.tf cannot be validated with the version of terraform
-        # that TERRAFORM_VERSION indicates
+        # that TERRAFORM_VERSION indicates by default
     ]
     LOG.debug(
         "Testing the easy_infra hooks with no network access, against various terraform configurations, expecting failures"
@@ -527,13 +556,28 @@ def run_terraform(*, image: str, final: bool = False):
             0,
         ),  # This tests the terraform version switching hook failback due to no network (see exec_tests below)
         # It succeeds because only terraform/hooks/secure_1_1/secure.tf is tested, which will validate properly with the version of terraform that
-        # TERRAFORM_VERSION indicates
+        # TERRAFORM_VERSION indicates by default
+        (
+            {
+                "DISABLE_HOOKS": "false",
+                "AUTODETECT": "false",
+                "DISABLE_SECURITY": "true",
+                "TERRAFORM_VERSION": "1.1.8",
+            },
+            '/bin/bash -c "terraform init -backend=false && terraform validate"',
+            0,
+        ),  # This tests the bring-your-own TERRAFORM_VERSION hook, regardless of the built-in security tools
+        # It succeeds because only terraform/hooks/secure_1_1/secure.tf is tested, and it requires a version of terraform newer then the provided
+        # TERRAFORM_VERSION environment variable specifies, but because there is no network access the change does not take place
     ]
     LOG.debug(
         "Testing the easy_infra hooks with no network access, against various terraform configurations, expecting successes"
     )
     num_tests_ran += exec_tests(
-        tests=tests, volumes=hooks_no_network_success_volumes, image=image, network_mode="none"
+        tests=tests,
+        volumes=hooks_secure_terraform_v_1_1_dir_volumes,
+        image=image,
+        network_mode="none",
     )
 
     # Ensure insecure configurations still succeed when security checks are

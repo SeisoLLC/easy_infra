@@ -88,6 +88,16 @@ Customizing tfsec
     docker run --env-file <(env | grep ^TFSEC_) -v $(pwd):/iac easy_infra:latest terraform validate
 
 
+Preinstalled Hooks
+^^^^^^^^^^^^^^^^^^
+
+There are some preinstalled hooks in ``/opt/hooks/bin/`` which apply to terraform commands::
+
+* If the ``TERRAFORM_VERSION`` environment variable is customized, easy_infra will attempt to install and switch to that version at runtime.
+* If ``AUTODETECT`` is set to ``true``, easy_infra will attempt to detect and install the correct version of terraform for each folder that a
+  ``terraform`` command runs in.
+
+
 Terraform Caching
 ^^^^^^^^^^^^^^^^^
 
