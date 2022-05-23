@@ -313,7 +313,10 @@ def run_terraform(*, image: str, final: bool = False):
     # There is always one log for each security tool, regardless of if that tool is installed in the image being used.  If a tool is not in the PATH
     # and executable, a log message indicating that is generated.
     number_of_security_tools = len(CONFIG["commands"]["terraform"]["security"])
+    # This list needs to be sorted because it uses pathlib's rglob, which (currently) uses os.scandir, which is documented to yield entries in
+    # arbitrary order https://docs.python.org/3/library/os.html#os.scandir
     general_test_dirs = [dir for dir in general_test_dir.rglob("*") if dir.is_dir()]
+    general_test_dirs.sort()
     general_test_dirs_containing_only_files = []
     for directory in general_test_dirs:
         items_in_dir = directory.iterdir()
@@ -399,8 +402,9 @@ def run_terraform(*, image: str, final: bool = False):
         )
 
         if autodetect_status == "true":
-            # Use the index of the 'invalid' dir as the expected number of logs, since it fails at invalid
-            invalid_dir_index = general_test_dirs.index(invalid_test_dir)
+            # Use the index of the 'invalid' dir as the expected number of logs, since it fails at invalid, + 1 to adjust for 0-indexing. Note that
+            # the general_test_dirs list needs to be alphabetically sorted
+            invalid_dir_index = general_test_dirs.index(invalid_test_dir) + 1
             # One log for each folder that would be encountered
             logs_from_disable_hooks = invalid_dir_index
             expected_number_of_logs = invalid_dir_index + logs_from_disable_hooks

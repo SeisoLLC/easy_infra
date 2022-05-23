@@ -22,6 +22,7 @@ LOG = getLogger(__project_name__)
 CLIENT = docker.from_env()
 
 basicConfig(level=constants.LOG_DEFAULT, format=constants.LOG_FORMAT)
+getLogger("urllib3").setLevel(constants.LOG_DEFAULT)
 
 
 def process_container(*, container: docker.models.containers.Container) -> None:
