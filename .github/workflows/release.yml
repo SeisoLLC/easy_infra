@@ -82,7 +82,6 @@ jobs:
                      "${TAG#v}-aws"
                      "${TAG#v}-az"
                      "${TAG#v}"; do
-            # Use docker inspect because it only works on local images
             DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' \
                      "seiso/easy_infra:${tag}" )
             echo -n "${COSIGN_PASSWORD}" |

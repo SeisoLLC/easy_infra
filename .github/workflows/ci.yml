@@ -96,7 +96,6 @@ jobs:
         run: |
           version_tag=$(pipenv run python -c "from easy_infra import constants; \
                                               print(constants.CONTEXT['${STAGE}']['buildargs']['VERSION'])")
-          # Use docker inspect because it only works on local images
           DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' \
                    "seiso/easy_infra:${version_tag}" )
           echo -n "${COSIGN_PASSWORD}" |
