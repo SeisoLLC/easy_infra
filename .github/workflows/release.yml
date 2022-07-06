@@ -82,8 +82,9 @@ jobs:
                      "${TAG#v}-aws"
                      "${TAG#v}-az"
                      "${TAG#v}"; do
-            DIGEST=$(docker manifest inspect --verbose "seiso/easy_infra:$tag" |
-                     jq -r '.Descriptor.digest') ;
+            # Use docker inspect because it only works on local images
+            DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' \
+                     "seiso/easy_infra:${tag}" )
             echo -n "${COSIGN_PASSWORD}" |
             cosign sign --key cosign.key
               -a git_sha="${GITHUB_SHA}"
