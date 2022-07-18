@@ -32,7 +32,7 @@ function process_command_exit_status() {
 {% macro function(function, file_extensions, security_tools, allow_filter, version_argument, validations) %}
 function {{ function }}() {
   arguments=("${@}")
-  easy_infra_{{ function | replace("-", "_") }}_tools=({% for security_tool in security_tools %}{{ security_tool | replace("-", "_") }}{% if not loop.last %} {% endif %}{% endfor %})
+  easy_infra_{{ function | replace("-", "_") }}_security_tools=({% for security_tool in security_tools %}{{ security_tool | replace("-", "_") }}{% if not loop.last %} {% endif %}{% endfor %})
 
   # If an argument was provided which adjusts the easy_infra runtime, set a related variable and remove that argument from the arguments array
   for i in "${!arguments[@]}"; do
@@ -41,10 +41,10 @@ function {{ function }}() {
       security_skipped="argument"
     fi
 
-    for tool in "${easy_infra_{{ function | replace("-", "_") }}_tools[@]}"; do
-      if [[ "${arguments[i],,}" == "--skip-${tool}" ]]; then
+    for security_tool in "${easy_infra_{{ function | replace("-", "_") }}_security_tools[@]}"; do
+      if [[ "${arguments[i],,}" == "--skip-${security_tool}" ]]; then
         unset 'arguments[i]'
-        declare "${tool}_skipped=argument"
+        declare "${security_tool}_skipped=argument"
       fi
     done
   done
