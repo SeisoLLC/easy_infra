@@ -773,12 +773,13 @@ def run_terraform(*, image: str, final: bool = False):
         cmd='/bin/bash -ic "terraform validate"', tty=True
     )
 
-    # An interactive terraform command should not cause the creation of the
-    # following files, and should have 4 logs lines in the fluent bit log
-    # regardless of which image is being tested
+    # An interactive terraform command should not cause the creation of the following files, and should have the same number of logs lines in the
+    # fluent bit log regardless of which image is being tested
     files = ["/tmp/kics_complete"]
     files.append("/tmp/checkov_complete")
     LOG.debug("Testing interactive terraform commands")
+    number_of_security_tools = len(CONFIG["commands"]["terraform"]["security"])
+    expected_number_of_logs = number_of_security_tools
 
     # Check the container
     if (
@@ -787,7 +788,7 @@ def run_terraform(*, image: str, final: bool = False):
             files=files,
             files_expected_to_exist=False,
             log_path="/tmp/fluent_bit.log",
-            expected_log_length=4,
+            expected_log_length=expected_number_of_logs,
         )
     ) == 0:
         test_interactive_container.kill()
@@ -812,12 +813,13 @@ def run_terraform(*, image: str, final: bool = False):
         cmd='/bin/bash -c "terraform validate"', tty=False
     )
 
-    # A non-interactive terraform command should cause the creation of the
-    # following files, and should have 4 logs lines in the fluent bit log
-    # regardless of which image is being tested
+    # A non-interactive terraform command should cause the creation of the following files, and should have the same number of logs lines in the
+    # fluent bit log regardless of which image is being tested
     files = ["/tmp/kics_complete"]
     files.append("/tmp/checkov_complete")
     LOG.debug("Testing non-interactive terraform commands")
+    number_of_security_tools = len(CONFIG["commands"]["terraform"]["security"])
+    expected_number_of_logs = number_of_security_tools
 
     # Check the container
     if (
@@ -826,7 +828,7 @@ def run_terraform(*, image: str, final: bool = False):
             files=files,
             files_expected_to_exist=True,
             log_path="/tmp/fluent_bit.log",
-            expected_log_length=4,
+            expected_log_length=expected_number_of_logs,
         )
     ) == 0:
         test_noninteractive_container.kill()
@@ -990,6 +992,8 @@ def run_ansible(*, image: str):
         "/tmp/kics_complete",
     ]
     LOG.debug("Testing interactive ansible-playbook commands")
+    number_of_security_tools = len(CONFIG["commands"]["ansible"]["security"])
+    expected_number_of_logs = number_of_security_tools
 
     # Check the container
     if (
@@ -998,7 +1002,7 @@ def run_ansible(*, image: str):
             files=files,
             files_expected_to_exist=False,
             log_path="/tmp/fluent_bit.log",
-            expected_log_length=1,
+            expected_log_length=expected_number_of_logs,
         )
     ) == 0:
         test_interactive_container.kill()
@@ -1027,6 +1031,8 @@ def run_ansible(*, image: str):
         "/tmp/kics_complete",
     ]
     LOG.debug("Testing non-interactive ansible-playbook commands")
+    number_of_security_tools = len(CONFIG["commands"]["ansible"]["security"])
+    expected_number_of_logs = number_of_security_tools
 
     # Check the container
     if (
@@ -1035,7 +1041,7 @@ def run_ansible(*, image: str):
             files=files,
             files_expected_to_exist=True,
             log_path="/tmp/fluent_bit.log",
-            expected_log_length=1,
+            expected_log_length=expected_number_of_logs,
         )
     ) == 0:
         test_noninteractive_container.kill()
