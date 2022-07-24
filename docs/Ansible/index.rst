@@ -71,4 +71,4 @@ Resources
 Configuring custom checks can be done by leveraging the robust Rego language, maintained by the, Open Policy Agent (OPA) offers useful resources for
 cloud native infrastructure administrators.
 
-OPA also hosts `The Rego Playground <https://play.openpolicyagent.org/>`_ for testing custom Rego rules.
+OPA also hosts `The Rego Playground <https://play.openpolicyagent.org/>`_ for testing custom rules written in Rego.
