@@ -2,28 +2,23 @@
 Ansible
 *******
 
-`Ansible <https://github.com/ansible/ansible>`_ is a "radically simple IT
-automation system."
+`Ansible <https://github.com/ansible/ansible>`_ is a "radically simple IT automation system."
 
-The ``easy_infra`` project includes and secures Ansible as a component due to
-its popularity and versitility in provisioning and managing systems as
+The ``easy_infra`` project includes and secures Ansible as a component due to its popularity and versitility in provisioning and managing systems as
 Infrastructure as Code (IaC).
 
-``easy_infra``'s Ansible security uses tools such as `KICS <https://kics.io/>`_
-to semi-transparently assess the provided IaC against the defined security
-policy.
+``easy_infra``'s Ansible security uses tools such as `KICS <https://kics.io/>`_ to semi-transparently assess the provided IaC against the defined
+security policy.
 
 .. note::
-    The same level of Ansible security is included in all of the ``easy_infra``
-    tags, including minimal, aws, az, and latest.
+    The same level of Ansible security is included in all of the ``easy_infra`` tags, including minimal, aws, az, and latest.
 
 
 Use Cases
 ---------
 
-If you use Software Version Control (such as ``git``) to manage your Ansible IaC,
-consider executing ``ansible-playbook EXAMPLE.yml --check`` with easy_infra as
-a pipeline action on commit or pull request::
+If you use Software Version Control (such as ``git``) to manage your Ansible IaC, consider executing ``ansible-playbook EXAMPLE.yml --check`` with
+easy_infra as a pipeline action on commit or pull request::
 
     docker run -v $(pwd):/iac seiso/easy_infra:latest-minimal ansible-playbook EXAMPLE.yml --check
 
@@ -47,8 +42,7 @@ Customizing KICS
 Disabling Security
 ^^^^^^^^^^^^^^^^^^
 
-The injected security tooling can be disabled entirely or individually, using
-``easy_infra``-specific command line arguments or environment variables.
+The injected security tooling can be disabled entirely or individually, using ``easy_infra``-specific command line arguments or environment variables.
 
 +----------------------+-----------+----------------------------------------------------------+
 | Environment variable | Default   | Result                                                   |
@@ -77,4 +71,4 @@ Resources
 Configuring custom checks can be done by leveraging the robust Rego language, maintained by the, Open Policy Agent (OPA) offers useful resources for
 cloud native infrastructure administrators.
 
-OPA also hosts `The Rego Playground <https://play.openpolicyagent.org/>`_ for testing custom Rego rules.
+OPA also hosts `The Rego Playground <https://play.openpolicyagent.org/>`_ for testing custom rules written in Rego.
