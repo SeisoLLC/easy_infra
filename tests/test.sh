@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # This is a script to test various details of the docker image
 
-set -u # nounset
-set -e # errexit
-set -E # errtrap
+set -o nounset
+set -o errexit
+set -o errtrap
 set -o pipefail
 
 DANGLING_FILES="$(find / \( -path /proc                 \

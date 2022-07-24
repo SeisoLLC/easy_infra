@@ -1,0 +1,10 @@
+ARG FROM_IMAGE=easy_infra_base
+ARG FROM_IMAGE_TAG
+
+FROM "${FROM_IMAGE}":"${FROM_IMAGE_TAG}" AS ansible:"${FROM_IMAGE_TAG}"
+
+ARG ANSIBLE_VERSION
+ENV ANSIBLE_VERSION="${ANSIBLE_VERSION}"
+RUN apt-get update \
+ && apt-get -y install --no-install-recommends ansible=${ANSIBLE_VERSION} \
+ && su easy_infra -c "mkdir /home/easy_infra/.ansible"

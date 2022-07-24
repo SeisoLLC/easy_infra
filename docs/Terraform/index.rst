@@ -7,14 +7,8 @@ Terraform
 The ``easy_infra`` project includes and secures Terraform as a component due to its popularity and versitility in provisioning and updating
 environments as Infrastructure as Code (IaC).
 
-``easy_infra``'s Terraform security uses tools, such as `Checkov <https://www.checkov.io/>`_ and `KICS <https://kics.io/>`_, to semi-transparently
-assess the provided IaC against the defined security policy.
-
-Varying levels of Terraform security are included in the ``easy_infra`` tags, including minimal, aws, az, and latest.  For more information, see
-`Disabling Security`_ below.
-
-.. note::
-    In the minimal, aws, and az images, only the Checkov and KICS security tools are available.  All other security tools will be skipped.
+``easy_infra``'s Terraform security uses tools, such as `Checkov <https://www.checkov.io/>`_ and `KICS <https://kics.io/>`_, to transparently assess
+the provided IaC against the defined security policy.
 
 
 Use Cases
@@ -23,11 +17,11 @@ Use Cases
 If you use Software Version Control (such as ``git``) to manage your Terraform IaC, consider executing ``terraform validate`` with easy_infra as a
 pipeline action on commit or pull request::
 
-    docker run -v $(pwd):/iac seiso/easy_infra:latest-minimal terraform validate
+    docker run -v $(pwd):/iac seiso/easy_infra:latest-terraform terraform validate
 
 You can also use easy_infra to deploy your infrastructure using ``terraform plan`` and ``terraform deploy``::
 
-    docker run -v $(pwd):/iac seiso/easy_infra:latest-minimal /bin/bash -c "terraform plan && terraform apply -auto-approve"
+    docker run -v $(pwd):/iac seiso/easy_infra:latest-terraform /bin/bash -c "terraform plan && terraform apply -auto-approve"
 
 
 Customizing Checkov
@@ -49,7 +43,7 @@ Customizing Checkov
     CHECKOV_BASELINE=/iac/.checkov.baseline
     CHECKOV_EXTERNAL_CHECKS_DIR=/iac/checkov_rules/
     CHECKOV_SKIP_CHECK=CKV_AWS_20
-    docker run --env-file <(env | grep ^CHECKOV_) -v $(pwd):/iac easy_infra:latest-minimal terraform validate
+    docker run --env-file <(env | grep ^CHECKOV_) -v $(pwd):/iac easy_infra:latest-terraform terraform validate
 
 
 Customizing KICS
@@ -68,7 +62,7 @@ Customizing KICS
 
     KICS_INCLUDE_QUERIES=4728cd65-a20c-49da-8b31-9c08b423e4db,46883ce1-dc3e-4b17-9195-c6a601624c73
     KICS_EXCLUDE_SEVERITIES=info,low
-    docker run --env-file <(env | grep ^KICS_) -v $(pwd):/iac easy_infra:latest-minimal terraform validate
+    docker run --env-file <(env | grep ^KICS_) -v $(pwd):/iac easy_infra:latest-terraform terraform validate
 
 
 Preinstalled Hooks
@@ -86,7 +80,7 @@ Terraform Caching
 
 If you're working with the same terraform code across multiple runs, you can leverage the cache::
 
-    docker run -v $(pwd):/iac -v $(pwd)/plugin-cache:/home/easy_infra/.terraform.d/plugin-cache easy_infra:latest-minimal /bin/bash -c "terraform init; terraform validate"
+    docker run -v $(pwd):/iac -v $(pwd)/plugin-cache:/home/easy_infra/.terraform.d/plugin-cache easy_infra:latest-terraform /bin/bash -c "terraform init; terraform validate"
 
 
 Disabling Security

@@ -21,6 +21,10 @@ LABEL org.opencontainers.image.revision="${COMMIT_HASH}"
 # minimal setup
 ARG BUILDARCH
 ARG KICS_ARCH
+ARG EASY_INFRA_TAG
+ENV EASY_INFRA_TAG="${EASY_INFRA_TAG}"
+ARG EASY_INFRA_VERSION
+ENV EASY_INFRA_VERSION="${EASY_INFRA_VERSION}"
 ARG FLUENT_BIT_VERSION
 ENV FLUENT_BIT_VERSION="${FLUENT_BIT_VERSION}"
 ARG CONSUL_TEMPLATE_VERSION
@@ -149,7 +153,6 @@ COPY --chown=easy_infra:easy_infra fluent-bit.outputs.conf /usr/local/etc/fluent
 ENV BASH_ENV=/functions
 WORKDIR /iac
 ENTRYPOINT ["tini", "-g", "--", "/usr/local/bin/docker-entrypoint.sh"]
-
 
 FROM minimal AS az
 USER root

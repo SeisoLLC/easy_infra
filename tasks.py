@@ -3,6 +3,8 @@
 Task execution tool & library
 """
 
+import copy
+import itertools
 import os
 import platform
 import re
@@ -15,6 +17,7 @@ from pathlib import Path
 from typing import Union
 
 import docker
+import requests
 from bumpversion.cli import main as bumpversion
 from invoke import task
 
@@ -68,17 +71,161 @@ def log_build_log(*, build_err: docker.errors.BuildError) -> None:
             finished = True
 
 
-def process_stages(*, stage: str) -> list[str]:
-    """Process the provided stage"""
-    if stage == "all":
-        stages = constants.VARIANTS
-    elif stage not in constants.VARIANTS:
-        LOG.error(f"{stage} is not a known variant, exiting...")
+def gather_tools_and_environments(
+    *, tool: str, environment: str
+) -> dict[str, dict[str, list[str]]]:
+    """
+    Returns a dict with a key of the tool (the cornerstone of this project), which contains a list of requested environments
+    """
+    if tool == "all":
+        tools = constants.TOOLS
+    elif tool not in constants.TOOLS:
+        LOG.error(f"{tool} is not a supported tool, exiting...")
         sys.exit(1)
     else:
-        stages = [stage]
+        tools = [tool]
 
-    return stages
+    if environment == "all":
+        environments = constants.ENVIRONMENTS
+    elif environment == "none":
+        environments = []
+    elif environment not in constants.ENVIRONMENTS:
+        LOG.error(f"{environment} is not a supported environment, exiting...")
+        sys.exit(1)
+    else:
+        environments = [environment]
+
+    image_and_tool_and_environment_tags = {}
+    for tool in tools:
+        image_and_tool_and_environment_tags[tool] = {"environments": environments}
+
+    return image_and_tool_and_environment_tags
+
+
+def filter_config(*, config: str, tool: str) -> dict:
+    """Take in a configuration, filter it based on the provided tool, and return the result"""
+    filtered_config = {}
+
+    for command in config["commands"]:
+        if command in config["commands"][tool]["security"]:
+            filtered_config[command] = copy.deepcopy(config["commands"][tool])
+
+    return filtered_config
+
+
+def setup_buildargs(*, tool: str) -> dict:
+    """Setup the buildargs for the provided tool"""
+    buildargs = {}
+
+    # This is imperfect and should be further refined
+    if platform.machine().lower() == "arm64":
+        buildargs["BUILDARCH"] = "arm64"
+        buildargs["KICS_ARCH"] = "arm64"
+        buildargs["AWS_CLI_ARCH"] = "aarch64"
+    else:
+        buildargs["BUILDARCH"] = "amd64"
+        buildargs["KICS_ARCH"] = "x64"
+        buildargs["AWS_CLI_ARCH"] = "x86_64"
+
+    # Add the tool version buildarg
+    if "version" in constants.CONFIG["commands"][tool]:
+        # Normalize and add to buildargs
+        arg = tool.upper().replace("-", "_") + "_VERSION"
+        buildargs[arg] = constants.CONFIG["commands"][tool]["version"]
+    else:
+        LOG.error(f"Unable to identify the version of {tool}")
+        sys.exit(1)
+
+    # Pull in any other buildargs that the tool cares about
+    for command in constants.CONFIG["commands"]:
+        if command in constants.CONFIG["commands"][tool]["security"]:
+            if "version" in constants.CONFIG["commands"][command]:
+                # Normalize and add to buildargs
+                arg = command.upper().replace("-", "_") + "_VERSION"
+                buildargs[arg] = constants.CONFIG["commands"][command]["version"]
+            else:
+                LOG.error(
+                    f"Unable to identify the version of {command}, which {tool} depends on"
+                )
+                sys.exit(1)
+
+    return buildargs
+
+
+def pull_image(*, image_and_tag: str, platform: str = PLATFORM) -> None:
+    """Pull the provided image but continue if it fails"""
+    registry_data = CLIENT.images.get_registry_data(name="{image_and_tag}")
+    if registry_data.has_platform(platform):
+        LOG.info(f"Pulling {image_and_tag} (platform {platform})...")
+    else:
+        LOG.info(f"{image_and_tag} does not have a {platform} image available")
+        return
+
+    try:
+        CLIENT.images.pull(repository=image_and_tag, platform=platform)
+    except requests.exceptions.HTTPError:
+        LOG.warning(
+            f"Failed to pull {image_and_tag} for platform {platform} due to an HTTP error, continuing anyway..."
+        )
+
+
+def build_and_tag(
+    *, tool: str, environment: Union[str, None] = None, trace: bool = False
+) -> None:
+    """Build the provided image and tag it with the provided list of tags"""
+    if environment:
+        versioned_tag = constants.CONTEXT[tool][environment]["versioned_tag"]
+        latest_tag = constants.CONTEXT[tool][environment]["latest_tag"]
+        buildargs = constants.CONTEXT[tool][environment]["buildargs"]
+    else:
+        versioned_tag = constants.CONTEXT[tool]["versioned_tag"]
+        latest_tag = constants.CONTEXT[tool]["latest_tag"]
+        buildargs = constants.CONTEXT[tool]["buildargs"]
+
+    image_and_versioned_tag = f"{constants.IMAGE}:{versioned_tag}"
+    image_and_latest_tag = f"{constants.IMAGE}:{latest_tag}"
+
+    # Warm up the cache
+    pull_image(image_and_tag=image_and_latest_tag)
+
+    LOG.info(f"Building {image_and_versioned_tag}...")
+    LOG.debug(f"Rendering {constants.DOCKERFILE_BASE}...")
+    utils.render_jinja2(
+        template_file=constants.FUNCTIONS_INPUT_FILE,
+        config=constants.CONFIG,
+        output_file=constants.FUNCTIONS_OUTPUT_FILE,
+    )
+
+    try:
+        LOG.debug("Running setup_buildargs...")
+        buildargs = setup_buildargs(tool=tool)
+
+        if trace:
+            buildargs["TRACE"] = "true"
+
+        LOG.debug("Building the docker image...")
+        # TODO: How do we create the right path to point to the dockerfile?
+        # if environment: ????
+        # path = IMAGES.joinpath("TODO")
+        #   path=str(constants.CWD),  ??? How do we auto construct the Dockerfile
+        #   target=variant,  ??? Always final?
+        image = CLIENT.images.build(
+            buildargs=buildargs,
+            tag=image_and_versioned_tag,
+            cache_from=[image_and_latest_tag],
+            platform=PLATFORM,
+            rm=True,
+        )[0]
+    except docker.errors.BuildError as build_err:
+        LOG.exception(
+            f"Failed to build {image_and_versioned_tag} platform {PLATFORM}, retrieving and logging the more detailed build error...",
+        )
+        log_build_log(build_err=build_err)
+        sys.exit(1)
+
+    # Tag latest
+    LOG.info(f"Tagging {constants.IMAGE}:{latest_tag}...")
+    image.tag(constants.IMAGE, tag=latest_tag)
 
 
 # Tasks
@@ -112,7 +259,7 @@ def update(_c, debug=False):
     image = "python:3.10"
     working_dir = "/usr/src/app/"
     volumes = {constants.CWD: {"bind": working_dir, "mode": "rw"}}
-    CLIENT.images.pull(repository=image)
+    pull_image(image_and_tag=image)
     command = '/bin/bash -c "python3 -m pip install --upgrade pipenv &>/dev/null && pipenv update"'
     utils.opinionated_docker_run(
         image=image,
@@ -138,8 +285,7 @@ def reformat(_c, debug=False):
     working_dir = "/goat/"
     volumes = {constants.CWD: {"bind": working_dir, "mode": "rw"}}
 
-    LOG.info(f"Pulling {image} (platform {PLATFORM})...")
-    CLIENT.images.pull(repository=image, platform=PLATFORM)
+    pull_image(image_and_tag=image)
     LOG.info("Reformatting the project...")
     for entrypoint, command in entrypoint_and_command:
         container = CLIENT.containers.run(
@@ -180,8 +326,7 @@ def lint(_c, debug=False):
     working_dir = "/goat/"
     volumes = {constants.CWD: {"bind": working_dir, "mode": "rw"}}
 
-    LOG.info(f"Pulling {image}...")
-    CLIENT.images.pull(repository=image, platform=PLATFORM)
+    pull_image(image_and_tag=image)
     LOG.info(f"Running {image}...")
     container = CLIENT.containers.run(
         auto_remove=False,
@@ -198,72 +343,33 @@ def lint(_c, debug=False):
 
 
 @task
-def build(_c, stage="all", trace=False, debug=False):
+def build(_c, tool="all", environment="all", trace=False, debug=False):
     """Build easy_infra"""
     if debug:
         getLogger().setLevel("DEBUG")
 
-    utils.render_jinja2(
-        template_file=constants.JINJA2_FILE,
-        config=constants.CONFIG,
-        output_file=constants.OUTPUT_FILE,
+    tools_to_environments = gather_tools_and_environments(
+        tool=tool, environment=environment
     )
 
-    buildargs = {}
+    # pylint: disable=redefined-argument-from-local
+    for tool in tools_to_environments:
+        # Render the functions that the tool cares about
+        filtered_config = filter_config(config=constants.CONFIG, tool=tool)
+        utils.render_jinja2(
+            template_file=constants.FUNCTIONS_INPUT_FILE,
+            config=filtered_config,
+            output_file=constants.FUNCTIONS_OUTPUT_FILE,
+        )
 
-    if trace:
-        buildargs["TRACE"] = "true"
+        # TODO: Figure out how to handle -large, somewhere in this function?
 
-    # This is imperfect and should be further refined
-    if platform.machine().lower() == "arm64":
-        buildargs["BUILDARCH"] = "arm64"
-        buildargs["KICS_ARCH"] = "arm64"
-        buildargs["AWS_CLI_ARCH"] = "aarch64"
-    else:
-        buildargs["BUILDARCH"] = "amd64"
-        buildargs["KICS_ARCH"] = "x64"
-        buildargs["AWS_CLI_ARCH"] = "x86_64"
+        # Build and Tag the tool-only tag
+        build_and_tag(tool=tool)
 
-    for command in constants.CONFIG["commands"]:
-        if "version" in constants.CONFIG["commands"][command]:
-            # Normalize the build args
-            arg = command.upper().replace("-", "_") + "_VERSION"
-            buildargs[arg] = constants.CONFIG["commands"][command]["version"]
-
-    variants = process_stages(stage=stage)
-
-    for variant in variants:
-        # This pulls the appropriate latest image from Docker Hub to be used as a cache when building
-        latest_tag = constants.CONTEXT[variant]["latest_tag"]
-        image_and_latest_tag = f"{constants.IMAGE}:{latest_tag}"
-        LOG.info(f"Pulling {image_and_latest_tag}...")
-        CLIENT.images.pull(image_and_latest_tag)
-
-        buildargs.update(constants.CONTEXT[variant]["buildargs"])
-        versioned_tag = constants.CONTEXT[variant]["buildargs"]["EASY_INFRA_VERSION"]
-        image_and_versioned_tag = f"{constants.IMAGE}:{versioned_tag}"
-
-        LOG.info(f"Building {image_and_versioned_tag} (platform {PLATFORM})...")
-
-        try:
-            image = CLIENT.images.build(
-                path=str(constants.CWD),
-                target=variant,
-                rm=True,
-                tag=image_and_versioned_tag,
-                platform=PLATFORM,
-                buildargs=buildargs,
-                cache_from=[image_and_latest_tag],
-            )[0]
-        except docker.errors.BuildError as build_err:
-            LOG.exception(
-                f"Failed to build {image_and_versioned_tag} for platform {PLATFORM}, retrieving and logging the more detailed build error...",
-            )
-            log_build_log(build_err=build_err)
-            sys.exit(1)
-
-        LOG.info(f"Tagging {constants.IMAGE}:{latest_tag} (platform {PLATFORM})...")
-        image.tag(constants.IMAGE, tag=latest_tag)
+        # Build and Tag the tool + environment tags
+        for environment in tools_to_environments[tool]["environments"]:
+            build_and_tag(tool=tool, environment=environment, trace=trace)
 
 
 @task
