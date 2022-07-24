@@ -237,12 +237,8 @@ def run_terraform(*, image: str, final: bool = False):
     tests_volumes = {tests_test_dir: {"bind": working_dir, "mode": "ro"}}
     invalid_test_dir = TESTS_PATH.joinpath("terraform/general/invalid")
     invalid_volumes = {invalid_test_dir: {"bind": working_dir, "mode": "rw"}}
-    tfsec_test_dir = TESTS_PATH.joinpath("terraform/tool/tfsec")
-    tfsec_volumes = {tfsec_test_dir: {"bind": working_dir, "mode": "rw"}}
     checkov_test_dir = TESTS_PATH.joinpath("terraform/tool/checkov")
     checkov_volumes = {checkov_test_dir: {"bind": working_dir, "mode": "rw"}}
-    terrascan_test_dir = TESTS_PATH.joinpath("terraform/tool/terrascan")
-    terrascan_volumes = {terrascan_test_dir: {"bind": working_dir, "mode": "rw"}}
     kics_config_dir = TESTS_PATH.joinpath("terraform/tool/kics")
     kics_volumes = {kics_config_dir: {"bind": working_dir, "mode": "rw"}}
     secure_config_dir = TESTS_PATH.joinpath("terraform/general/secure")
@@ -611,7 +607,7 @@ def run_terraform(*, image: str, final: bool = False):
         ),  # Not supported; reproduce "Too many command line
         #     arguments. Configuration path expected." error locally with
         #     `docker run -e DISABLE_SECURITY=true -v
-        #     $(pwd)/tests/terraform/tool/terrascan:/iac
+        #     $(pwd)/tests/terraform/tool/checkov:/iac
         #     seiso/easy_infra:latest terraform plan \|\| false`, prefer
         #     passing the commands through bash like the following test
         (
@@ -645,45 +641,42 @@ def run_terraform(*, image: str, final: bool = False):
     # Tests is a list of tuples containing the test environment, command, and
     # expected exit code
     tests: list[tuple[dict, str, int]] = [  # type: ignore
-        ({}, "terraform --skip-tfsec --skip-terrascan --skip-checkov plan", 50),
-        ({}, "tfenv exec --skip-tfsec --skip-terrascan --skip-checkov plan", 50),
+        ({}, "terraform --skip-checkov plan", 50),
+        ({}, "tfenv exec --skip-checkov plan", 50),
         (
             {},
-            '/usr/bin/env bash -c "SKIP_TFSEC=true SKIP_TERRASCAN=true SKIP_CHECKOV=true terraform plan"',
+            '/usr/bin/env bash -c "SKIP_CHECKOV=true terraform plan"',
             50,
         ),
         (
             {},
-            '/usr/bin/env bash -c "SKIP_TFSEC=true SKIP_TERRASCAN=true SKIP_CHECKOV=true terraform plan || true"',
+            '/usr/bin/env bash -c "SKIP_CHECKOV=true terraform plan || true"',
             0,
         ),
         (
             {},
-            '/usr/bin/env bash -c "SKIP_TFSEC=true SKIP_CHECKOV=true SKIP_TERRASCAN=true terraform plan || true && false"',
+            '/usr/bin/env bash -c "SKIP_CHECKOV=true terraform plan || true && false"',
             1,
         ),
-        ({"SKIP_CHECKOV": "true"}, "terraform plan --skip-tfsec --skip-terrascan", 50),
-        ({"SKIP_TFSEC": "true"}, "terraform --skip-terrascan plan --skip-checkov", 50),
+        ({"SKIP_CHECKOV": "true"}, "terraform plan --skip-checkov", 50),
         (
-            {"SKIP_CHECKOV": "true", "SKIP_TFSEC": "true", "SKIP_TERRASCAN": "true"},
+            {"SKIP_CHECKOV": "true"},
             "terraform plan",
             50,
         ),
         (
             {},
-            '/usr/bin/env bash -c "LEARNING_MODE=true SKIP_TFSEC=true SKIP_CHECKOV=true SKIP_TERRASCAN=true terraform validate"',
+            '/usr/bin/env bash -c "LEARNING_MODE=true SKIP_CHECKOV=true terraform validate"',
             0,
         ),  # Test learning mode with skip env vars
         (
             {"LEARNING_MODE": "true", "SKIP_CHECKOV": "true"},
-            "terraform validate --skip-tfsec --skip-terrascan",
+            "terraform validate",
             0,
         ),  # Test learning mode with mixed env vars and cli args
         (
             {
                 "SKIP_CHECKOV": "true",
-                "SKIP_TFSEC": "true",
-                "SKIP_TERRASCAN": "true",
                 "KICS_INCLUDE_QUERIES": "4728cd65-a20c-49da-8b31-9c08b423e4db,46883ce1-dc3e-4b17-9195-c6a601624c73",
             },
             "terraform validate",
@@ -693,8 +686,6 @@ def run_terraform(*, image: str, final: bool = False):
         (
             {
                 "SKIP_CHECKOV": "true",
-                "SKIP_TFSEC": "true",
-                "SKIP_TERRASCAN": "true",
                 "KICS_INCLUDE_QUERIES": "5a2486aa-facf-477d-a5c1-b010789459ce",
             },
             "terraform validate",
@@ -702,14 +693,12 @@ def run_terraform(*, image: str, final: bool = False):
         ),  # This tests the "customizations" idea from easy_infra.yml and functions.j2
         (
             {},
-            '/usr/bin/env bash -c "KICS_INCLUDE_QUERIES=5a2486aa-facf-477d-a5c1-b010789459ce terraform --skip-tfsec --skip-terrascan --skip-checkov validate"',
+            '/usr/bin/env bash -c "KICS_INCLUDE_QUERIES=5a2486aa-facf-477d-a5c1-b010789459ce terraform --skip-checkov validate"',
             50,
         ),  # This tests the "customizations" idea from easy_infra.yml and functions.j2
         (
             {
                 "SKIP_CHECKOV": "true",
-                "SKIP_TFSEC": "true",
-                "SKIP_TERRASCAN": "true",
                 "KICS_EXCLUDE_SEVERITIES": "medium",
             },
             "terraform validate",
@@ -718,8 +707,6 @@ def run_terraform(*, image: str, final: bool = False):
         (
             {
                 "SKIP_CHECKOV": "true",
-                "SKIP_TFSEC": "true",
-                "SKIP_TERRASCAN": "true",
                 "KICS_EXCLUDE_SEVERITIES": "info,low,medium,high",
             },
             "terraform validate",
@@ -734,36 +721,36 @@ def run_terraform(*, image: str, final: bool = False):
     # Tests is a list of tuples containing the test environment, command, and
     # expected exit code
     tests: list[tuple[dict, str, int]] = [  # type: ignore
-        ({}, "terraform --skip-kics --skip-tfsec --skip-terrascan plan", 1),
-        ({}, "tfenv exec --skip-tfsec --skip-kics --skip-terrascan plan", 1),
+        ({}, "terraform --skip-kics plan", 1),
+        ({}, "tfenv exec --skip-kics plan", 1),
         (
             {},
-            '/usr/bin/env bash -c "SKIP_TFSEC=true SKIP_KICS=true SKIP_TERRASCAN=true terraform plan"',
+            '/usr/bin/env bash -c "SKIP_KICS=true terraform plan"',
             1,
         ),
         (
-            {"SKIP_TFSEC": "true", "SKIP_KICS": "true"},
-            '/usr/bin/env bash -c "SKIP_TERRASCAN=true terraform plan || true"',
+            {"SKIP_KICS": "true"},
+            '/usr/bin/env bash -c "terraform plan || true"',
             0,
         ),
         (
-            {"SKIP_TFSEC": "true"},
-            '/usr/bin/env bash -c "SKIP_TERRASCAN=true SKIP_KICS=true terraform plan || true && false"',
+            {},
+            '/usr/bin/env bash -c "SKIP_KICS=true terraform plan || true && false"',
             1,
         ),
         (
-            {"SKIP_TERRASCAN": "true", "SKIP_KICS": "true", "SKIP_TFSEC": "true"},
-            "terraform --skip-tfsec plan --skip-terrascan --skip-kics",
+            {"SKIP_KICS": "true"},
+            "terraform --skip-kics plan",
             1,
         ),
         (
-            {"LEARNING_MODE": "tRuE", "SKIP_TFSEC": "true", "SKIP_KICS": "TRUE"},
-            '/usr/bin/env bash -c "SKIP_TERRASCAN=true terraform validate"',
+            {"LEARNING_MODE": "tRuE", "SKIP_KICS": "TRUE"},
+            '/usr/bin/env bash -c "terraform validate"',
             0,
         ),
         (
-            {"LEARNING_MODE": "tRuE", "SKIP_TFSEC": "true", "SKIP_KICS": "true"},
-            "terraform validate --skip-terrascan",
+            {"LEARNING_MODE": "tRuE", "SKIP_KICS": "true"},
+            "terraform validate",
             0,
         ),
     ]
@@ -791,9 +778,6 @@ def run_terraform(*, image: str, final: bool = False):
     # regardless of which image is being tested
     files = ["/tmp/kics_complete"]
     files.append("/tmp/checkov_complete")
-    if final:
-        files.append("/tmp/tfsec_complete")
-        files.append("/tmp/terrascan_complete")
     LOG.debug("Testing interactive terraform commands")
 
     # Check the container
@@ -833,9 +817,6 @@ def run_terraform(*, image: str, final: bool = False):
     # regardless of which image is being tested
     files = ["/tmp/kics_complete"]
     files.append("/tmp/checkov_complete")
-    if final:
-        files.append("/tmp/tfsec_complete")
-        files.append("/tmp/terrascan_complete")
     LOG.debug("Testing non-interactive terraform commands")
 
     # Check the container
@@ -872,9 +853,6 @@ def run_terraform(*, image: str, final: bool = False):
     )
     files = ["/tmp/kics_complete"]
     files.append("/tmp/checkov_complete")
-    if final:
-        files.append("/tmp/tfsec_complete")
-        files.append("/tmp/terrascan_complete")
     LOG.debug("Testing non-interactive terraform version")
     if (
         num_successful_tests := check_for_files(
@@ -890,107 +868,6 @@ def run_terraform(*, image: str, final: bool = False):
     if not final:
         LOG.info("%s passed %d end to end terraform tests", image, num_tests_ran)
         return
-
-    # Ensure insecure configurations fail due to tfsec
-    # Tests is a list of tuples containing the test environment, command, and
-    # expected exit code
-    tests: list[tuple[dict, str, int]] = [  # type: ignore
-        ({}, "terraform --skip-checkov --skip-terrascan --skip-kics plan", 1),
-        ({}, "tfenv exec --skip-checkov --skip-kics --skip-terrascan plan", 1),
-        (
-            {},
-            "SKIP_KICS=true SKIP_CHECKOV=true SKIP_TERRASCAN=true terraform plan",
-            127,
-        ),  # Not supported; prepended variables do not work unless the
-        #     commands are passed through bash
-        (
-            {},
-            '/usr/bin/env bash -c "SKIP_KICS=true SKIP_CHECKOV=true SKIP_TERRASCAN=true terraform plan"',
-            1,
-        ),
-        (
-            {"SKIP_CHECKOV": "true", "SKIP_KICS": "true"},
-            '/usr/bin/env bash -c "SKIP_TERRASCAN=true terraform plan || true"',
-            0,
-        ),
-        (
-            {"SKIP_CHECKOV": "true"},
-            '/usr/bin/env bash -c "SKIP_KICS=true SKIP_TERRASCAN=true terraform plan || true && false"',
-            1,
-        ),
-        (
-            {"SKIP_TERRASCAN": "TRUE", "SKIP_KICS": "True"},
-            "terraform --skip-checkov plan",
-            1,
-        ),
-        (
-            {"SKIP_TERRASCAN": "tRuE", "SKIP_CHECKOV": "FaLsE", "SKIP_KICS": "Unknown"},
-            "terraform --skip-checkov plan --skip-terrascan --skip-kics",
-            1,
-        ),
-        (
-            {
-                "LEARNING_MODE": "TrUe",
-                "SKIP_KICS": "TRUE",
-                "SKIP_TERRASCAN": "tRuE",
-                "SKIP_TFSEC": "false",
-            },
-            "terraform --skip-checkov --skip-kics validate --skip-terrascan",
-            0,
-        ),
-        (
-            {},
-            '/usr/bin/env bash -c "LEARNING_MODE=TRUE terraform --skip-kics --skip-checkov --skip-terrascan validate"',
-            0,
-        ),
-    ]
-
-    LOG.debug("Testing tfsec against insecure terraform")
-    num_tests_ran += exec_tests(tests=tests, volumes=tfsec_volumes, image=image)
-
-    # Ensure insecure configurations fail due to terrascan
-    # Tests is a list of tuples containing the test environment, command, and
-    # expected exit code
-    tests: list[tuple[dict, str, int]] = [  # type: ignore
-        ({}, "terraform --skip-tfsec --skip-kics --skip-checkov plan", 3),
-        ({}, "tfenv exec --skip-tfsec --skip-kics --skip-checkov plan", 3),
-        (
-            {},
-            '/usr/bin/env bash -c "SKIP_TFSEC=true SKIP_KICS=true SKIP_CHECKOV=true terraform plan"',
-            3,
-        ),
-        (
-            {},
-            '/usr/bin/env bash -c "SKIP_TFSEC=true SKIP_KICS=true SKIP_CHECKOV=true terraform plan || true"',
-            0,
-        ),
-        (
-            {},
-            '/usr/bin/env bash -c "SKIP_TFSEC=true SKIP_CHECKOV=true SKIP_KICS=true terraform plan || true && false"',
-            1,
-        ),
-        ({"SKIP_CHECKOV": "true"}, "terraform plan --skip-tfsec --skip-kics", 3),
-        (
-            {"SKIP_CHECKOV": "true", "SKIP_TFSEC": "true", "SKIP_KICS": "true"},
-            "terraform plan --skip-checkov --skip-tfsec --skip-kics",
-            3,
-        ),
-        (
-            {},
-            '/usr/bin/env bash -c "LEARNING_MODE=true SKIP_TFSEC=true SKIP_CHECKOV=true SKIP_KICS=true terraform validate"',
-            0,
-        ),
-        (
-            {"LEARNING_MODE": "true", "SKIP_CHECKOV": "true"},
-            "terraform validate --skip-tfsec --skip-kics",
-            0,
-        ),
-    ]
-
-    LOG.debug("Testing terrascan against insecure terraform")
-    num_tests_ran += exec_tests(tests=tests, volumes=terrascan_volumes, image=image)
-
-    LOG.info("%s passed %d end to end terraform tests", image, num_tests_ran)
 
 
 def run_ansible(*, image: str):
@@ -1032,19 +909,19 @@ def run_ansible(*, image: str):
         ),
         (
             {},
-            '/usr/bin/env bash -c "SKIP_TFSEC=true ansible-playbook insecure.yml --check || true && false"',
+            '/usr/bin/env bash -c "SKIP_CHECKOV=true ansible-playbook insecure.yml --check || true && false"',
             1,
-        ),  # tfsec is purposefully irrelevant for ansible
+        ),  # checkov is purposefully irrelevant for ansible
         (
-            {"SKIP_CHECKOV": "true", "SKIP_TERRASCAN": "true"},
+            {"SKIP_CHECKOV": "true"},
             '/usr/bin/env bash -c "ansible-playbook insecure.yml --check || false"',
             1,
-        ),  # checkov and terrascan are purposefully irrelevant for ansible
+        ),  # checkov is purposefully irrelevant for ansible
         (
-            {"SKIP_TERRASCAN": "tRuE", "SKIP_CHECKOV": "FaLsE", "SKIP_KICS": "Unknown"},
+            {"SKIP_CHECKOV": "FaLsE", "SKIP_KICS": "Unknown"},
             "ansible-playbook insecure.yml --check",
             50,
-        ),  # checkov and terrascan are purposefully irrelevant for ansible
+        ),  # checkov is purposefully irrelevant for ansible
         (
             {},
             '/usr/bin/env bash -c "LEARNING_MODE=true ansible-playbook insecure.yml --check"',

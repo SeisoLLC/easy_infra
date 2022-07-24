@@ -21,9 +21,6 @@ if [ "$#" -eq 0 ]; then
   if [ -x "$(which ansible)" ]; then
     echo -e "ansible\t\t ${ANSIBLE_VERSION}"
   fi
-  if [ -x "$(which packer)" ]; then
-    echo -e "packer\t\t ${PACKER_VERSION}"
-  fi
   current_version=$(cat /home/easy_infra/.tfenv/version)
   if [ -x "$(which terraform)" ]; then
     if [[ "${TERRAFORM_VERSION}" != "${current_version}" ]]; then
