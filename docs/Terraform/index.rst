@@ -7,9 +7,8 @@ Terraform
 The ``easy_infra`` project includes and secures Terraform as a component due to its popularity and versitility in provisioning and updating
 environments as Infrastructure as Code (IaC).
 
-``easy_infra``'s Terraform security uses tools such as `Checkov <https://www.checkov.io/>`_, `KICS <https://kics.io/>`_, `Terrascan
-<https://www.accurics.com/products/terrascan/>`_, and `tfsec <https://tfsec.dev/>`_, to semi-transparently assess the provided IaC against the defined
-security policy.
+``easy_infra``'s Terraform security uses tools, such as `Checkov <https://www.checkov.io/>`_ and `KICS <https://kics.io/>`_, to semi-transparently
+assess the provided IaC against the defined security policy.
 
 Varying levels of Terraform security are included in the ``easy_infra`` tags, including minimal, aws, az, and latest.  For more information, see
 `Disabling Security`_ below.
@@ -72,22 +71,6 @@ Customizing KICS
     docker run --env-file <(env | grep ^KICS_) -v $(pwd):/iac easy_infra:latest-minimal terraform validate
 
 
-Customizing tfsec
-^^^^^^^^^^^^^^^^^
-
-+--------------------------+----------------------------+----------------------------+
-| Environment Variable     | Result                     | Example                    |
-+==========================+============================+============================+
-| ``TFSEC_DISABLE_CHECKS`` | Passes the value to ``-e`` | ``log-group-customer-key`` |
-+--------------------------+----------------------------+----------------------------+
-
-
-::
-
-    TFSEC_DISABLE_CHECKS=log-group-customer-key
-    docker run --env-file <(env | grep ^TFSEC_) -v $(pwd):/iac easy_infra:latest terraform validate
-
-
 Preinstalled Hooks
 ^^^^^^^^^^^^^^^^^^
 
@@ -122,10 +105,6 @@ The injected security tooling can be disabled entirely or individually, using
 +----------------------+-----------+---------------------------------------------------------------------------------+
 | ``SKIP_KICS``        | ``false`` | Disables KICS when set to ``true``                                              |
 +----------------------+-----------+---------------------------------------------------------------------------------+
-| ``SKIP_TERRASCAN``   | ``false`` | Disables Terrascan when set to ``true``                                         |
-+----------------------+-----------+---------------------------------------------------------------------------------+
-| ``SKIP_TFSEC``       | ``false`` | Disables tfsec when set to ``true``                                             |
-+----------------------+-----------+---------------------------------------------------------------------------------+
 
 +------------------------+------------------------------+-------------------------------------------+
 | Parameter              | Result                       | Example                                   |
@@ -135,10 +114,6 @@ The injected security tooling can be disabled entirely or individually, using
 | ``--skip-checkov``     | Disable Checkov              | ``terraform --skip-checkov validate``     |
 +------------------------+------------------------------+-------------------------------------------+
 | ``--skip-kics``        | Disable KICS                 | ``terraform validate --skip-kics``        |
-+------------------------+------------------------------+-------------------------------------------+
-| ``--skip-terrascan``   | Disable Terrascan            | ``terraform --skip-terrascan validate``   |
-+------------------------+------------------------------+-------------------------------------------+
-| ``--skip-tfsec``       | Disable tfsec                | ``terraform --skip-tfsec validate``       |
 +------------------------+------------------------------+-------------------------------------------+
 
 .. note::
@@ -165,8 +140,8 @@ command (or series of commands) on all of them without needing to maintain a met
 Resources
 ---------
 
-Configuring custom checks can be done by leveragin the robust Rego language, maintained by the, Open Policy Agent (OPA) offers useful resources for
+Configuring custom checks can be done by leveraging the robust Rego language, maintained by the, Open Policy Agent (OPA) offers useful resources for
 cloud native infrastructure administrators.  Their example Terraform workflow is available `here
 <https://www.openpolicyagent.org/docs/latest/terraform/>`_.
 
-OPA also hosts `The Rego Playground <https://play.openpolicyagent.org/>`_ for testing custom Terrascan rules.
+OPA also hosts `The Rego Playground <https://play.openpolicyagent.org/>`_ for testing custom rules written in Rego.

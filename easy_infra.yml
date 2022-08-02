@@ -17,14 +17,6 @@ _anchors:
         KICS_EXCLUDE_SEVERITIES: --exclude-severities
         KICS_INCLUDE_QUERIES: --include-queries
       description: directory scan
-    terrascan:
-      command: terrascan scan -i terraform -t all -d .
-      description: recursive scan
-    tfsec:
-      command: tfsec .
-      customizations:
-        TFSEC_DISABLE_CHECKS: -e
-      description: recursive scan
   validation: &id003
   - command: terraform init -backend=false
     description: initialization
@@ -72,17 +64,11 @@ commands:
     allow_update: false
     version: v1.5.1
     version_argument: version
-  packer:
-    version: 1.8.0
-    version_argument: version
   terraform:
     file_extensions: *id001
     security: *id002
     validation: *id003
     version: 1.1.9
-    version_argument: version
-  terrascan:
-    version: v1.15.0
     version_argument: version
   terratag:
     version: v0.1.37
@@ -94,7 +80,4 @@ commands:
     security: *id002
     validation: *id003
     version: v2.2.3
-    version_argument: --version
-  tfsec:
-    version: v1.21.0
     version_argument: --version

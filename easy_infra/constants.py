@@ -33,8 +33,6 @@ LOG_FORMAT = json.dumps(
 
 APT_PACKAGES = {"ansible", "azure-cli"}
 GITHUB_REPOS_RELEASES = {
-    "accurics/terrascan",
-    "aquasecurity/tfsec",
     "checkmarx/kics",
     "env0/terratag",
     "fluent/fluent-bit",
@@ -44,7 +42,7 @@ GITHUB_REPOS_RELEASES = {
 }
 GITHUB_REPOS_TAGS = {"aws/aws-cli"}
 PYTHON_PACKAGES = {"checkov"}
-HASHICORP_PROJECTS = {"terraform", "packer"}
+HASHICORP_PROJECTS = {"terraform"}
 
 CONTEXT: dict[str, dict[str, Union[str, dict[str, str]]]] = {}
 

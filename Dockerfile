@@ -172,31 +172,6 @@ USER easy_infra
 
 FROM minimal AS final
 
-USER root
-# binary downloads and pip installs
-ARG PACKER_VERSION
-ENV PACKER_VERSION="${PACKER_VERSION}"
-ARG TERRASCAN_VERSION
-ENV TERRASCAN_VERSION="${TERRASCAN_VERSION}"
-ENV SKIP_TERRASCAN="false"
-ARG TFSEC_VERSION
-ENV TFSEC_VERSION="${TFSEC_VERSION}"
-ENV SKIP_TFSEC="false"
-RUN curl -L https://releases.hashicorp.com/packer/${PACKER_VERSION}/packer_${PACKER_VERSION}_linux_amd64.zip -o /usr/local/bin/packer.zip \
- && unzip /usr/local/bin/packer.zip -d /usr/local/bin/ \
- && rm -f /usr/local/bin/packer.zip \
- && chmod 0755 /usr/local/bin/packer \
- && curl -L https://github.com/accurics/terrascan/releases/download/${TERRASCAN_VERSION}/terrascan_${TERRASCAN_VERSION#v}_Linux_x86_64.tar.gz -o /usr/local/bin/terrascan.tar.gz \
- && tar -xvf /usr/local/bin/terrascan.tar.gz -C /usr/local/bin/ terrascan \
- && rm -f /usr/local/bin/terrascan.tar.gz \
- && chmod 0755 /usr/local/bin/terrascan \
- && chown root: /usr/local/bin/terrascan \
- && su easy_infra -c "terrascan init" \
- && rm -rf /home/easy_infra/.terrascan \
- && curl -L https://github.com/aquasecurity/tfsec/releases/download/${TFSEC_VERSION}/tfsec-linux-amd64 -o /usr/local/bin/tfsec \
- && chmod 0755 /usr/local/bin/tfsec
-USER easy_infra
-
 # AWS
 COPY --from=aws --chown=easy_infra:easy_infra /usr/local/aws-cli/ /usr/local/aws-cli/
 COPY --from=aws --chown=easy_infra:easy_infra /aws-cli-bin/ /usr/local/bin/
