@@ -123,6 +123,11 @@ jobs:
             vulns.*.v*.json
           draft: false
           prerelease: false
+      - name: Publish the release README to Docker Hub
+        uses: peter-evans/dockerhub-description@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
   distribute:
     name: Distribute
     needs: [bump-version]
@@ -159,12 +164,7 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Publish the release README to Docker Hub
-        uses: peter-evans/dockerhub-description@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Publish the images to Docker Hub
+      - name: Publish the image to Docker Hub
         run: pipenv run invoke publish main --stage=${{ matrix.stage }}
       - name: Install cosign
         uses: sigstore/cosign-installer@main
