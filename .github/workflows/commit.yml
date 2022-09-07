@@ -1,0 +1,185 @@
+---
+name: "Commit"
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+env:
+  python_version: "3.10"
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v3
+      - uses: seisollc/goat@main
+        with:
+          exclude: .*tests/(ansible|terraform)/.*
+  test:
+    name: Test
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        stage: ["minimal", "aws", "az", "final"]
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.python_version }}
+      - uses: actions/cache@v3
+        with:
+          path: ~/.local/share/virtualenvs
+          key: ${{ runner.os }}-python-${{ env.python_version }}-pipenv-${{ hashFiles('Pipfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-python-${{ env.python_version }}-pipenv-
+            ${{ runner.os }}-python-
+      - name: Install the dependencies
+        run: |
+          python -m pip install --upgrade pipenv
+          pipenv install --python ${{ env.python_version }} --deploy --ignore-pipfile --dev
+          mkdir "${RUNNER_TEMP}/bin"
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b "${RUNNER_TEMP}/bin"
+          chmod +x "${RUNNER_TEMP}/bin/syft"
+          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b "${RUNNER_TEMP}/bin"
+          chmod +x "${RUNNER_TEMP}/bin/grype"
+          echo "${RUNNER_TEMP}/bin" >> "${GITHUB_PATH}"
+      - name: Build the image
+        run: pipenv run invoke build --stage=${{ matrix.stage }}
+      - name: Generate the SBOM
+        run: pipenv run invoke sbom --stage=${{ matrix.stage }}
+      - name: Run tests
+        run: |
+          find tests -mindepth 1 -type d -exec chmod o+w {} \;
+          pipenv run invoke test --stage=${{ matrix.stage }}
+      - name: Upload the SBOM
+        uses: actions/upload-artifact@v3
+        with:
+          name: SBOM - ${{ matrix.stage }}
+          path: sbom.${{ matrix.stage }}.*.json
+          if-no-files-found: error
+      - name: Generate Vuln scan results
+        run: pipenv run invoke vulnscan --stage=${{ matrix.stage }}
+      - name: Upload Vuln scan result
+        uses: actions/upload-artifact@v3
+        with:
+          name: Vulns - ${{ matrix.stage }}
+          path: vulns.${{ matrix.stage }}.*.json
+          if-no-files-found: error
+  bump-version:
+    name: Bump version
+    needs: [lint, test]
+    if: "${{ github.event_name == 'push' && !startsWith(github.event.head_commit.message, 'Bump version: 2') }}"
+    permissions:
+      contents: write
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.python_version }}
+      - uses: actions/cache@v3
+        with:
+          path: ~/.local/share/virtualenvs
+          key: ${{ runner.os }}-python-${{ env.python_version }}-pipenv-${{ hashFiles('Pipfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-python-${{ env.python_version }}-pipenv-
+            ${{ runner.os }}-python-
+      - name: Install the dependencies
+        run: |
+          python -m pip install --upgrade pipenv
+          pipenv install --python ${{ env.python_version }} --deploy --ignore-pipfile --dev
+      - name: Bump the version
+        id: bump-version
+        run: |
+          git config --global user.name 'Seiso Automation'
+          git config --global user.email 'automation@seisollc.com'
+          pipenv run invoke release
+          TAG="$(git describe --tags)"
+          BRANCH="$(git branch --show-current)"
+          git push --atomic origin "${BRANCH}" "${TAG}"
+          echo "TAG=${TAG}" >> "${GITHUB_ENV}"
+      - name: Publish the release to GitHub
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          repository: seiso/easy_infra
+          name: ${{ env.TAG }}
+          tag_name: ${{ env.TAG }}
+          generate_release_notes: true
+          files: |
+            sbom.*.v*.json
+            vulns.*.v*.json
+          draft: false
+          prerelease: false
+      - name: Publish the release README to Docker Hub
+        uses: peter-evans/dockerhub-description@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+  distribute:
+    name: Distribute
+    needs: [bump-version]
+    strategy:
+      matrix:
+        stage: ["minimal", "aws", "az", "final"]
+    if: github.event_name == 'push'
+    environment: production
+    concurrency:
+      group: production
+      cancel-in-progress: true
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.python_version }}
+      - uses: actions/cache@v3
+        with:
+          path: ~/.local/share/virtualenvs
+          key: ${{ runner.os }}-python-${{ env.python_version }}-pipenv-${{ hashFiles('Pipfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-python-${{ env.python_version }}-pipenv-
+            ${{ runner.os }}-python-
+      - name: Install the dependencies
+        run: |
+          python -m pip install --upgrade pipenv
+          pipenv install --python ${{ env.python_version }} --deploy --ignore-pipfile --dev
+      - name: Build the image
+        run: pipenv run invoke build --stage=${{ matrix.stage }}
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Publish the image to Docker Hub
+        run: pipenv run invoke publish main --stage=${{ matrix.stage }}
+      - name: Install cosign
+        uses: sigstore/cosign-installer@main
+      - name: Sign the image
+        run: |
+          version_tag=$(pipenv run python -c "from easy_infra import constants; \
+                                              print(constants.CONTEXT['${STAGE}']['buildargs']['VERSION'])")
+          IMAGE_AND_DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' \
+                  "seiso/easy_infra:${version_tag}" )
+          echo -n "${COSIGN_PASSWORD}" |
+          cosign sign --key cosign.key   \
+            -a git_sha="${GITHUB_SHA}"   \
+            -a tag="${version_tag}"      \
+            "${IMAGE_AND_DIGEST}"
+        env:
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+          STAGE: ${{ matrix.stage }}
