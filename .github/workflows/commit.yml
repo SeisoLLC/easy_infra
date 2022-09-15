@@ -121,8 +121,8 @@ jobs:
           tag_name: ${{ env.TAG }}
           generate_release_notes: true
           files: |
-            sbom.*.v*.json
-            vulns.*.v*.json
+            SBOM*
+            Vulns*
           fail_on_unmatched_files: true
           draft: false
           prerelease: false
