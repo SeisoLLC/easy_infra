@@ -110,18 +110,20 @@ jobs:
           BRANCH="$(git branch --show-current)"
           git push --atomic origin "${BRANCH}" "${TAG}"
           echo "TAG=${TAG}" >> "${GITHUB_ENV}"
+      - name: Download the uploaded artifacts from prior jobs in the same action
+        uses: actions/download-artifact@v3
       - name: Publish the release to GitHub
         uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          repository: seiso/easy_infra
           name: ${{ env.TAG }}
           tag_name: ${{ env.TAG }}
           generate_release_notes: true
           files: |
             sbom.*.v*.json
             vulns.*.v*.json
+          fail_on_unmatched_files: true
           draft: false
           prerelease: false
       - name: Publish the release README to Docker Hub
