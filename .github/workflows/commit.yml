@@ -120,9 +120,7 @@ jobs:
           name: ${{ env.TAG }}
           tag_name: ${{ env.TAG }}
           generate_release_notes: true
-          files: |
-            SBOM*
-            Vulns*
+          files: easy_infra/*
           fail_on_unmatched_files: true
           draft: false
           prerelease: false
