@@ -100,12 +100,6 @@ jobs:
         run: |
           python -m pip install --upgrade pipenv
           pipenv install --python ${{ env.python_version }} --deploy --ignore-pipfile --dev
-          mkdir "${RUNNER_TEMP}/bin"
-          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b "${RUNNER_TEMP}/bin"
-          chmod +x "${RUNNER_TEMP}/bin/syft"
-          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b "${RUNNER_TEMP}/bin"
-          chmod +x "${RUNNER_TEMP}/bin/grype"
-          echo "${RUNNER_TEMP}/bin" >> "${GITHUB_PATH}"
       - name: Bump the version
         id: bump-version
         run: |
@@ -116,6 +110,33 @@ jobs:
           BRANCH="$(git branch --show-current)"
           git push --atomic origin "${BRANCH}" "${TAG}"
           echo "TAG=${TAG}" >> "${GITHUB_ENV}"
+  cut-release:
+    name: Cut a release
+    needs: [bump-version]
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.python_version }}
+      - uses: actions/cache@v3
+        with:
+          path: ~/.local/share/virtualenvs
+          key: ${{ runner.os }}-python-${{ env.python_version }}-pipenv-${{ hashFiles('Pipfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-python-${{ env.python_version }}-pipenv-
+            ${{ runner.os }}-python-
+      - name: Install the dependencies
+        run: |
+          python -m pip install --upgrade pipenv
+          pipenv install --python ${{ env.python_version }} --deploy --ignore-pipfile --dev
+          mkdir "${RUNNER_TEMP}/bin"
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b "${RUNNER_TEMP}/bin"
+          chmod +x "${RUNNER_TEMP}/bin/syft"
+          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b "${RUNNER_TEMP}/bin"
+          chmod +x "${RUNNER_TEMP}/bin/grype"
+          echo "${RUNNER_TEMP}/bin" >> "${GITHUB_PATH}"
       - name: Build the images
         run: pipenv run invoke build
       - name: Generate the SBOMs
@@ -142,7 +163,9 @@ jobs:
           name: ${{ env.TAG }}
           tag_name: ${{ env.TAG }}
           generate_release_notes: true
-          files: easy_infra/*
+          files: |
+            vulns.*.v*.json
+            sbom.*.v*.json
           fail_on_unmatched_files: true
           draft: false
           prerelease: false
@@ -153,7 +176,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
   distribute:
     name: Distribute
-    needs: [bump-version]
+    needs: [cut-release]
     strategy:
       matrix:
         stage: ["minimal", "aws", "az", "final"]
