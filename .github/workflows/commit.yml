@@ -101,7 +101,6 @@ jobs:
           python -m pip install --upgrade pipenv
           pipenv install --python ${{ env.python_version }} --deploy --ignore-pipfile --dev
       - name: Bump the version
-        id: bump-version
         run: |
           git config --global user.name 'Seiso Automation'
           git config --global user.email 'automation@seisollc.com'
@@ -109,7 +108,6 @@ jobs:
           TAG="$(git describe --tags)"
           BRANCH="$(git branch --show-current)"
           git push --atomic origin "${BRANCH}" "${TAG}"
-          echo "TAG=${TAG}" >> "${GITHUB_ENV}"
   cut-release:
     name: Cut a release
     needs: [bump-version]
@@ -139,6 +137,9 @@ jobs:
           curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b "${RUNNER_TEMP}/bin"
           chmod +x "${RUNNER_TEMP}/bin/grype"
           echo "${RUNNER_TEMP}/bin" >> "${GITHUB_PATH}"
+      - name: Set the tag
+        run: |
+          echo "TAG=${TAG}" >> "${GITHUB_ENV}"
       - name: Build the images
         run: pipenv run invoke build
       - name: Generate the SBOMs
@@ -147,7 +148,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: SBOMs
-          path: sbom.*.v*.json
+          path: sbom.*.v${{ env.TAG }}.json
           if-no-files-found: error
       - name: Generate Vuln scan results
         run: pipenv run invoke vulnscan
@@ -155,7 +156,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: Vulns
-          path: vulns.*.v*.json
+          path: vulns.*.v${{ env.TAG }}.json
           if-no-files-found: error
       - name: Publish the release to GitHub
         uses: softprops/action-gh-release@v1
