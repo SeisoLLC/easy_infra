@@ -139,6 +139,8 @@ jobs:
           echo "${RUNNER_TEMP}/bin" >> "${GITHUB_PATH}"
       - name: Set the tag
         run: |
+          TAG="$(git describe --tags)"
+          echo "Detected a tag of ${TAG}"
           echo "TAG=${TAG}" >> "${GITHUB_ENV}"
       - name: Build the images
         run: pipenv run invoke build
