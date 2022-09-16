@@ -73,6 +73,9 @@ jobs:
           name: Vulns - ${{ matrix.stage }}
           path: vulns.${{ matrix.stage }}.*.json
           if-no-files-found: error
+      - name: Download the uploaded artifacts from prior jobs in the same action
+        uses: actions/download-artifact@v3
+      - run: find .
   bump-version:
     name: Bump version
     needs: [lint, test]
