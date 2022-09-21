@@ -80,6 +80,8 @@ jobs:
     permissions:
       contents: write
     runs-on: ubuntu-20.04
+    outputs:
+      tag: ${{ steps.bump-version.outputs.tag }}
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v3
@@ -113,9 +115,9 @@ jobs:
   cut-release:
     name: Cut a release
     needs: [bump-version]
-    environment: "${{ steps.bump-version.outputs.tag }}"
+    environment: "${{ needs.bump-version.outputs.tag }}"
     concurrency:
-      group: "${{ steps.bump-version.outputs.tag }}"
+      group: "${{ needs.bump-version.outputs.tag }}"
       cancel-in-progress: true
     runs-on: ubuntu-20.04
     steps:
@@ -123,7 +125,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-          ref: "${{ steps.bump-version.outputs.tag }}"
+          ref: "${{ needs.bump-version.outputs.tag }}"
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ env.python_version }}
@@ -152,7 +154,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: SBOMs
-          path: sbom.*.${{ steps.bump-version.outputs.tag }}.json
+          path: sbom.*.${{ needs.bump-version.outputs.tag }}.json
           if-no-files-found: error
       - name: Generate Vuln scan results
         run: pipenv run invoke vulnscan
@@ -160,19 +162,19 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: Vulns
-          path: vulns.*.${{ steps.bump-version.outputs.tag }}.json
+          path: vulns.*.${{ needs.bump-version.outputs.tag }}.json
           if-no-files-found: error
       - name: Publish the release to GitHub
         uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          name: ${{ steps.bump-version.outputs.tag }}
-          tag_name: ${{ steps.bump-version.outputs.tag }}
+          name: ${{ needs.bump-version.outputs.tag }}
+          tag_name: ${{ needs.bump-version.outputs.tag }}
           generate_release_notes: true
           files: |
-            vulns.*.${{ steps.bump-version.outputs.tag }}.json
-            sbom.*.${{ steps.bump-version.outputs.tag }}.json
+            vulns.*.${{ needs.bump-version.outputs.tag }}.json
+            sbom.*.${{ needs.bump-version.outputs.tag }}.json
           fail_on_unmatched_files: true
           draft: false
           prerelease: false
@@ -184,19 +186,19 @@ jobs:
           repository: seiso/easy_infra
   distribute:
     name: Distribute
-    needs: [cut-release]
+    needs: [bump-version, cut-release]
     strategy:
       matrix:
         stage: ["minimal", "aws", "az", "final"]
     if: github.event_name == 'push'
-    environment: "${{ steps.bump-version.outputs.tag }}"
+    environment: "${{ needs.bump-version.outputs.tag }}"
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-          ref: "${{ steps.bump-version.outputs.tag }}"
+          ref: "${{ needs.bump-version.outputs.tag }}"
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ env.python_version }}
