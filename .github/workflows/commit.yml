@@ -101,6 +101,7 @@ jobs:
           python -m pip install --upgrade pipenv
           pipenv install --python ${{ env.python_version }} --deploy --ignore-pipfile --dev
       - name: Bump the version
+        id: bump-version
         run: |
           git config --global user.name 'Seiso Automation'
           git config --global user.email 'automation@seisollc.com'
@@ -108,16 +109,21 @@ jobs:
           TAG="$(git describe --tags)"
           BRANCH="$(git branch --show-current)"
           git push --atomic origin "${BRANCH}" "${TAG}"
+          echo "::set-output name=tag::${TAG}"
   cut-release:
     name: Cut a release
     needs: [bump-version]
+    environment: "${{ steps.bump-version.outputs.tag }}"
+    concurrency:
+      group: "${{ steps.bump-version.outputs.tag }}"
+      cancel-in-progress: true
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-          ref: main
+          ref: "${{ steps.bump-version.outputs.tag }}"
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ env.python_version }}
@@ -138,11 +144,6 @@ jobs:
           curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b "${RUNNER_TEMP}/bin"
           chmod +x "${RUNNER_TEMP}/bin/grype"
           echo "${RUNNER_TEMP}/bin" >> "${GITHUB_PATH}"
-      - name: Set the tag
-        run: |
-          TAG="$(git describe --tags)"
-          echo "Detected a tag of ${TAG}"
-          echo "TAG=${TAG}" >> "${GITHUB_ENV}"
       - name: Build the images
         run: pipenv run invoke build
       - name: Generate the SBOMs
@@ -151,7 +152,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: SBOMs
-          path: sbom.*.${{ env.TAG }}.json
+          path: sbom.*.${{ steps.bump-version.outputs.tag }}.json
           if-no-files-found: error
       - name: Generate Vuln scan results
         run: pipenv run invoke vulnscan
@@ -159,19 +160,19 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: Vulns
-          path: vulns.*.${{ env.TAG }}.json
+          path: vulns.*.${{ steps.bump-version.outputs.tag }}.json
           if-no-files-found: error
       - name: Publish the release to GitHub
         uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          name: ${{ env.TAG }}
-          tag_name: ${{ env.TAG }}
+          name: ${{ steps.bump-version.outputs.tag }}
+          tag_name: ${{ steps.bump-version.outputs.tag }}
           generate_release_notes: true
           files: |
-            vulns.*.${{ env.TAG }}.json
-            sbom.*.${{ env.TAG }}.json
+            vulns.*.${{ steps.bump-version.outputs.tag }}.json
+            sbom.*.${{ steps.bump-version.outputs.tag }}.json
           fail_on_unmatched_files: true
           draft: false
           prerelease: false
@@ -188,16 +189,14 @@ jobs:
       matrix:
         stage: ["minimal", "aws", "az", "final"]
     if: github.event_name == 'push'
-    environment: production
-    concurrency:
-      group: production
-      cancel-in-progress: true
+    environment: "${{ steps.bump-version.outputs.tag }}"
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v3
         with:
-          ref: main
+          fetch-depth: 0
+          ref: "${{ steps.bump-version.outputs.tag }}"
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ env.python_version }}
