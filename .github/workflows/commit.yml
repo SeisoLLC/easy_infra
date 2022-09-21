@@ -151,7 +151,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: SBOMs
-          path: sbom.*.v${{ env.TAG }}.json
+          path: sbom.*.${{ env.TAG }}.json
           if-no-files-found: error
       - name: Generate Vuln scan results
         run: pipenv run invoke vulnscan
@@ -159,7 +159,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: Vulns
-          path: vulns.*.v${{ env.TAG }}.json
+          path: vulns.*.${{ env.TAG }}.json
           if-no-files-found: error
       - name: Publish the release to GitHub
         uses: softprops/action-gh-release@v1
