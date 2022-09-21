@@ -16,9 +16,8 @@ from typing import Union
 
 import docker
 from bumpversion.cli import main as bumpversion
-from invoke import task
-
 from easy_infra import __project_name__, __version__, constants, utils
+from invoke import task
 from tests import test as run_test
 
 if platform.machine() == "arm64":
