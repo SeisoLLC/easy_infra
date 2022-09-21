@@ -3,7 +3,7 @@
 
 set -o nounset
 set -o errexit
-set -o errtrap
+set -E # errtrap
 set -o pipefail
 
 DANGLING_FILES="$(find / \( -path /proc                 \
