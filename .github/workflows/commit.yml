@@ -10,7 +10,7 @@ on:
       - main
 
 env:
-  python_version: "3.10"
+  python_version: "3.10.5"
 
 jobs:
   lint:
