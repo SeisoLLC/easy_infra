@@ -83,13 +83,13 @@ RUN groupadd --gid 53150 -r easy_infra \
  && unzip /usr/local/bin/envconsul.zip -d /usr/local/bin/ \
  && rm -f /usr/local/bin/envconsul.zip \
  && chmod 0755 /usr/local/bin/envconsul \
- && apt-get install -y --no-install-recommends cmake build-essential flex bison \
+ && apt-get install -y --no-install-recommends cmake build-essential flex bison libyaml-dev \
  && git clone https://github.com/fluent/fluent-bit --depth 1 --branch ${FLUENT_BIT_VERSION} \
  && cd fluent-bit/build \
  && cmake ../ && make && make install \
  && cd ../.. \
  && rm -rf fluent-bit \
- && apt-get remove -y cmake build-essential flex bison \
+ && apt-get remove -y cmake build-essential flex bison libyaml-dev \
  && echo "source /functions" >> /home/easy_infra/.bashrc \
  && su easy_infra -c "mkdir /home/easy_infra/.ansible" \
  && apt-get clean autoclean \
