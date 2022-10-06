@@ -254,9 +254,9 @@ def run_terraform(*, image: str, final: bool = False):
         "bind": fluent_bit_config_container,
         "mode": "ro",
     }
-    hooks_secure_terraform_v_1_1_dir = TESTS_PATH.joinpath("terraform/hooks/secure_1_1")
-    hooks_secure_terraform_v_1_1_dir_volumes = {
-        hooks_secure_terraform_v_1_1_dir: {"bind": working_dir, "mode": "rw"}
+    hooks_secure_terraform_v_1_3_dir = TESTS_PATH.joinpath("terraform/hooks/secure_1_3")
+    hooks_secure_terraform_v_1_3_dir_volumes = {
+        hooks_secure_terraform_v_1_3_dir: {"bind": working_dir, "mode": "rw"}
     }
     hooks_secure_terraform_v_0_14_dir = TESTS_PATH.joinpath(
         "terraform/hooks/secure_0_14"
@@ -512,7 +512,7 @@ def run_terraform(*, image: str, final: bool = False):
             '/bin/bash -c "terraform init -backend=false && terraform validate"',
             1,
         ),  # This tests the bring-your-own TERRAFORM_VERSION hook, regardless of the built-in security tools
-        # It succeeds because only terraform/hooks/secure_1_1/secure.tf is tested, and it fails because it requires a version of terraform newer then
+        # It succeeds because only terraform/hooks/secure_1_3/secure.tf is tested, and it fails because it requires a version of terraform newer then
         # the provided TERRAFORM_VERSION environment variable specifies
     ]
     LOG.debug("Fail when using terraform 1.1.8 in a repo which expects 0.14.x")
@@ -555,7 +555,7 @@ def run_terraform(*, image: str, final: bool = False):
             '/bin/bash -c "terraform init -backend=false && terraform validate"',
             0,
         ),  # This tests the terraform version switching hook failback due to no network (see exec_tests below)
-        # It succeeds because only terraform/hooks/secure_1_1/secure.tf is tested, which will validate properly with the version of terraform that
+        # It succeeds because only terraform/hooks/secure_1_3/secure.tf is tested, which will validate properly with the version of terraform that
         # TERRAFORM_VERSION indicates by default
         (
             {
@@ -567,7 +567,7 @@ def run_terraform(*, image: str, final: bool = False):
             '/bin/bash -c "terraform init -backend=false && terraform validate"',
             0,
         ),  # This tests the bring-your-own TERRAFORM_VERSION hook, regardless of the built-in security tools
-        # It succeeds because only terraform/hooks/secure_1_1/secure.tf is tested, and it requires a version of terraform newer then the provided
+        # It succeeds because only terraform/hooks/secure_1_3/secure.tf is tested, and it requires a version of terraform newer then the provided
         # TERRAFORM_VERSION environment variable specifies, but because there is no network access the change does not take place
     ]
     LOG.debug(
@@ -575,7 +575,7 @@ def run_terraform(*, image: str, final: bool = False):
     )
     num_tests_ran += exec_tests(
         tests=tests,
-        volumes=hooks_secure_terraform_v_1_1_dir_volumes,
+        volumes=hooks_secure_terraform_v_1_3_dir_volumes,
         image=image,
         network_mode="none",
     )
