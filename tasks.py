@@ -210,14 +210,13 @@ def build(_c, stage="all", debug=False):
 
     buildargs = {}
 
-    # Standard args
-    buildargs["BUILDARCH"] = platform.machine().lower()
-
-    # Customizations for certain build artifacts
+    # This is imperfect and should be further refined
     if platform.machine().lower() == "arm64":
+        buildargs["BUILDARCH"] = "arm64"
         buildargs["KICS_ARCH"] = "arm64"
         buildargs["AWS_CLI_ARCH"] = "aarch64"
     else:
+        buildargs["BUILDARCH"] = "amd64"
         buildargs["KICS_ARCH"] = "x64"
         buildargs["AWS_CLI_ARCH"] = "x86_64"
 
