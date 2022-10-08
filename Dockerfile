@@ -4,6 +4,8 @@ ARG FROM_IMAGE_TAG=20.04
 FROM "${FROM_IMAGE}":"${FROM_IMAGE_TAG}" AS minimal
 
 # minimal setup
+ARG BUILDARCH
+ARG KICS_ARCH
 ARG FLUENT_BIT_VERSION
 ENV FLUENT_BIT_VERSION="${FLUENT_BIT_VERSION}"
 ARG CONSUL_TEMPLATE_VERSION
@@ -55,6 +57,7 @@ RUN groupadd --gid 53150 -r easy_infra \
  && python3 -m pip install --upgrade --no-cache-dir pip \
  && su - easy_infra -c "pip install --user --no-cache-dir checkov==${CHECKOV_VERSION}" \
  && echo "export PATH=/home/easy_infra/.local/bin:${PATH}" >> /home/easy_infra/.bashrc \
+ && echo https://github.com/checkmarx/kics/releases/download/${KICS_VERSION}/kics_${KICS_VERSION#v}_linux_${KICS_ARCH}.tar.gz \
  && curl -L https://github.com/checkmarx/kics/releases/download/${KICS_VERSION}/kics_${KICS_VERSION#v}_linux_${KICS_ARCH}.tar.gz -o /usr/local/bin/kics.tar.gz \
  && tar -xvf /usr/local/bin/kics.tar.gz -C /usr/local/bin/ kics \
  && rm -f /usr/local/bin/kics.tar.gz \
@@ -62,6 +65,7 @@ RUN groupadd --gid 53150 -r easy_infra \
  && chown root: /usr/local/bin/kics \
  && su easy_infra -c "git clone https://github.com/checkmarx/kics.git /home/easy_infra/.kics --depth 1 --branch ${KICS_VERSION}" \
  && rm -rf /home/easy_infra/.kics/.git \
+ && echo https://github.com/env0/terratag/releases/download/${TERRATAG_VERSION}/terratag_${TERRATAG_VERSION#v}_linux_${BUILDARCH}.tar.gz \
  && curl -L https://github.com/env0/terratag/releases/download/${TERRATAG_VERSION}/terratag_${TERRATAG_VERSION#v}_linux_${BUILDARCH}.tar.gz -o /usr/local/bin/terratag.tar.gz \
  && tar -xvf /usr/local/bin/terratag.tar.gz -C /usr/local/bin/ terratag \
  && rm -f /usr/local/bin/terratag.tar.gz \
@@ -75,10 +79,12 @@ RUN groupadd --gid 53150 -r easy_infra \
  && su - easy_infra -c "tfenv install ${TERRAFORM_VERSION}" \
  && su - easy_infra -c "tfenv use ${TERRAFORM_VERSION}" \
  && su - easy_infra -c "terraform -install-autocomplete" \
+ && echo https://releases.hashicorp.com/consul-template/${CONSUL_TEMPLATE_VERSION#v}/consul-template_${CONSUL_TEMPLATE_VERSION#v}_linux_${BUILDARCH}.zip \
  && curl -L https://releases.hashicorp.com/consul-template/${CONSUL_TEMPLATE_VERSION#v}/consul-template_${CONSUL_TEMPLATE_VERSION#v}_linux_${BUILDARCH}.zip -o /usr/local/bin/consul-template.zip \
  && unzip /usr/local/bin/consul-template.zip -d /usr/local/bin/ \
  && rm -f /usr/local/bin/consul-template.zip \
  && chmod 0755 /usr/local/bin/consul-template \
+ && echo https://releases.hashicorp.com/envconsul/${ENVCONSUL_VERSION#v}/envconsul_${ENVCONSUL_VERSION#v}_linux_${BUILDARCH}.zip \
  && curl -L https://releases.hashicorp.com/envconsul/${ENVCONSUL_VERSION#v}/envconsul_${ENVCONSUL_VERSION#v}_linux_${BUILDARCH}.zip -o /usr/local/bin/envconsul.zip \
  && unzip /usr/local/bin/envconsul.zip -d /usr/local/bin/ \
  && rm -f /usr/local/bin/envconsul.zip \
@@ -145,6 +151,7 @@ RUN apt-get update \
                                                gnupg \
  && curl -sL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor | tee /etc/apt/trusted.gpg.d/microsoft.gpg > /dev/null \
  && AZ_REPO=$(lsb_release -cs) \
+ # As of 2022-10-07 "The azure-cli deb package does not support ARM64 architecture"
  && echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ $AZ_REPO main" | tee /etc/apt/sources.list.d/azure-cli.list \
  && apt-get update \
  && apt-get -y install --no-install-recommends azure-cli=${AZURE_CLI_VERSION} \
@@ -157,6 +164,7 @@ USER easy_infra
 
 FROM minimal AS aws
 USER root
+ARG AWS_CLI_ARCH
 ARG AWS_CLI_VERSION
 ENV AWS_CLI_VERSION="${AWS_CLI_VERSION}"
 RUN curl -L https://awscli.amazonaws.com/awscli-exe-linux-${AWS_CLI_ARCH}-${AWS_CLI_VERSION}.zip -o /tmp/awscliv2.zip \
