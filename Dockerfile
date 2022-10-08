@@ -55,14 +55,14 @@ RUN groupadd --gid 53150 -r easy_infra \
  && python3 -m pip install --upgrade --no-cache-dir pip \
  && su - easy_infra -c "pip install --user --no-cache-dir checkov==${CHECKOV_VERSION}" \
  && echo "export PATH=/home/easy_infra/.local/bin:${PATH}" >> /home/easy_infra/.bashrc \
- && curl -L https://github.com/checkmarx/kics/releases/download/${KICS_VERSION}/kics_${KICS_VERSION#v}_linux_x64.tar.gz -o /usr/local/bin/kics.tar.gz \
+ && curl -L https://github.com/checkmarx/kics/releases/download/${KICS_VERSION}/kics_${KICS_VERSION#v}_linux_${KICS_ARCH}.tar.gz -o /usr/local/bin/kics.tar.gz \
  && tar -xvf /usr/local/bin/kics.tar.gz -C /usr/local/bin/ kics \
  && rm -f /usr/local/bin/kics.tar.gz \
  && chmod 0755 /usr/local/bin/kics \
  && chown root: /usr/local/bin/kics \
  && su easy_infra -c "git clone https://github.com/checkmarx/kics.git /home/easy_infra/.kics --depth 1 --branch ${KICS_VERSION}" \
  && rm -rf /home/easy_infra/.kics/.git \
- && curl -L https://github.com/env0/terratag/releases/download/${TERRATAG_VERSION}/terratag_${TERRATAG_VERSION#v}_linux_amd64.tar.gz -o /usr/local/bin/terratag.tar.gz \
+ && curl -L https://github.com/env0/terratag/releases/download/${TERRATAG_VERSION}/terratag_${TERRATAG_VERSION#v}_linux_${BUILDARCH}.tar.gz -o /usr/local/bin/terratag.tar.gz \
  && tar -xvf /usr/local/bin/terratag.tar.gz -C /usr/local/bin/ terratag \
  && rm -f /usr/local/bin/terratag.tar.gz \
  && chmod 0755 /usr/local/bin/terratag \
@@ -75,11 +75,11 @@ RUN groupadd --gid 53150 -r easy_infra \
  && su - easy_infra -c "tfenv install ${TERRAFORM_VERSION}" \
  && su - easy_infra -c "tfenv use ${TERRAFORM_VERSION}" \
  && su - easy_infra -c "terraform -install-autocomplete" \
- && curl -L https://releases.hashicorp.com/consul-template/${CONSUL_TEMPLATE_VERSION#v}/consul-template_${CONSUL_TEMPLATE_VERSION#v}_linux_amd64.zip -o /usr/local/bin/consul-template.zip \
+ && curl -L https://releases.hashicorp.com/consul-template/${CONSUL_TEMPLATE_VERSION#v}/consul-template_${CONSUL_TEMPLATE_VERSION#v}_linux_${BUILDARCH}.zip -o /usr/local/bin/consul-template.zip \
  && unzip /usr/local/bin/consul-template.zip -d /usr/local/bin/ \
  && rm -f /usr/local/bin/consul-template.zip \
  && chmod 0755 /usr/local/bin/consul-template \
- && curl -L https://releases.hashicorp.com/envconsul/${ENVCONSUL_VERSION#v}/envconsul_${ENVCONSUL_VERSION#v}_linux_amd64.zip -o /usr/local/bin/envconsul.zip \
+ && curl -L https://releases.hashicorp.com/envconsul/${ENVCONSUL_VERSION#v}/envconsul_${ENVCONSUL_VERSION#v}_linux_${BUILDARCH}.zip -o /usr/local/bin/envconsul.zip \
  && unzip /usr/local/bin/envconsul.zip -d /usr/local/bin/ \
  && rm -f /usr/local/bin/envconsul.zip \
  && chmod 0755 /usr/local/bin/envconsul \
@@ -159,7 +159,7 @@ FROM minimal AS aws
 USER root
 ARG AWS_CLI_VERSION
 ENV AWS_CLI_VERSION="${AWS_CLI_VERSION}"
-RUN curl -L https://awscli.amazonaws.com/awscli-exe-linux-x86_64-${AWS_CLI_VERSION}.zip -o /tmp/awscliv2.zip \
+RUN curl -L https://awscli.amazonaws.com/awscli-exe-linux-${AWS_CLI_ARCH}-${AWS_CLI_VERSION}.zip -o /tmp/awscliv2.zip \
  && unzip /tmp/awscliv2.zip -d /tmp/ \
  && /tmp/aws/install --bin-dir /aws-cli-bin/ \
  # Required for the *-aws images to be functional
