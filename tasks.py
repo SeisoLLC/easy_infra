@@ -240,7 +240,7 @@ def build(_c, stage="all", debug=False):
         versioned_tag = constants.CONTEXT[variant]["buildargs"]["VERSION"]
         image_and_versioned_tag = f"{constants.IMAGE}:{versioned_tag}"
 
-        LOG.info(f"Building {image_and_versioned_tag} (platform {PLATFORM}...")
+        LOG.info(f"Building {image_and_versioned_tag} (platform {PLATFORM})...")
 
         try:
             image = CLIENT.images.build(
