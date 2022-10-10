@@ -4,6 +4,7 @@ Task execution tool & library
 """
 
 import os
+import platform
 import re
 import shutil
 import subprocess
@@ -11,12 +12,18 @@ import sys
 from datetime import datetime
 from logging import basicConfig, getLogger
 from pathlib import Path
+from typing import Union
 
 import docker
 from bumpversion.cli import main as bumpversion
 from easy_infra import __project_name__, __version__, constants, utils
 from invoke import task
 from tests import test as run_test
+
+if platform.machine() == "arm64":
+    PLATFORM: Union[str, None] = "linux/arm64/v8"
+else:
+    PLATFORM = None
 
 LOG = getLogger(__project_name__)
 CLIENT = docker.from_env()
@@ -130,8 +137,8 @@ def reformat(_c, debug=False):
     working_dir = "/goat/"
     volumes = {constants.CWD: {"bind": working_dir, "mode": "rw"}}
 
-    LOG.info(f"Pulling {image}...")
-    CLIENT.images.pull(image)
+    LOG.info(f"Pulling {image} (platform {PLATFORM})...")
+    CLIENT.images.pull(repository=image, platform=PLATFORM)
     LOG.info("Reformatting the project...")
     for entrypoint, command in entrypoint_and_command:
         container = CLIENT.containers.run(
@@ -140,6 +147,7 @@ def reformat(_c, debug=False):
             detach=True,
             entrypoint=entrypoint,
             image=image,
+            platform=PLATFORM,
             volumes=volumes,
             working_dir=working_dir,
         )
@@ -172,13 +180,14 @@ def lint(_c, debug=False):
     volumes = {constants.CWD: {"bind": working_dir, "mode": "rw"}}
 
     LOG.info(f"Pulling {image}...")
-    CLIENT.images.pull(image)
+    CLIENT.images.pull(repository=image, platform=PLATFORM)
     LOG.info(f"Running {image}...")
     container = CLIENT.containers.run(
         auto_remove=False,
         detach=True,
         environment=environment,
         image=image,
+        platform=PLATFORM,
         volumes=volumes,
         working_dir=working_dir,
     )
@@ -201,6 +210,16 @@ def build(_c, stage="all", debug=False):
 
     buildargs = {}
 
+    # This is imperfect and should be further refined
+    if platform.machine().lower() == "arm64":
+        buildargs["BUILDARCH"] = "arm64"
+        buildargs["KICS_ARCH"] = "arm64"
+        buildargs["AWS_CLI_ARCH"] = "aarch64"
+    else:
+        buildargs["BUILDARCH"] = "amd64"
+        buildargs["KICS_ARCH"] = "x64"
+        buildargs["AWS_CLI_ARCH"] = "x86_64"
+
     for command in constants.CONFIG["commands"]:
         if "version" in constants.CONFIG["commands"][command]:
             # Normalize the build args
@@ -220,24 +239,26 @@ def build(_c, stage="all", debug=False):
         versioned_tag = constants.CONTEXT[variant]["buildargs"]["VERSION"]
         image_and_versioned_tag = f"{constants.IMAGE}:{versioned_tag}"
 
-        LOG.info(f"Building {image_and_versioned_tag}...")
+        LOG.info(f"Building {image_and_versioned_tag} (platform {PLATFORM})...")
+
         try:
             image = CLIENT.images.build(
                 path=str(constants.CWD),
                 target=variant,
                 rm=True,
                 tag=image_and_versioned_tag,
+                platform=PLATFORM,
                 buildargs=buildargs,
                 cache_from=[image_and_latest_tag],
             )[0]
         except docker.errors.BuildError as build_err:
             LOG.exception(
-                f"Failed to build {image_and_versioned_tag}, retrieving and logging the more detailed build error...",
+                f"Failed to build {image_and_versioned_tag} for platform {PLATFORM}, retrieving and logging the more detailed build error...",
             )
             log_build_log(build_err=build_err)
             sys.exit(1)
 
-        LOG.info(f"Tagging {constants.IMAGE}:{latest_tag}...")
+        LOG.info(f"Tagging {constants.IMAGE}:{latest_tag} (platform {PLATFORM})...")
         image.tag(constants.IMAGE, tag=latest_tag)
 
 
@@ -310,7 +331,7 @@ def test(_c, stage="all", debug=False):
         versioned_tag = constants.CONTEXT[variant]["buildargs"]["VERSION"]
         image_and_tag = f"{constants.IMAGE}:{versioned_tag}"
 
-        LOG.info(f"Testing {image_and_tag}...")
+        LOG.info(f"Testing {image_and_tag} for platform {PLATFORM}...")
         if variant == "minimal":
             run_test.run_terraform(image=image_and_tag)
             run_test.run_ansible(image=image_and_tag)
@@ -352,7 +373,9 @@ def vulnscan(_c, stage="all", debug=False):
         latest_tag = constants.CONTEXT[variant]["latest_tag"]
         image_and_tag = f"{constants.IMAGE}:{latest_tag}"
 
-        LOG.debug(f"Running run_test.run_security(image={image_and_tag})...")
+        LOG.debug(
+            f"Running run_test.run_security(image={image_and_tag}, variant={variant})..."
+        )
         run_test.run_security(image=image_and_tag, variant=variant)
 
 
@@ -417,7 +440,9 @@ def publish(_c, tag, stage="all", debug=False):
             LOG.info(f"Pushing {image_and_tag} to docker hub...")
             CLIENT.images.push(repository=image_and_tag)
 
-    LOG.info(f"Done publishing all of the {tag} easy_infra Docker images")
+    LOG.info(
+        f"Done publishing all of the {tag} easy_infra Docker images for platform {PLATFORM}"
+    )
 
 
 @task
