@@ -264,6 +264,13 @@ def run_terraform(*, image: str, final: bool = False):
     hooks_secure_terraform_v_0_14_dir_volumes = {
         hooks_secure_terraform_v_0_14_dir: {"bind": working_dir, "mode": "rw"}
     }
+    report_base_dir = Path("/tmp/reports")
+    kics_output_file = report_base_dir.joinpath("kics").joinpath(
+        CONFIG["commands"]["terraform"]["security"]["kics"]["output"]
+    )
+    checkov_output_file = report_base_dir.joinpath("checkov").joinpath(
+        CONFIG["commands"]["terraform"]["security"]["checkov"]["output"]
+    )
 
     # Base tests
     command = "./test.sh"
@@ -815,8 +822,8 @@ def run_terraform(*, image: str, final: bool = False):
 
     # An interactive terraform command should still cause the creation of the following files, and should have the same number of logs lines in the
     # fluent bit log regardless of which image is being tested
-    files = ["/tmp/reports/kics.json"]
-    files.append("/tmp/reports/checkov.json")
+    files = [str(kics_output_file)]
+    files.append(str(checkov_output_file))
     LOG.debug("Testing that interactive terraform commands still create json reports")
     number_of_security_tools = len(CONFIG["commands"]["terraform"]["security"])
     expected_number_of_logs = number_of_security_tools
@@ -858,8 +865,8 @@ def run_terraform(*, image: str, final: bool = False):
     files = ["/tmp/kics_complete"]
     files.append("/tmp/checkov_complete")
     # Piggybacking the kics/checkov json reports with the kics/checkov complete files
-    files.append("/tmp/reports/kics.json")
-    files.append("/tmp/reports/checkov.json")
+    files.append(str(kics_output_file))
+    files.append(str(checkov_output_file))
     LOG.debug("Testing non-interactive terraform commands")
     number_of_security_tools = len(CONFIG["commands"]["terraform"]["security"])
     expected_number_of_logs = number_of_security_tools
