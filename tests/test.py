@@ -90,12 +90,15 @@ def is_expected_file_length(
     expected length, in the provided container. Return True if the file length
     is expected, else False
     """
-    exit_code, output = container.exec_run(
-        cmd=f"/bin/bash -c \"wc -l {log_path} | awk '{{print $1}}'\""
-    )
+    command = f"/bin/bash -c \"wc -l {log_path} | awk '{{print $1}}'\""
+    LOG.info(f"Running {command}")
+    exit_code, output = container.exec_run(cmd=command)
+    LOG.info(f"Exit code of {exit_code}")
+    LOG.info(f"Expected log length of {expected_log_length}")
     sanitized_output = int(output.decode("utf-8").strip())
     if exit_code != 0:
         LOG.error("The provided container exited with an exit code of %s", exit_code)
+        LOG.info("Returning False")
         return False
 
     if sanitized_output != expected_log_length:
@@ -105,8 +108,10 @@ def is_expected_file_length(
             sanitized_output,
             expected_log_length,
         )
+        LOG.info("Returning False")
         return False
 
+    LOG.info("Returning True")
     return True
 
 
@@ -265,28 +270,6 @@ def run_terraform(*, image: str, final: bool = False):
         hooks_secure_terraform_v_0_14_dir: {"bind": working_dir, "mode": "rw"}
     }
 
-    # Base tests
-    command = "./test.sh"
-    LOG.debug("Running test.sh")
-    utils.opinionated_docker_run(
-        image=image,
-        volumes=tests_volumes,
-        command=command,
-        expected_exit=0,
-    )
-    num_tests_ran += 1
-
-    # Ensure invalid configurations fail
-    command = "terraform plan"
-    LOG.debug("Testing invalid terraform configurations")
-    utils.opinionated_docker_run(
-        image=image,
-        volumes=invalid_volumes,
-        command=command,
-        environment=environment,
-        expected_exit=1,
-    )
-    num_tests_ran += 1
 
     # Test informational mode on an invalid configuration
     command = "terraform validate"
@@ -431,332 +414,6 @@ def run_terraform(*, image: str, final: bool = False):
         test_autodetect_disable_security_container.kill()
 
         num_tests_ran += num_successful_tests
-
-    # Ensure secure configurations pass
-    # Tests is a list of tuples containing the test environment, command, and
-    # expected exit code
-    tests: list[tuple[dict, str, int]] = [  # type: ignore
-        ({}, "terraform init", 0),
-        ({}, "tfenv exec init", 0),
-        (
-            {},
-            '/bin/bash -c "terraform init && terraform validate && echo no | terraform apply"',
-            1,
-        ),  # Previous Getting Started example from the README.md (Minimally modified for automation)
-        (
-            {},
-            '/bin/bash -c "terraform init; terraform version"',
-            0,
-        ),  # Previous Terraform Caching example from the README.md
-        (
-            {},
-            '/usr/bin/env bash -c "terraform validate && terraform plan && terraform validate"',
-            0,
-        ),
-        (
-            {},
-            '/usr/bin/env bash -c "terraform init && terraform validate && false"',
-            1,
-        ),
-        (
-            {
-                "KICS_INCLUDE_QUERIES": "4728cd65-a20c-49da-8b31-9c08b423e4db,46883ce1-dc3e-4b17-9195-c6a601624c73"
-            },
-            "terraform init",
-            0,
-        ),  # This tests "customizations" features from easy_infra.yml and functions.j2
-        (
-            {"KICS_EXCLUDE_SEVERITIES": "info"},
-            "terraform validate",
-            0,
-        ),  # This tests "customizations" features from easy_infra.yml and functions.j2
-    ]
-
-    LOG.debug("Testing secure terraform configurations")
-    num_tests_ran += exec_tests(tests=tests, volumes=secure_volumes, image=image)
-
-    # Ensure the easy_infra hooks work as expected when network access is available
-    # Tests is a list of tuples containing the test environment, command, and
-    # expected exit code
-    tests: list[tuple[dict, str, int]] = [  # type: ignore
-        (
-            {
-                "DISABLE_HOOKS": "false",
-                "AUTODETECT": "true",
-                "DISABLE_SECURITY": "true",
-            },
-            '/bin/bash -c "terraform init -backend=false && terraform validate"',
-            0,
-        ),  # This tests the terraform version switching hook, regardless of the built-in security tools
-        (
-            {
-                "DISABLE_HOOKS": "true",
-                "AUTODETECT": "true",
-                "DISABLE_SECURITY": "true",
-            },
-            '/bin/bash -c "terraform init -backend=false && terraform validate"',
-            1,
-        ),  # This tests DISABLE_HOOKS; it fails because the terraform version used is incorrect
-    ]
-    LOG.debug("Testing the easy_infra hooks against various terraform configurations")
-    num_tests_ran += exec_tests(tests=tests, volumes=hooks_config_volumes, image=image)
-
-    tests: list[tuple[dict, str, int]] = [  # type: ignore
-        (
-            {
-                "DISABLE_HOOKS": "false",
-                "AUTODETECT": "false",
-                "DISABLE_SECURITY": "true",
-                "TERRAFORM_VERSION": "1.1.8",
-            },
-            '/bin/bash -c "terraform init -backend=false && terraform validate"',
-            1,
-        ),  # This tests the bring-your-own TERRAFORM_VERSION hook (40-), regardless of the built-in security tools (DISABLE_SECURITY=true)
-        # It fails because it ignores the 50- terraform due to AUTODETECT=false, and the v_0_14_dir files fail given the version of
-        # TERRAFORM_VERSION specified above
-    ]
-    LOG.debug("Fail when using terraform 1.3.2 in a repo which expects 0.14.x")
-    num_tests_ran += exec_tests(
-        tests=tests,
-        volumes=hooks_secure_terraform_v_0_14_dir_volumes,
-        image=image,
-    )
-
-    # Ensure the easy_infra hooks work as expected when network access is NOT available
-    # Tests is a list of tuples containing the test environment, command, and
-    # expected exit code
-    tests: list[tuple[dict, str, int]] = [  # type: ignore
-        (
-            {
-                "DISABLE_HOOKS": "false",
-                "AUTODETECT": "true",
-                "DISABLE_SECURITY": "true",
-            },
-            '/bin/bash -c "terraform init -backend=false && terraform validate"',
-            1,
-        ),  # This tests the terraform version switching hook failback due to no network (see exec_tests below)
-        # It fails because terraform/hooks/secure_0_14/secure.tf cannot be validated with the version of terraform
-        # that TERRAFORM_VERSION indicates by default
-    ]
-    LOG.debug(
-        "Testing the easy_infra hooks with no network access, against various terraform configurations, expecting failures"
-    )
-    num_tests_ran += exec_tests(
-        tests=tests, volumes=hooks_config_volumes, image=image, network_mode="none"
-    )
-
-    tests: list[tuple[dict, str, int]] = [  # type: ignore
-        (
-            {
-                "DISABLE_HOOKS": "false",
-                "AUTODETECT": "true",
-                "DISABLE_SECURITY": "true",
-            },
-            '/bin/bash -c "terraform init -backend=false && terraform validate"',
-            0,
-        ),  # This tests the terraform version switching hook failback due to no network (see exec_tests below)
-        # It succeeds because only terraform/hooks/secure_1_3/secure.tf is tested, which will validate properly with the version of terraform that
-        # TERRAFORM_VERSION indicates by default
-        (
-            {
-                "DISABLE_HOOKS": "false",
-                "AUTODETECT": "false",
-                "DISABLE_SECURITY": "true",
-                "TERRAFORM_VERSION": "1.1.8",
-            },
-            '/bin/bash -c "terraform init -backend=false && terraform validate"',
-            0,
-        ),  # This tests the bring-your-own TERRAFORM_VERSION hook, regardless of the built-in security tools
-        # It succeeds because only terraform/hooks/secure_1_3/secure.tf is tested, and it requires a version of terraform newer then the provided
-        # TERRAFORM_VERSION environment variable specifies, but because there is no network access the change does not take place
-    ]
-    LOG.debug(
-        "Testing the easy_infra hooks with no network access, against various terraform configurations, expecting successes"
-    )
-    num_tests_ran += exec_tests(
-        tests=tests,
-        volumes=hooks_secure_terraform_v_1_3_dir_volumes,
-        image=image,
-        network_mode="none",
-    )
-
-    # Ensure insecure configurations still succeed when security checks are
-    # disabled
-    # Tests is a list of tuples containing the test environment, command, and
-    # expected exit code
-    tests: list[tuple[dict, str, int]] = [  # type: ignore
-        ({"DISABLE_SECURITY": "true"}, "terraform init", 0),
-        ({"DISABLE_SECURITY": "true"}, "tfenv exec init", 0),
-        ({}, '/usr/bin/env bash -c "DISABLE_SECURITY=true terraform init"', 0),
-        (
-            {},
-            '/usr/bin/env bash -c "DISABLE_SECURITY=true terraform --disable-security init"',
-            0,
-        ),
-        ({}, "terraform --disable-security init", 0),  # Test order independence
-        ({}, "terraform init --disable-security", 0),  # Test order independence
-        (
-            {},
-            '/usr/bin/env bash -c "DISABLE_SECURITY=true terraform init --disable-security || true && false"',
-            1,
-        ),
-        (
-            {"DISABLE_SECURITY": "true"},
-            "terraform plan || false",
-            1,
-        ),  # Not supported; reproduce "Too many command line
-        #     arguments. Configuration path expected." error locally with
-        #     `docker run -e DISABLE_SECURITY=true -v
-        #     $(pwd)/tests/terraform/tool/checkov:/iac
-        #     seiso/easy_infra:latest terraform plan \|\| false`, prefer
-        #     passing the commands through bash like the following test
-        (
-            {},
-            "DISABLE_SECURITY=true terraform plan",
-            127,
-        ),  # Not supported; prepended variables do not work unless the
-        #     commands are passed through bash
-        (
-            {
-                "KICS_INCLUDE_QUERIES": "4728cd65-a20c-49da-8b31-9c08b423e4db,46883ce1-dc3e-4b17-9195-c6a601624c73",  # Doesn't apply to kics_volumes
-                "DISABLE_SECURITY": "true",
-            },
-            "terraform init",
-            0,
-        ),  # This tests the "customizations" idea from easy_infra.yml and functions.j2
-        (
-            {
-                "KICS_INCLUDE_QUERIES": "5a2486aa-facf-477d-a5c1-b010789459ce",  # Would normally fail due to kics_volumes
-                "DISABLE_SECURITY": "true",
-            },
-            "terraform init",
-            0,
-        ),  # This tests the "customizations" idea from easy_infra.yml and functions.j2
-    ]
-
-    LOG.debug("Testing terraform with security disabled")
-    num_tests_ran += exec_tests(tests=tests, volumes=kics_volumes, image=image)
-
-    # Ensure insecure configurations fail due to kics
-    # Tests is a list of tuples containing the test environment, command, and
-    # expected exit code
-    tests: list[tuple[dict, str, int]] = [  # type: ignore
-        ({}, "terraform --skip-checkov plan", 50),
-        ({}, "tfenv exec --skip-checkov plan", 50),
-        (
-            {},
-            '/usr/bin/env bash -c "SKIP_CHECKOV=true terraform plan"',
-            50,
-        ),
-        (
-            {},
-            '/usr/bin/env bash -c "SKIP_CHECKOV=true terraform plan || true"',
-            0,
-        ),
-        (
-            {},
-            '/usr/bin/env bash -c "SKIP_CHECKOV=true terraform plan || true && false"',
-            1,
-        ),
-        ({"SKIP_CHECKOV": "true"}, "terraform plan --skip-checkov", 50),
-        (
-            {"SKIP_CHECKOV": "true"},
-            "terraform plan",
-            50,
-        ),
-        (
-            {},
-            '/usr/bin/env bash -c "LEARNING_MODE=true SKIP_CHECKOV=true terraform validate"',
-            0,
-        ),  # Test learning mode with skip env vars
-        (
-            {"LEARNING_MODE": "true", "SKIP_CHECKOV": "true"},
-            "terraform validate",
-            0,
-        ),  # Test learning mode with mixed env vars and cli args
-        (
-            {
-                "SKIP_CHECKOV": "true",
-                "KICS_INCLUDE_QUERIES": "4728cd65-a20c-49da-8b31-9c08b423e4db,46883ce1-dc3e-4b17-9195-c6a601624c73",
-            },
-            "terraform validate",
-            0,
-        ),  # Exits with 0 because the provided insecure terraform does not apply to the included kics queries.
-        # This tests the "customizations" idea from easy_infra.yml and functions.j2
-        (
-            {
-                "SKIP_CHECKOV": "true",
-                "KICS_INCLUDE_QUERIES": "5a2486aa-facf-477d-a5c1-b010789459ce",
-            },
-            "terraform validate",
-            50,
-        ),  # This tests the "customizations" idea from easy_infra.yml and functions.j2
-        (
-            {},
-            '/usr/bin/env bash -c "KICS_INCLUDE_QUERIES=5a2486aa-facf-477d-a5c1-b010789459ce terraform --skip-checkov validate"',
-            50,
-        ),  # This tests the "customizations" idea from easy_infra.yml and functions.j2
-        (
-            {
-                "SKIP_CHECKOV": "true",
-                "KICS_EXCLUDE_SEVERITIES": "medium",
-            },
-            "terraform validate",
-            50,
-        ),  # Doesn't exclude high. This tests the "customizations" idea from easy_infra.yml and functions.j2
-        (
-            {
-                "SKIP_CHECKOV": "true",
-                "KICS_EXCLUDE_SEVERITIES": "info,low,medium,high",
-            },
-            "terraform validate",
-            0,
-        ),  # Excludes all the severities. This tests the "customizations" idea from easy_infra.yml and functions.j2
-    ]
-
-    LOG.debug("Testing terraform with security disabled")
-    num_tests_ran += exec_tests(tests=tests, volumes=kics_volumes, image=image)
-
-    # Ensure insecure configurations fail due to checkov
-    # Tests is a list of tuples containing the test environment, command, and
-    # expected exit code
-    tests: list[tuple[dict, str, int]] = [  # type: ignore
-        ({}, "terraform --skip-kics plan", 1),
-        ({}, "tfenv exec --skip-kics plan", 1),
-        (
-            {},
-            '/usr/bin/env bash -c "SKIP_KICS=true terraform plan"',
-            1,
-        ),
-        (
-            {"SKIP_KICS": "true"},
-            '/usr/bin/env bash -c "terraform plan || true"',
-            0,
-        ),
-        (
-            {},
-            '/usr/bin/env bash -c "SKIP_KICS=true terraform plan || true && false"',
-            1,
-        ),
-        (
-            {"SKIP_KICS": "true"},
-            "terraform --skip-kics plan",
-            1,
-        ),
-        (
-            {"LEARNING_MODE": "tRuE", "SKIP_KICS": "TRUE"},
-            '/usr/bin/env bash -c "terraform validate"',
-            0,
-        ),
-        (
-            {"LEARNING_MODE": "tRuE", "SKIP_KICS": "true"},
-            "terraform validate",
-            0,
-        ),
-    ]
-
-    LOG.debug("Testing checkov against insecure terraform")
-    num_tests_ran += exec_tests(tests=tests, volumes=checkov_volumes, image=image)
 
     # Run base interactive terraform tests
     test_interactive_container = CLIENT.containers.run(
