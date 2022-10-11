@@ -787,7 +787,7 @@ def run_terraform(*, image: str, final: bool = False):
             container=test_interactive_container,
             files=files,
             files_expected_to_exist=False,
-            log_path="/var/log/easy_infra.log",
+            log_path="/tmp/fluent_bit.log",
             expected_log_length=expected_number_of_logs,
         )
     ) == 0:
@@ -827,7 +827,7 @@ def run_terraform(*, image: str, final: bool = False):
             container=test_noninteractive_container,
             files=files,
             files_expected_to_exist=True,
-            log_path="/var/log/easy_infra.log",
+            log_path="/tmp/fluent_bit.log",
             expected_log_length=expected_number_of_logs,
         )
     ) == 0:
@@ -1001,7 +1001,7 @@ def run_ansible(*, image: str):
             container=test_interactive_container,
             files=files,
             files_expected_to_exist=False,
-            log_path="/var/log/easy_infra.log",
+            log_path="/tmp/fluent_bit.log",
             expected_log_length=expected_number_of_logs,
         )
     ) == 0:
@@ -1040,7 +1040,7 @@ def run_ansible(*, image: str):
             container=test_noninteractive_container,
             files=files,
             files_expected_to_exist=True,
-            log_path="/var/log/easy_infra.log",
+            log_path="/tmp/fluent_bit.log",
             expected_log_length=expected_number_of_logs,
         )
     ) == 0:
