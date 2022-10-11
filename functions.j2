@@ -220,11 +220,11 @@ function {{ function }}() {
         return=$?
 
         # Identify the best message content to log
-        if [[ -v {{ security_tool | upper | replace("-", "_") }}_JSON_REPORT_PATH && -r "{{ '${' }}{{ security_tool | upper | replace("-", "_") }}{{ '_JSON_REPORT_PATH}' }}/{{ security_tools[security_tool]['output'] }}" ]]; then
-          message_content="$(cat "{{ '${' }}{{ security_tool | upper | replace("-", "_") }}{{ '_JSON_REPORT_PATH}' }}/{{ security_tools[security_tool]['output'] }}")"
+        if [[ -v {{ security_tool | upper | replace("-", "_") }}_JSON_REPORT_PATH && -r "{{ '${' }}{{ security_tool | upper | replace("-", "_") }}{{ '_JSON_REPORT_PATH}' }}/{{ security_tool | replace("-", "_") }}.json" ]]; then
+          message_content="$(cat "{{ '${' }}{{ security_tool | upper | replace("-", "_") }}{{ '_JSON_REPORT_PATH}' }}/{{ security_tool | replace("-", "_") }}.json")"
           message_type="json"
         else
-          _feedback DEBUGGING "{{ security_tool | upper | replace("-", "_") }}{{ '_JSON_REPORT_PATH' }} was not set or {{ '\${' }}{{ security_tool | upper | replace("-", "_") }}{{ '_JSON_REPORT_PATH}' }}/{{ security_tools[security_tool]['output'] }} is not readable; falling back to /tmp/{{ security_tool | replace("-", "_") }}_stdouterr"
+          _feedback DEBUGGING "{{ security_tool | upper | replace("-", "_") }}{{ '_JSON_REPORT_PATH' }} was not set or {{ '\${' }}{{ security_tool | upper | replace("-", "_") }}{{ '_JSON_REPORT_PATH}' }}/{{ security_tool | replace("-", "_") }}.json is not readable; falling back to /tmp/{{ security_tool | replace("-", "_") }}_stdouterr"
           message_content="$(cat /tmp/{{ security_tool | replace("-", "_") }}_stdouterr | tr '\n' '\t')"
           message_type="string"
         fi

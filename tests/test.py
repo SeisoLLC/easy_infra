@@ -265,12 +265,8 @@ def run_terraform(*, image: str, final: bool = False):
         hooks_secure_terraform_v_0_14_dir: {"bind": working_dir, "mode": "rw"}
     }
     report_base_dir = Path("/tmp/reports")
-    kics_output_file = report_base_dir.joinpath("kics").joinpath(
-        CONFIG["commands"]["terraform"]["security"]["kics"]["output"]
-    )
-    checkov_output_file = report_base_dir.joinpath("checkov").joinpath(
-        CONFIG["commands"]["terraform"]["security"]["checkov"]["output"]
-    )
+    kics_output_file = report_base_dir.joinpath("kics").joinpath("kics.json")
+    checkov_output_file = report_base_dir.joinpath("checkov").joinpath("checkov.json")
 
     # Base tests
     command = "./test.sh"
@@ -864,7 +860,7 @@ def run_terraform(*, image: str, final: bool = False):
     # fluent bit log regardless of which image is being tested
     files = ["/tmp/kics_complete"]
     files.append("/tmp/checkov_complete")
-    # Piggybacking the kics/checkov json reports with the kics/checkov complete files
+    # Piggyback checking the kics/checkov json reports on the kics/checkov complete file checks
     files.append(str(kics_output_file))
     files.append(str(checkov_output_file))
     LOG.debug("Testing non-interactive terraform commands")
