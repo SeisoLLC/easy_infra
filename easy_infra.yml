@@ -36,6 +36,7 @@ commands:
           KICS_EXCLUDE_SEVERITIES: --exclude-severities
           KICS_INCLUDE_QUERIES: --include-queries
         description: directory scan
+        output: kics.json
     version: 2.9.6+dfsg-1
     version_argument: --version
   aws-cli:
