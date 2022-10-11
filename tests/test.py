@@ -827,7 +827,7 @@ def run_terraform(*, image: str, final: bool = False):
             container=test_interactive_container,
             files=files,
             files_expected_to_exist=True,
-            log_path="/var/log/fluent_bit.log",
+            log_path="/tmp/fluent_bit.log",
             expected_log_length=expected_number_of_logs,
         )
     ) == 0:
@@ -857,6 +857,9 @@ def run_terraform(*, image: str, final: bool = False):
     # fluent bit log regardless of which image is being tested
     files = ["/tmp/kics_complete"]
     files.append("/tmp/checkov_complete")
+    # Piggybacking the kics/checkov json reports with the kics/checkov complete files
+    files.append("/tmp/reports/kics.json")
+    files.append("/tmp/reports/checkov.json")
     LOG.debug("Testing non-interactive terraform commands")
     number_of_security_tools = len(CONFIG["commands"]["terraform"]["security"])
     expected_number_of_logs = number_of_security_tools
