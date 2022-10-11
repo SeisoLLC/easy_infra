@@ -511,10 +511,8 @@ def run_terraform(*, image: str, final: bool = False):
             },
             '/bin/bash -c "terraform init -backend=false && terraform validate"',
             1,
-        ),  # This tests the bring-your-own TERRAFORM_VERSION hook, regardless of the built-in security tools
         ),  # This tests the bring-your-own TERRAFORM_VERSION hook (40-), regardless of the built-in security tools (DISABLE_SECURITY=true)
         # It fails because it ignores the 50- terraform due to AUTODETECT=false, and the v_0_14_dir files fail given the version of TERRAFORM_VERSION specified above
-        # the provided TERRAFORM_VERSION environment variable specifies
     ]
     LOG.debug("Fail when using terraform 1.3.2 in a repo which expects 0.14.x")
     num_tests_ran += exec_tests(
