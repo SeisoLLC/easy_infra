@@ -65,7 +65,6 @@ commands:
     version: v1.5.1
     version_argument: version
   terraform:
-    allow_update: true
     file_extensions: *id001
     security: *id002
     validation: *id003
