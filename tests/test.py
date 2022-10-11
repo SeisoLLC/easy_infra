@@ -798,6 +798,46 @@ def run_terraform(*, image: str, final: bool = False):
 
     num_tests_ran += num_successful_tests
 
+    # Run secondary interactive terraform tests
+    test_interactive_container = CLIENT.containers.run(
+        image=image,
+        detach=True,
+        auto_remove=False,
+        tty=True,
+        volumes=secure_volumes_with_log_config,
+        environment=environment,
+    )
+
+    # Running an interactive terraform command
+    test_interactive_container.exec_run(
+        cmd='/bin/bash -ic "terraform validate"', tty=True
+    )
+
+    # An interactive terraform command should still cause the creation of the following files, and should have the same number of logs lines in the
+    # fluent bit log regardless of which image is being tested
+    files = ["/tmp/reports/kics.json"]
+    files.append("/tmp/reports/checkov.json")
+    LOG.debug("Testing that interactive terraform commands still create json reports")
+    number_of_security_tools = len(CONFIG["commands"]["terraform"]["security"])
+    expected_number_of_logs = number_of_security_tools
+
+    # Check the container
+    if (
+        num_successful_tests := check_container(
+            container=test_interactive_container,
+            files=files,
+            files_expected_to_exist=True,
+            log_path="/var/log/fluent_bit.log",
+            expected_log_length=expected_number_of_logs,
+        )
+    ) == 0:
+        test_interactive_container.kill()
+        sys.exit(230)
+
+    test_interactive_container.kill()
+
+    num_tests_ran += num_successful_tests
+
     # Run base non-interactive tests for terraform
     test_noninteractive_container = CLIENT.containers.run(
         image=image,
