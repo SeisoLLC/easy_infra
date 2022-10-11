@@ -515,7 +515,7 @@ def run_terraform(*, image: str, final: bool = False):
         # It succeeds because only terraform/hooks/secure_1_3/secure.tf is tested, and it fails because it requires a version of terraform newer then
         # the provided TERRAFORM_VERSION environment variable specifies
     ]
-    LOG.debug("Fail when using terraform 1.3.2s in a repo which expects 0.14.x")
+    LOG.debug("Fail when using terraform 1.3.2 in a repo which expects 0.14.x")
     num_tests_ran += exec_tests(
         tests=tests,
         volumes=hooks_secure_terraform_v_0_14_dir_volumes,
