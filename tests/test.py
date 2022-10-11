@@ -91,7 +91,7 @@ def is_expected_file_length(
     is expected, else False
     """
     exit_code, output = container.exec_run(
-        cmd=f"/bin/bash -c \"wc -l {log_path} | awk '{{print $1}}'\""
+        cmd=f"/bin/bash -c \"set -o pipefail; wc -l {log_path} | awk '{{print $1}}'\""
     )
     sanitized_output = int(output.decode("utf-8").strip())
     if exit_code != 0:
