@@ -3,16 +3,15 @@ _anchors:
   - tf
   security: &id002
     checkov:
-      command: checkov -d . --download-external-modules True --skip-download
+      command: checkov -d . --download-external-modules True --skip-download --output json --output-file-path ${CHECKOV_JSON_REPORT_PATH}
       customizations:
         CHECKOV_BASELINE: --baseline
         CHECKOV_EXTERNAL_CHECKS_DIR: --external-checks-dir
         CHECKOV_SKIP_CHECK: --skip-check
       description: directory scan
     kics:
-      command: kics scan --type Terraform --no-progress --queries-path ${KICS_INCLUDE_QUERIES_PATH}
-        --libraries-path ${KICS_LIBRARY_PATH} --report-formats json --output-path
-        ${KICS_JSON_REPORT_PATH} --output-name kics --path .
+      command: kics scan --type Terraform --no-progress --queries-path ${KICS_INCLUDE_QUERIES_PATH} --libraries-path ${KICS_LIBRARY_PATH}
+        --report-formats json --output-path ${KICS_JSON_REPORT_PATH} --output-name kics --path .
       customizations:
         KICS_EXCLUDE_SEVERITIES: --exclude-severities
         KICS_INCLUDE_QUERIES: --include-queries
@@ -29,9 +28,8 @@ commands:
     - ansible-playbook
     security:
       kics:
-        command: kics scan --type Ansible --no-progress --queries-path ${KICS_INCLUDE_QUERIES_PATH}
-          --libraries-path ${KICS_LIBRARY_PATH} --report-formats json --output-path
-          ${KICS_REPORTS} --output-name kics --path .
+        command: kics scan --type Ansible --no-progress --queries-path ${KICS_INCLUDE_QUERIES_PATH} --libraries-path ${KICS_LIBRARY_PATH}
+          --report-formats json --output-path ${KICS_REPORTS} --output-name kics --path .
         customizations:
           KICS_EXCLUDE_SEVERITIES: --exclude-severities
           KICS_INCLUDE_QUERIES: --include-queries
