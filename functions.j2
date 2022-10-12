@@ -33,10 +33,10 @@ function process_command_exit_status() {
 }
 
 {# Macro to be used by the loops below #}
-{% macro function(function, file_extensions, tools, allow_filter, version_argument, validations, security_tools) %}
+{% macro function(function, file_extensions, security_tools, allow_filter, version_argument, validations) %}
 function {{ function }}() {
   arguments=("${@}")
-  easy_infra_{{ function | replace("-", "_") }}_tools=({% for tool in tools %}{{ tool | replace("-", "_") }}{% if not loop.last %} {% endif %}{% endfor %})
+  easy_infra_{{ function | replace("-", "_") }}_tools=({% for security_tool in security_tools %}{{ security_tool | replace("-", "_") }}{% if not loop.last %} {% endif %}{% endfor %})
 
   # If an argument was provided which adjusts the easy_infra runtime, set a
   # related variable and remove that argument from the arguments array
@@ -280,8 +280,8 @@ function {{ function }}() {
 {# Loop through each provided command (or aliases, if they are set) to be wrapped and make a single wrapper function for it -#}
 {% for command in commands if commands[command]["security"] -%}
 {% for alias in commands[command]["aliases"] -%}
-{{ function(alias, commands[command]["file_extensions"], commands[command]["security"], commands[command]["allow_filter"], commands[command]["version_argument"], commands[command]["validation"], commands[command]["security"]) }}
+{{ function(alias, commands[command]["file_extensions"], commands[command]["security"], commands[command]["allow_filter"], commands[command]["version_argument"], commands[command]["validation"]) }}
 {% else %}
-{{ function(command, commands[command]["file_extensions"],commands[command]["security"], commands[command]["allow_filter"], commands[command]["version_argument"], commands[command]["validation"], commands[command]["security"]) }}
+{{ function(command, commands[command]["file_extensions"],commands[command]["security"], commands[command]["allow_filter"], commands[command]["version_argument"], commands[command]["validation"]) }}
 {% endfor %}
 {%- endfor -%}

@@ -91,7 +91,7 @@ def is_expected_file_length(
     is expected, else False
     """
     exit_code, output = container.exec_run(
-        cmd=f"/bin/bash -c \"wc -l {log_path} | awk '{{print $1}}'\""
+        cmd=f"/bin/bash -c \"set -o pipefail; wc -l {log_path} | awk '{{print $1}}'\""
     )
     sanitized_output = int(output.decode("utf-8").strip())
     if exit_code != 0:
@@ -264,6 +264,9 @@ def run_terraform(*, image: str, final: bool = False):
     hooks_secure_terraform_v_0_14_dir_volumes = {
         hooks_secure_terraform_v_0_14_dir: {"bind": working_dir, "mode": "rw"}
     }
+    report_base_dir = Path("/tmp/reports")
+    kics_output_file = report_base_dir.joinpath("kics").joinpath("kics.json")
+    checkov_output_file = report_base_dir.joinpath("checkov").joinpath("checkov.json")
 
     # Base tests
     command = "./test.sh"
@@ -798,6 +801,46 @@ def run_terraform(*, image: str, final: bool = False):
 
     num_tests_ran += num_successful_tests
 
+    # Run secondary interactive terraform tests
+    test_interactive_container = CLIENT.containers.run(
+        image=image,
+        detach=True,
+        auto_remove=False,
+        tty=True,
+        volumes=secure_volumes_with_log_config,
+        environment=environment,
+    )
+
+    # Running an interactive terraform command
+    test_interactive_container.exec_run(
+        cmd='/bin/bash -ic "terraform validate"', tty=True
+    )
+
+    # An interactive terraform command should still cause the creation of the following files, and should have the same number of logs lines in the
+    # fluent bit log regardless of which image is being tested
+    files = [str(kics_output_file)]
+    files.append(str(checkov_output_file))
+    LOG.debug("Testing that interactive terraform commands still create json reports")
+    number_of_security_tools = len(CONFIG["commands"]["terraform"]["security"])
+    expected_number_of_logs = number_of_security_tools
+
+    # Check the container
+    if (
+        num_successful_tests := check_container(
+            container=test_interactive_container,
+            files=files,
+            files_expected_to_exist=True,
+            log_path="/tmp/fluent_bit.log",
+            expected_log_length=expected_number_of_logs,
+        )
+    ) == 0:
+        test_interactive_container.kill()
+        sys.exit(230)
+
+    test_interactive_container.kill()
+
+    num_tests_ran += num_successful_tests
+
     # Run base non-interactive tests for terraform
     test_noninteractive_container = CLIENT.containers.run(
         image=image,
@@ -817,6 +860,9 @@ def run_terraform(*, image: str, final: bool = False):
     # fluent bit log regardless of which image is being tested
     files = ["/tmp/kics_complete"]
     files.append("/tmp/checkov_complete")
+    # Piggyback checking the kics/checkov json reports on the kics/checkov complete file checks
+    files.append(str(kics_output_file))
+    files.append(str(checkov_output_file))
     LOG.debug("Testing non-interactive terraform commands")
     number_of_security_tools = len(CONFIG["commands"]["terraform"]["security"])
     expected_number_of_logs = number_of_security_tools

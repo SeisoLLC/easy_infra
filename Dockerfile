@@ -22,6 +22,7 @@ ARG TFENV_VERSION
 ENV TFENV_VERSION="${TFENV_VERSION}"
 ARG CHECKOV_VERSION
 ENV CHECKOV_VERSION="${CHECKOV_VERSION}"
+ENV CHECKOV_JSON_REPORT_PATH="/tmp/reports/checkov"
 ENV SKIP_CHECKOV="false"
 ARG KICS_VERSION
 ENV KICS_VERSION="${KICS_VERSION}"
@@ -56,12 +57,14 @@ RUN groupadd --gid 53150 -r easy_infra \
  && apt-get -y upgrade \
  && python3 -m pip install --upgrade --no-cache-dir pip \
  && su - easy_infra -c "pip install --user --no-cache-dir checkov==${CHECKOV_VERSION}" \
+ && mkdir -p "${CHECKOV_JSON_REPORT_PATH}" \
  && echo "export PATH=/home/easy_infra/.local/bin:${PATH}" >> /home/easy_infra/.bashrc \
  && curl -L https://github.com/checkmarx/kics/releases/download/${KICS_VERSION}/kics_${KICS_VERSION#v}_linux_${KICS_ARCH}.tar.gz -o /usr/local/bin/kics.tar.gz \
  && tar -xvf /usr/local/bin/kics.tar.gz -C /usr/local/bin/ kics \
  && rm -f /usr/local/bin/kics.tar.gz \
  && chmod 0755 /usr/local/bin/kics \
  && chown root: /usr/local/bin/kics \
+ && mkdir -p "${KICS_JSON_REPORT_PATH}" \
  && su easy_infra -c "git clone https://github.com/checkmarx/kics.git /home/easy_infra/.kics --depth 1 --branch ${KICS_VERSION}" \
  && rm -rf /home/easy_infra/.kics/.git \
  && curl -L https://github.com/env0/terratag/releases/download/${TERRATAG_VERSION}/terratag_${TERRATAG_VERSION#v}_linux_${BUILDARCH}.tar.gz -o /usr/local/bin/terratag.tar.gz \
