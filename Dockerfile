@@ -51,6 +51,7 @@ RUN groupadd --gid 53150 -r easy_infra \
                                                nodejs \
                                                python3 \
                                                python3-pip \
+                                               strace \
                                                time \
                                                tini \
                                                unzip \
@@ -101,7 +102,9 @@ RUN groupadd --gid 53150 -r easy_infra \
  && apt-get -y autoremove \
  && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/log/* /var/cache/debconf/*-old \
  && touch /var/log/easy_infra.log /var/log/fluent-bit.log \
- && chown easy_infra: /var/log/easy_infra.log /var/log/fluent-bit.log
+ && chown easy_infra: /var/log/easy_infra.log /var/log/fluent-bit.log \
+ # TODO: Remove
+ && cat 0 > /proc/sys/kernel/yama/ptrace_scope
 USER easy_infra
 
 COPY --chown=easy_infra:easy_infra functions /functions
@@ -135,7 +138,6 @@ FROM minimal AS az
 USER root
 ARG AZURE_CLI_VERSION
 ENV AZURE_CLI_VERSION="${AZURE_CLI_VERSION}"
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 # hadolint ignore=DL3008
 RUN apt-get update \
  #####

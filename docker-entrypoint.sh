@@ -10,6 +10,10 @@ shopt -s dotglob
 # to stdout
 fluent-bit -c /usr/local/etc/fluent-bit/fluent-bit.conf --verbose 2>/dev/null
 
+if [[ "${LOG_LEVEL:-}" == "DEBUG" ]]; then
+  strace -o /tmp/strace-fluent-bit -e 'trace=!all' -p "$(pidof fluent-bit)"
+fi
+
 if [ "$#" -eq 0 ]; then
   # Print select tool versions then open an bash shell
   if [ -x "$(which aws)" ]; then
@@ -32,10 +36,6 @@ if [ "$#" -eq 0 ]; then
 
   exec bash
 else
-  "$@" # `exec` calls `execve()` which takes a `pathname` which "must be either
-       # a binary executable, or a script starting with a line of the form". This
-       # approach ensures the functions set via BASH_ENV are correctly sourced.
-       # https://man7.org/linux/man-pages/man2/execve.2.html#DESCRIPTION
-       # https://git.savannah.gnu.org/cgit/bash.git/tree/builtins/exec.def
+  "$@" # Ensures that we always have a shell. exec "$@" works when we are passed `/bin/bash -c "example"`, but not just `example`; the latter will
+       # bypass the shims because it doesn't have a BASH_ENV equivalent
 fi
-
