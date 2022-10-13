@@ -11,7 +11,8 @@ shopt -s dotglob
 fluent-bit -c /usr/local/etc/fluent-bit/fluent-bit.conf --verbose 2>/dev/null
 
 if [[ "${LOG_LEVEL:-}" == "DEBUG" ]]; then
-  strace -o /tmp/strace-fluent-bit -e 'trace=!all' -p "$(pidof fluent-bit)"
+  strace -o /tmp/strace-fluent-bit -e signal=all -p "$(pidof fluent-bit)" &
+  #strace -o /tmp/strace-fluent-bit -e 'trace=!all' -p "$(pidof fluent-bit)" &
 fi
 
 if [ "$#" -eq 0 ]; then
