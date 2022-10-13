@@ -197,7 +197,7 @@ def lint(_c, debug=False):
 
 
 @task
-def build(_c, stage="all", debug=False):
+def build(_c, stage="all", trace=False, debug=False):
     """Build easy_infra"""
     if debug:
         getLogger().setLevel("DEBUG")
@@ -209,6 +209,9 @@ def build(_c, stage="all", debug=False):
     )
 
     buildargs = {}
+
+    if trace:
+        buildargs["TRACE"] = "true"
 
     # This is imperfect and should be further refined
     if platform.machine().lower() == "arm64":

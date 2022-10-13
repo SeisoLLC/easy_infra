@@ -34,6 +34,7 @@ ENV AUTODETECT="false"
 ENV DISABLE_HOOKS="false"
 ENV PATH="/home/easy_infra/.local/bin:${PATH}"
 ARG DEBIAN_FRONTEND="noninteractive"
+ARG TRACE="false"
 # hadolint ignore=DL3003,DL3008,DL3013,SC1091
 RUN groupadd --gid 53150 -r easy_infra \
  && useradd -r -g easy_infra -s "$(which bash)" --create-home --uid 53150 easy_infra \
@@ -47,15 +48,17 @@ RUN groupadd --gid 53150 -r easy_infra \
                                                groff \
                                                jq \
                                                less \
-                                               libcap2-bin \
                                                nodejs \
                                                python3 \
                                                python3-pip \
-                                               strace \
                                                time \
                                                tini \
                                                unzip \
  && apt-get -y upgrade \
+ && if [ "${TRACE}" = "true" ]; then \
+    apt-get -y install --no-install-recommends libcap2-bin \
+                                               strace \
+  ; fi \
  && python3 -m pip install --upgrade --no-cache-dir pip \
  && su - easy_infra -c "pip install --user --no-cache-dir checkov==${CHECKOV_VERSION}" \
  && mkdir -p "${CHECKOV_JSON_REPORT_PATH}" \

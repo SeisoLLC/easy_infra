@@ -10,9 +10,13 @@ shopt -s dotglob
 # to stdout
 fluent-bit -c /usr/local/etc/fluent-bit/fluent-bit.conf --verbose 2>/dev/null
 
-if [[ "${LOG_LEVEL:-}" == "DEBUG" ]]; then
-  strace -o /tmp/strace-fluent-bit -e signal=all -p "$(pidof fluent-bit)" &
-  #strace -o /tmp/strace-fluent-bit -e 'trace=!all' -p "$(pidof fluent-bit)" &
+if [[ -x "$(which strace)" ]]; then
+  strace -o /tmp/strace-fluent-bit -e 'trace=!all' -p "$(pidof fluent-bit)" &
+  if [[ "$?" != "1" ]]; then
+    warning='\033[0;33m'
+    default='\033[0m'
+    echo -e "${warning}WARNING: strace failed; consider adding -u 0 --cap-add=SYS_PTRACE to your docker run${default}"
+  fi
 fi
 
 if [ "$#" -eq 0 ]; then
