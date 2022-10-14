@@ -96,8 +96,6 @@ function _log() {
     ) || { _feedback ERROR "Failed to generate a valid JSON log message"; _log "easy_infra.stdouterr" info unknown "easy_infra" "${label_cwd}" string "Failed to generate a valid JSON log message"; }
   fi
   echo "${LOG_MESSAGE}" &>> /var/log/easy_infra.log
-
-  sleep .2 # Delay to give fluent-bit time to send the logs before container shutdown
 }
 
 

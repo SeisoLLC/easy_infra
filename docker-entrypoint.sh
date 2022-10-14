@@ -6,6 +6,13 @@
 set -o pipefail
 shopt -s dotglob
 
+function shutdown() {
+  # Wait on shutdown to allow fluent-bit to dequeue
+  sleep .2s
+}
+
+trap shutdown EXIT
+
 # The fluent-bit banner and other logs go to stderr, but warnings and errors go
 # to stdout
 fluent-bit -c /usr/local/etc/fluent-bit/fluent-bit.conf --verbose 2>/dev/null
