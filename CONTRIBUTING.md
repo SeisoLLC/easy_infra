@@ -28,15 +28,12 @@ pipenv run invoke sbom
 
 You will now see various `sbom.*.json` files in your current directory.
 
-### Preparing a release
+### Detailed tracing
+
+If you'd like to build the container locally and allow detailed tracing, run the following:
 
 ```bash
-pipenv run invoke release
-# Manually inspect and then open a PR
+pipenv run invoke build --trace
 ```
 
-### Tagging a release
-
-```bash
-pipenv run invoke tag --push
-```
+This will add additional troubleshooting tools to the container, and perform some tracing, putting the details in `/tmp/`.

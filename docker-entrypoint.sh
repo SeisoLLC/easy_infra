@@ -6,9 +6,27 @@
 set -o pipefail
 shopt -s dotglob
 
+function shutdown() {
+  # Wait on shutdown to allow fluent-bit to dequeue
+  sleep .2s
+}
+
+trap shutdown EXIT
+
 # The fluent-bit banner and other logs go to stderr, but warnings and errors go
 # to stdout
 fluent-bit -c /usr/local/etc/fluent-bit/fluent-bit.conf --verbose 2>/dev/null
+
+if [[ -x "$(which strace)" ]]; then
+  strace -t -o /tmp/strace-fluent-bit -fp "$(pidof fluent-bit)" &
+  sleep .2
+
+  if ! pidof strace ; then
+    warning='\033[0;33m'
+    default='\033[0m'
+    echo -e "${warning}WARNING: strace failed; consider adding -u 0 --cap-add=SYS_PTRACE to your docker run${default}"
+  fi
+fi
 
 if [ "$#" -eq 0 ]; then
   # Print select tool versions then open an bash shell
@@ -32,10 +50,6 @@ if [ "$#" -eq 0 ]; then
 
   exec bash
 else
-  "$@" # `exec` calls `execve()` which takes a `pathname` which "must be either
-       # a binary executable, or a script starting with a line of the form". This
-       # approach ensures the functions set via BASH_ENV are correctly sourced.
-       # https://man7.org/linux/man-pages/man2/execve.2.html#DESCRIPTION
-       # https://git.savannah.gnu.org/cgit/bash.git/tree/builtins/exec.def
+  "$@" # Ensures that we always have a shell. exec "$@" works when we are passed `/bin/bash -c "example"`, but not just `example`; the latter will
+       # bypass the shims because it doesn't have a BASH_ENV equivalent
 fi
-
