@@ -3,13 +3,14 @@ ARG FROM_IMAGE_TAG
 
 FROM "${FROM_IMAGE}":"${FROM_IMAGE_TAG}" AS kics:"${FROM_IMAGE_TAG}"
 
+ARC KICS_ARCH
 ARG KICS_VERSION
 ENV KICS_VERSION="${KICS_VERSION}"
 ENV SKIP_KICS="false"
 ENV KICS_INCLUDE_QUERIES_PATH="/home/easy_infra/.kics/assets/queries"
 ENV KICS_LIBRARY_PATH="/home/easy_infra/.kics/assets/libraries"
 ENV KICS_JSON_REPORT_PATH="/tmp/reports/kics"
-RUN curl -L https://github.com/checkmarx/kics/releases/download/${KICS_VERSION}/kics_${KICS_VERSION#v}_linux_x64.tar.gz -o /usr/local/bin/kics.tar.gz \
+RUN curl -L "https://github.com/checkmarx/kics/releases/download/${KICS_VERSION}/kics_${KICS_VERSION#v}_linux_${KICS_ARCH}.tar.gz" -o /usr/local/bin/kics.tar.gz \
  && tar -xvf /usr/local/bin/kics.tar.gz -C /usr/local/bin/ kics \
  && rm -f /usr/local/bin/kics.tar.gz \
  && chmod 0755 /usr/local/bin/kics \

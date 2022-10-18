@@ -4,9 +4,10 @@ ARG FROM_IMAGE_TAG
 FROM "${FROM_IMAGE}":"${FROM_IMAGE_TAG}" AS aws-cli:"${FROM_IMAGE_TAG}"
 
 USER root
+ARC AWS_CLI_ARCH
 ARG AWS_CLI_VERSION
 ENV AWS_CLI_VERSION="${AWS_CLI_VERSION}"
-RUN curl -L https://awscli.amazonaws.com/awscli-exe-linux-x86_64-${AWS_CLI_VERSION}.zip -o /tmp/awscliv2.zip \
+RUN curl -L https://awscli.amazonaws.com/awscli-exe-linux-${AWS_CLI_ARCH}-${AWS_CLI_VERSION}.zip -o /tmp/awscliv2.zip \
  && unzip /tmp/awscliv2.zip -d /tmp/ \
  && /tmp/aws/install --bin-dir /aws-cli-bin/ \
  # Required for the *-aws images to be functional

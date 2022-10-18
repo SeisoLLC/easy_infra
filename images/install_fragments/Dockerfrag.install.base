@@ -4,6 +4,7 @@ ARG EASY_INFRA_TAG
 
 FROM "${FROM_IMAGE}":"${FROM_IMAGE_TAG}" AS easy_infra_base:"${EASY_INFRA_TAG}"
 
+ARG BUILDARCH
 ENV EASY_INFRA_TAG="${EASY_INFRA_TAG}"
 ARG EASY_INFRA_VERSION
 ENV EASY_INFRA_VERSION="${EASY_INFRA_VERSION}"
@@ -36,11 +37,11 @@ RUN groupadd --gid 53150 -r easy_infra \
  && apt-get -y upgrade \
  && su easy_infra -c "mkdir -p /home/easy_infra/.local/bin/" \
  && echo "export PATH=/home/easy_infra/.local/bin:${PATH}" >> /home/easy_infra/.bashrc \
- && curl -L https://releases.hashicorp.com/consul-template/${CONSUL_TEMPLATE_VERSION#v}/consul-template_${CONSUL_TEMPLATE_VERSION#v}_linux_amd64.zip -o /usr/local/bin/consul-template.zip \
+ && curl -L https://releases.hashicorp.com/consul-template/${CONSUL_TEMPLATE_VERSION#v}/consul-template_${CONSUL_TEMPLATE_VERSION#v}_linux_${BUILDARCH}.zip -o /usr/local/bin/consul-template.zip \
  && unzip /usr/local/bin/consul-template.zip -d /usr/local/bin/ \
  && rm -f /usr/local/bin/consul-template.zip \
  && chmod 0755 /usr/local/bin/consul-template \
- && curl -L https://releases.hashicorp.com/envconsul/${ENVCONSUL_VERSION#v}/envconsul_${ENVCONSUL_VERSION#v}_linux_amd64.zip -o /usr/local/bin/envconsul.zip \
+ && curl -L https://releases.hashicorp.com/envconsul/${ENVCONSUL_VERSION#v}/envconsul_${ENVCONSUL_VERSION#v}_linux_${BUILDARCH}.zip -o /usr/local/bin/envconsul.zip \
  && unzip /usr/local/bin/envconsul.zip -d /usr/local/bin/ \
  && rm -f /usr/local/bin/envconsul.zip \
  && chmod 0755 /usr/local/bin/envconsul \

@@ -3,13 +3,14 @@ ARG FROM_IMAGE_TAG
 
 FROM "${FROM_IMAGE}":"${FROM_IMAGE_TAG}" AS terraform:"${FROM_IMAGE_TAG}"
 
+ARG BUILDARCH
 ARG TERRAFORM_VERSION
 ENV TERRAFORM_VERSION="${TERRAFORM_VERSION}"
 ARG TERRATAG_VERSION
 ENV TERRATAG_VERSION="${TERRATAG_VERSION}"
 ARG TFENV_VERSION
 ENV TFENV_VERSION="${TFENV_VERSION}"
-RUN curl -L https://github.com/env0/terratag/releases/download/${TERRATAG_VERSION}/terratag_${TERRATAG_VERSION#v}_linux_amd64.tar.gz -o /usr/local/bin/terratag.tar.gz \
+RUN curl -L https://github.com/env0/terratag/releases/download/${TERRATAG_VERSION}/terratag_${TERRATAG_VERSION#v}_linux_${BUILDARCH}.tar.gz -o /usr/local/bin/terratag.tar.gz \
  && tar -xvf /usr/local/bin/terratag.tar.gz -C /usr/local/bin/ terratag \
  && rm -f /usr/local/bin/terratag.tar.gz \
  && chmod 0755 /usr/local/bin/terratag \
