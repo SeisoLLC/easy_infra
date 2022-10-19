@@ -111,7 +111,7 @@ jobs:
           TAG="$(git describe --tags)"
           BRANCH="$(git branch --show-current)"
           git push --atomic origin "${BRANCH}" "${TAG}"
-          echo "::set-output name=tag::${TAG}"
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
   cut-release:
     name: Cut a release
     needs: [bump-version]
