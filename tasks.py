@@ -4,7 +4,6 @@ Task execution tool & library
 """
 
 import copy
-import itertools
 import os
 import platform
 import re
@@ -19,9 +18,8 @@ from typing import Union
 import docker
 import requests
 from bumpversion.cli import main as bumpversion
-from invoke import task
-
 from easy_infra import __project_name__, __version__, constants, utils
+from invoke import task
 from tests import test as run_test
 
 if platform.machine() == "arm64":
@@ -379,6 +377,7 @@ def sbom(_c, stage="all", debug=False):
     if debug:
         getLogger().setLevel("DEBUG")
 
+    # TODO: Fix
     variants = process_stages(stage=stage)
 
     for variant in variants:
@@ -435,6 +434,7 @@ def test(_c, stage="all", debug=False):
     tests_path = constants.CWD.joinpath("tests")
     default_volumes = {tests_path: {"bind": default_working_dir, "mode": "ro"}}
 
+    # TODO: Fix
     variants = process_stages(stage=stage)
 
     for variant in variants:
@@ -478,6 +478,7 @@ def vulnscan(_c, stage="all", debug=False):
     if debug:
         getLogger().setLevel("DEBUG")
 
+    # TODO: Fix
     variants = process_stages(stage=stage)
 
     for variant in variants:
@@ -535,6 +536,7 @@ def publish(_c, tag, stage="all", debug=False):
     elif tag == "release":
         tag = __version__
 
+    # TODO: Fix
     variants = process_stages(stage=stage)
 
     for variant in variants:
