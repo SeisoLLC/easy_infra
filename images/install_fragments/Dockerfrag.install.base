@@ -5,6 +5,7 @@ ARG EASY_INFRA_TAG
 FROM "${FROM_IMAGE}":"${FROM_IMAGE_TAG}" AS easy_infra_base:"${EASY_INFRA_TAG}"
 
 ARG BUILDARCH
+ARG TRACE="false"
 ENV EASY_INFRA_TAG="${EASY_INFRA_TAG}"
 ARG EASY_INFRA_VERSION
 ENV EASY_INFRA_VERSION="${EASY_INFRA_VERSION}"
@@ -35,6 +36,10 @@ RUN groupadd --gid 53150 -r easy_infra \
                                                tini \
                                                unzip \
  && apt-get -y upgrade \
+ && if [ "${TRACE}" = "true" ]; then \
+    apt-get -y install --no-install-recommends libcap2-bin \
+                                               strace \
+  ; fi \
  && su easy_infra -c "mkdir -p /home/easy_infra/.local/bin/" \
  && echo "export PATH=/home/easy_infra/.local/bin:${PATH}" >> /home/easy_infra/.bashrc \
  && curl -L https://releases.hashicorp.com/consul-template/${CONSUL_TEMPLATE_VERSION#v}/consul-template_${CONSUL_TEMPLATE_VERSION#v}_linux_${BUILDARCH}.zip -o /usr/local/bin/consul-template.zip \
@@ -45,13 +50,13 @@ RUN groupadd --gid 53150 -r easy_infra \
  && unzip /usr/local/bin/envconsul.zip -d /usr/local/bin/ \
  && rm -f /usr/local/bin/envconsul.zip \
  && chmod 0755 /usr/local/bin/envconsul \
- && apt-get install -y --no-install-recommends cmake build-essential flex bison \
+ && apt-get install -y --no-install-recommends cmake build-essential flex bison libyaml-dev \
  && git clone https://github.com/fluent/fluent-bit --depth 1 --branch ${FLUENT_BIT_VERSION} \
  && cd fluent-bit/build \
  && cmake ../ && make && make install \
  && cd ../.. \
  && rm -rf fluent-bit \
- && apt-get remove -y cmake build-essential flex bison \
+ && apt-get remove -y cmake build-essential flex bison libyaml-dev \
  && echo "source /functions" >> /home/easy_infra/.bashrc \
  && apt-get clean autoclean \
  && apt-get -y autoremove \

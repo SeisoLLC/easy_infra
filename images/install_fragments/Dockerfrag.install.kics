@@ -16,5 +16,6 @@ RUN curl -L "https://github.com/checkmarx/kics/releases/download/${KICS_VERSION}
  && chmod 0755 /usr/local/bin/kics \
  && chown root: /usr/local/bin/kics \
  && su easy_infra -c "git clone https://github.com/checkmarx/kics.git /home/easy_infra/.kics --depth 1 --branch ${KICS_VERSION}" \
- && rm -rf /home/easy_infra/.kics/.git
+ && rm -rf /home/easy_infra/.kics/.git \
+ && mkdir -p "${KICS_JSON_REPORT_PATH}"
 USER easy_infra

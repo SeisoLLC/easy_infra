@@ -7,8 +7,8 @@ Terraform
 The ``easy_infra`` project includes and secures Terraform as a component due to its popularity and versitility in provisioning and updating
 environments as Infrastructure as Code (IaC).
 
-``easy_infra``'s Terraform security uses tools, such as `Checkov <https://www.checkov.io/>`_ and `KICS <https://kics.io/>`_, to transparently assess
-the provided IaC against the defined security policy.
+``easy_infra`` uses security tools, such as `Checkov <https://www.checkov.io/>`_ and `KICS <https://kics.io/>`_, to transparently assess the provided
+IaC against the defined security policy.
 
 
 Use Cases

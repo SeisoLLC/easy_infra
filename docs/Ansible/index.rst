@@ -7,8 +7,8 @@ Ansible
 The ``easy_infra`` project includes and secures Ansible as a component due to its popularity and versitility in provisioning and managing systems as
 Infrastructure as Code (IaC).
 
-``easy_infra``'s Ansible security uses tools such as `KICS <https://kics.io/>`_ to semi-transparently assess the provided IaC against the defined
-security policy.
+``easy_infra`` uses security tools such as `KICS <https://kics.io/>`_ to semi-transparently assess the provided IaC against the defined security
+policy.
 
 
 Use Cases

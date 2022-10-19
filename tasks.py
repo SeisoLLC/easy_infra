@@ -117,7 +117,7 @@ def setup_buildargs(*, tool: str) -> dict:
     """Setup the buildargs for the provided tool"""
     buildargs = {}
 
-    # This is imperfect and should be further refined
+    # Add the platform-based build args (imperfect)
     if platform.machine().lower() == "arm64":
         buildargs["BUILDARCH"] = "arm64"
         buildargs["KICS_ARCH"] = "arm64"
@@ -155,6 +155,7 @@ def setup_buildargs(*, tool: str) -> dict:
 def pull_image(*, image_and_tag: str, platform: str = PLATFORM) -> None:
     """Pull the provided image but continue if it fails"""
     registry_data = CLIENT.images.get_registry_data(name="{image_and_tag}")
+    # TODO: Improve PLATFORM so it can handle Intel/amd64 systems
     if registry_data.has_platform(platform):
         LOG.info(f"Pulling {image_and_tag} (platform {platform})...")
     else:

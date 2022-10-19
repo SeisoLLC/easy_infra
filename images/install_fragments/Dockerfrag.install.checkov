@@ -5,6 +5,7 @@ FROM "${FROM_IMAGE}":"${FROM_IMAGE_TAG}" AS checkov:"${FROM_IMAGE_TAG}"
 
 ARG CHECKOV_VERSION
 ENV CHECKOV_VERSION="${CHECKOV_VERSION}"
+ENV CHECKOV_JSON_REPORT_PATH="/tmp/reports/checkov"
 ENV SKIP_CHECKOV="false"
 USER root
 RUN apt-get update \
@@ -12,4 +13,5 @@ RUN apt-get update \
                                                python3-pip \
  && apt-get -y upgrade \
  && python3 -m pip install --upgrade --no-cache-dir pip \
- && su - easy_infra -c "pip install --user --no-cache-dir checkov==${CHECKOV_VERSION}"
+ && su - easy_infra -c "pip install --user --no-cache-dir checkov==${CHECKOV_VERSION}" \
+ && mkdir -p "${CHECKOV_JSON_REPORT_PATH}"
