@@ -16,15 +16,23 @@ CLIENT = docker.from_env()
 
 
 # Helper functions
-def render_jinja2(*, template_file: Path, config: dict, output_file: Path) -> None:
+def render_jinja2(
+    *,
+    template_file: Path = constants.FUNCTIONS_INPUT_FILE,
+    config: dict = constants.CONFIG,
+    output_file: Path = constants.FUNCTIONS_OUTPUT_FILE,
+    output_mode: int,
+) -> None:
     """Render the functions file"""
+    LOG.debug(f"Rendering {template_file}...")
     folder = str(template_file.parent)
     file = str(template_file.name)
     LOG.info("Rendering %s...", file)
     template = Environment(loader=FileSystemLoader(folder)).get_template(file)
     out = template.render(config)
     output_file.write_text(out)
-    output_file.chmod(0o755)
+    if output_mode:
+        output_file.chmod(output_mode)
 
 
 def parse_config(*, config_file: Path) -> dict:

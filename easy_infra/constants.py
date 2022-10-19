@@ -12,18 +12,21 @@ import git
 from easy_infra import __project_name__, __version__, utils
 
 CONFIG_FILE = Path(f"{__project_name__}.yml").absolute()
-FUNCTIONS_INPUT_FILE = Path("functions.j2").absolute()
-FUNCTIONS_OUTPUT_FILE = Path(FUNCTIONS_INPUT_FILE.stem).absolute()
+CWD = Path(".").absolute()
+FUNCTIONS_INPUT_FILE = CWD.joinpath("functions.j2")
+FUNCTIONS_OUTPUT_FILE = CWD.joinpath(FUNCTIONS_INPUT_FILE.stem)
+DOCKER = CWD.joinpath("docker")
+DOCKERFILE_INPUT_FILE = DOCKER.joinpath("Dockerfile.j2")
+DOCKERFILE_OUTPUT_FILE = DOCKER.joinpath("Dockerfile")
+
 LOG_DEFAULT = "INFO"
 IMAGE = f"seiso/{__project_name__}"
 
-CWD = Path(".").absolute()
-IMAGES = CWD.joinpath("images")
-DOCKERFILE_BASE = IMAGES.joinpath("Dockerfile.base.j2")
 REPO = git.Repo(CWD)
 COMMIT_HASH = REPO.head.object.hexsha
 COMMIT_HASH_SHORT = REPO.git.rev_parse(COMMIT_HASH, short=True)
 CONFIG = utils.parse_config(config_file=CONFIG_FILE)
+
 # TOOLS is used to create per-tool tags. If there isn't a security configuration, the tag will not be created, because then it wouldn't fit our secure
 # by default design
 TOOLS = set()

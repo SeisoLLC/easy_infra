@@ -1,0 +1,1 @@
+RUN su easy_infra -c "ansible-galaxy collection install azure.azcollection"

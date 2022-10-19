@@ -15,11 +15,12 @@ from logging import basicConfig, getLogger
 from pathlib import Path
 from typing import Union
 
-import docker
 import requests
 from bumpversion.cli import main as bumpversion
-from easy_infra import __project_name__, __version__, constants, utils
 from invoke import task
+
+import docker
+from easy_infra import __project_name__, __version__, constants, utils
 from tests import test as run_test
 
 if platform.machine() == "arm64":
@@ -111,9 +112,14 @@ def filter_config(*, config: str, tool: str) -> dict:
     return filtered_config
 
 
-def setup_buildargs(*, tool: str) -> dict:
+def setup_buildargs(*, tool: str, trace: bool) -> dict:
     """Setup the buildargs for the provided tool"""
+    LOG.debug("Running setup_buildargs...")
     buildargs = {}
+
+    if trace:
+        LOG.debug("Setting trace in the buildargs...")
+        buildargs["TRACE"] = "true"
 
     # Add the platform-based build args (imperfect)
     if platform.machine().lower() == "arm64":
@@ -184,30 +190,30 @@ def build_and_tag(
     image_and_versioned_tag = f"{constants.IMAGE}:{versioned_tag}"
     image_and_latest_tag = f"{constants.IMAGE}:{latest_tag}"
 
-    # Warm up the cache
-    pull_image(image_and_tag=image_and_latest_tag)
+    config = {}
+    config["versioned_tag"] = versioned_tag
+    config["dockerfile_base"] = constants.DOCKER.joinpath("Dockerfile.base").read_text(
+        encoding="UTF-8"
+    )
+    # TODO: Populate with necessary context for building the image at hand
 
-    LOG.info(f"Building {image_and_versioned_tag}...")
-    LOG.debug(f"Rendering {constants.DOCKERFILE_BASE}...")
     utils.render_jinja2(
-        template_file=constants.FUNCTIONS_INPUT_FILE,
-        config=constants.CONFIG,
-        output_file=constants.FUNCTIONS_OUTPUT_FILE,
+        template_file=constants.DOCKERFILE_INPUT_FILE,
+        config=config,
+        output_file=constants.DOCKERFILE_OUTPUT_FILE,
     )
 
     try:
-        LOG.debug("Running setup_buildargs...")
-        buildargs = setup_buildargs(tool=tool)
+        buildargs = setup_buildargs(tool=tool, trace=trace)
 
-        if trace:
-            buildargs["TRACE"] = "true"
+        # Warm up the cache
+        pull_image(image_and_tag=image_and_latest_tag)
 
-        LOG.debug("Building the docker image...")
-        # TODO: How do we create the right path to point to the dockerfile?
         # if environment: ????
-        # path = IMAGES.joinpath("TODO")
+        # path = DOCKER.joinpath("TODO")
         #   path=str(constants.CWD),  ??? How do we auto construct the Dockerfile
         #   target=variant,  ??? Always final?
+
         image = CLIENT.images.build(
             buildargs=buildargs,
             tag=image_and_versioned_tag,
@@ -217,7 +223,7 @@ def build_and_tag(
         )[0]
     except docker.errors.BuildError as build_err:
         LOG.exception(
-            f"Failed to build {image_and_versioned_tag} platform {PLATFORM}, retrieving and logging the more detailed build error...",
+            f"Failed to build {image_and_versioned_tag} platform {PLATFORM}...",
         )
         log_build_log(build_err=build_err)
         sys.exit(1)
@@ -355,11 +361,7 @@ def build(_c, tool="all", environment="all", trace=False, debug=False):
     for tool in tools_to_environments:
         # Render the functions that the tool cares about
         filtered_config = filter_config(config=constants.CONFIG, tool=tool)
-        utils.render_jinja2(
-            template_file=constants.FUNCTIONS_INPUT_FILE,
-            config=filtered_config,
-            output_file=constants.FUNCTIONS_OUTPUT_FILE,
-        )
+        utils.render_jinja2(config=filtered_config, output_mode=0o755)
 
         # TODO: Figure out how to handle -large, somewhere in this function?
 

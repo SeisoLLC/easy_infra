@@ -2,7 +2,8 @@ ARG FROM_IMAGE=ubuntu
 ARG FROM_IMAGE_TAG=20.04
 ARG EASY_INFRA_TAG
 
-FROM "${FROM_IMAGE}":"${FROM_IMAGE_TAG}" AS easy_infra_base:"${EASY_INFRA_TAG}"
+# The dockerfile base must start with FROM ... AS base
+FROM "${FROM_IMAGE}":"${FROM_IMAGE_TAG}" AS base
 
 ARG BUILDARCH
 ARG TRACE="false"
@@ -65,6 +66,7 @@ RUN groupadd --gid 53150 -r easy_infra \
  && chown easy_infra: /var/log/easy_infra.log /var/log/fluent-bit.log
 USER easy_infra
 
+COPY --chown=easy_infra:easy_infra functions /functions
 COPY --chown=easy_infra:easy_infra docker-entrypoint.sh /usr/local/bin/
 COPY --chown=easy_infra:easy_infra common.sh /usr/local/bin/
 COPY --chown=easy_infra:easy_infra hooks /opt/hooks/bin/

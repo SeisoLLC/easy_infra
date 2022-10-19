@@ -1,0 +1,1 @@
+RUN ln -sf /aws-cli-bin/* /usr/local/bin/

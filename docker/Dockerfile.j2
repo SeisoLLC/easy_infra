@@ -1,0 +1,40 @@
+{# The dockerfile base must start with FROM ... AS base #}
+{{ dockerfile_base }}
+
+{% for dockerfile in dockerfile_tools %}
+{{ dockerfile }}
+{% endfor %}
+
+{# Skip this if there is no relevant env, such as for the -terraform base tag #}
+{% if dockerfile_envs %}
+{% for dockerfile in dockerfile_envs %}
+{{ dockerfile }}
+{% endfor %}
+{% endif %}
+
+{# Skip this if there is no tool-env combination specific dockerfile/frag #}
+{% if dockerfile_tool_envs %}
+{% for dockerfile in dockerfile_tool_envs %}
+{{ dockerfile }}
+{% endfor %}
+{% endif %}
+
+FROM base as final
+
+{% for dockerfrag in dockerfrag_tools %}
+{{ dockerfrag }}
+{% endfor %}
+
+{# Skip this if there is no relevant env, such as for the -terraform base tag #}
+{% if dockerfrag_envs %}
+{% for dockerfrag in dockerfrag_envs %}
+{{ dockerfrag }}
+{% endfor %}
+{% endif %}
+
+{# Skip this if there is no tool-env combination specific dockerfile/frag #}
+{% if dockerfrag_tool_envs %}
+{% for dockerfrag in dockerfrag_tool_envs %}
+{{ dockerfrag }}
+{% endfor %}
+{% endif %}
