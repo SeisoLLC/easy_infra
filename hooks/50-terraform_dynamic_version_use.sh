@@ -6,7 +6,7 @@
 source /usr/local/bin/common.sh
 
 fully_qualified_script=$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )
-output_log="/var/log/$(basename "${BASH_SOURCE[0]}")"
+output_log="/var/log/$(basename "${BASH_SOURCE[0]%%.sh}.log")"
 
 # The rest of this script is not relevant if AUTODETECT is not set to true
 if [[ "${AUTODETECT}" != "true" ]]; then

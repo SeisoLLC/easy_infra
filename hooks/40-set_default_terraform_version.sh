@@ -7,7 +7,7 @@ source /usr/local/bin/common.sh
 
 
 current_version=$(cat /home/easy_infra/.tfenv/version)
-output_log="/var/log/$(basename "${BASH_SOURCE[0]}")"
+output_log="/var/log/$(basename "${BASH_SOURCE[0]%%.sh}.log")"
 
 if [[ "${TERRAFORM_VERSION}" == "${current_version}" ]]; then
   exit 0

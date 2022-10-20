@@ -104,7 +104,7 @@ RUN groupadd --gid 53150 -r easy_infra \
  && apt-get clean autoclean \
  && apt-get -y autoremove \
  && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/log/* /var/cache/debconf/*-old \
- && touch /var/log/easy_infra.log /var/log/fluent-bit.log \
+ && touch /var/log/easy_infra.log /var/log/fluent-bit.log /var/log/40-set_default_terraform_version.log /var/log/50-terraform_dynamic_version_use.log \
  && chown easy_infra: /var/log/easy_infra.log /var/log/fluent-bit.log
 USER easy_infra
 
