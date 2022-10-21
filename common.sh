@@ -100,22 +100,23 @@ function _log() {
 
 
 function _feedback() {
+  timestamp="$(date -Ins)"
   # Use the provided color code label
   color="${1}"
   case "${1}" in
     ERROR)
       # echo to stderr with the appropriate coloring
-      >&2 echo -e "${!color}${1}:  ${2}${DEFAULT}" ;;
+      >&2 echo -e "${!color}${timestamp} - ${1}:  ${2}${DEFAULT}" ;;
     WARNING)
       # echo to stderr with the appropriate coloring
-      >&2 echo -e "${!color}${1}:  ${2}${DEFAULT}" ;;
+      >&2 echo -e "${!color}${timestamp} - ${1}:  ${2}${DEFAULT}" ;;
     *)
       if [[ "${1}" != "DEBUGGING" ]]; then
         # echo to stdout with the appropriate coloring
-        echo -e "${!color}${1}:  ${2}${DEFAULT}"
+        echo -e "${!color}${timestamp} - ${1}:  ${2}${DEFAULT}"
       elif [[ "${LOG_LEVEL}" == "DEBUG" && "${1}" == "DEBUGGING" ]]; then
         # echo to stdout with the appropriate coloring
-        echo -e "${!color}${1}:  ${2}${DEFAULT}"
+        echo -e "${!color}${timestamp} - ${1}:  ${2}${DEFAULT}"
       fi ;;
   esac
 }
