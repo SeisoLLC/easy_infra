@@ -130,7 +130,7 @@ function {{ function }}() {
         return=$?
         if [[ ${return:-1} != 0 ]]; then
           popd > /dev/null
-          dir_exit_codes["${dir}"] = "${return}"
+          dir_exit_codes["${dir}"]="${return}"
           continue
         fi
       done
@@ -144,7 +144,7 @@ function {{ function }}() {
       return=$?
       popd > /dev/null
       if [[ ${return:-1} != 0 ]]; then
-        dir_exit_codes["${dir}"] = "${return}"
+        dir_exit_codes["${dir}"]="${return}"
         continue
       fi
       continue
@@ -155,7 +155,7 @@ function {{ function }}() {
       return=$?
       popd > /dev/null
       if [[ ${return:-1} != 0 ]]; then
-        dir_exit_codes["${dir}"] = "${return}"
+        dir_exit_codes["${dir}"]="${return}"
         continue
       fi
       continue
@@ -176,7 +176,7 @@ function {{ function }}() {
         cat /tmp/{{ validation.command | replace(" ", "_") }}_stdouterr
         if [[ "${LEARNING_MODE,,}" != "true" ]]; then
           popd > /dev/null
-          dir_exit_codes["${dir}"] = "${return}"
+          dir_exit_codes["${dir}"]="${return}"
           continue
         else
           _feedback DEBUGGING "Learning mode enabled, not returning {{ validation.command }}'s exit code of ${return}"
@@ -249,7 +249,7 @@ function {{ function }}() {
             _log "{{ security_tool }}.stdouterr" denied failure "${interpolated_security_tool_command}" "${dir}" "${message_type}" "${message_content}"
             _feedback DEBUGGING "{{ security_tool }} running from the ${dir} folder exited ${return}; learning mode was ${LEARNING_MODE:-null or unset}. Returning ${return}"
             popd > /dev/null
-            dir_exit_codes["${dir}"] = "${return}"
+            dir_exit_codes["${dir}"]="${return}"
             continue
           else
             # easy_infra allowed the command due to learning mode, but the security tool failed
@@ -275,7 +275,7 @@ function {{ function }}() {
     if [[ ${return:-1} != 0 ]]; then
       popd > /dev/null
       _feedback ERROR "${FUNCNAME[0]} ${arguments[@]} exited ${return} in ${dir}"
-      dir_exit_codes["${dir}"] = "${return}"
+      dir_exit_codes["${dir}"]="${return}"
       continue
     fi
 
