@@ -136,6 +136,9 @@ command (or series of commands) on all of them without needing to maintain a met
 .. note::
     Only .tf files are supported; .tf.json files will not be detected
 
+.. note::
+    When autodetect is enabled, the exit code will be the last failure in the series
+
 
 Resources
 ---------
