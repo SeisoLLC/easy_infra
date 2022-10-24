@@ -340,7 +340,9 @@ def run_terraform(*, image: str, final: bool = False):
                     + number_of_testing_dirs
                 )
             else:
-                ## Test FAIL_FAST; since DISABLE_HOOKS, FAIL_FAST, and AUTODETECT are all true, it should fail after the first issue (the "invalid" test)
+                # Test FAIL_FAST; since DISABLE_HOOKS, FAIL_FAST, and AUTODETECT are all true, it should fail after the first issue (the "invalid" test)
+                fail_fast = "true"
+
                 # Use the index of the 'invalid' dir as the expected number of logs, since it fails at invalid, + 1 to adjust for 0-indexing. Note
                 # that the general_test_dirs list needs to be alphabetically sorted
                 invalid_dir_index = general_test_dirs.index(invalid_test_dir) + 1
@@ -348,8 +350,6 @@ def run_terraform(*, image: str, final: bool = False):
                 # One log for each folder that would be encountered
                 logs_from_disable_hooks = invalid_dir_index
                 expected_number_of_logs = invalid_dir_index + logs_from_disable_hooks
-
-                fail_fast = "true"
         else:
             # Since DISABLE_HOOKS is true and AUTODETECT is false, there is one log added saying that hooks are disabled in the working dir
             expected_number_of_logs = number_of_security_tools + 1
