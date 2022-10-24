@@ -128,6 +128,7 @@ function {{ function }}() {
         if [[ "${return:-1}" != 0 ]]; then
           popd > /dev/null
           if [[ "${FAIL_FAST:-false}" == "true" ]]; then
+            _feedback INFO "FAIL_FAST is set to ${FAIL_FAST}; returning the exit code of ${return} immediately"
             return "${return}"
           else
             dir_exit_codes["${dir}"]="${return}"
@@ -146,6 +147,7 @@ function {{ function }}() {
       popd > /dev/null
       if [[ "${return:-1}" != 0 ]]; then
         if [[ "${FAIL_FAST:-false}" == "true" ]]; then
+          _feedback INFO "FAIL_FAST is set to ${FAIL_FAST}; returning the exit code of ${return} immediately"
           return "${return}"
         else
           dir_exit_codes["${dir}"]="${return}"
@@ -161,6 +163,7 @@ function {{ function }}() {
       popd > /dev/null
       if [[ "${return:-1}" != 0 ]]; then
         if [[ "${FAIL_FAST:-false}" == "true" ]]; then
+          _feedback INFO "FAIL_FAST is set to ${FAIL_FAST}; returning the exit code of ${return} immediately"
           return "${return}"
         else
           dir_exit_codes["${dir}"]="${return}"
@@ -185,6 +188,7 @@ function {{ function }}() {
         if [[ "${LEARNING_MODE,,}" != "true" ]]; then
           popd > /dev/null
           if [[ "${FAIL_FAST:-false}" == "true" ]]; then
+            _feedback INFO "FAIL_FAST is set to ${FAIL_FAST}; returning the exit code of ${return} immediately"
             return "${return}"
           else
             dir_exit_codes["${dir}"]="${return}"
@@ -261,6 +265,7 @@ function {{ function }}() {
             _feedback DEBUGGING "{{ security_tool }} running from the ${dir} folder exited ${return}; learning mode was ${LEARNING_MODE:-null or unset}. Returning ${return}"
             popd > /dev/null
             if [[ "${FAIL_FAST:-false}" == "true" ]]; then
+              _feedback INFO "FAIL_FAST is set to ${FAIL_FAST}; returning the exit code of ${return} immediately"
               return "${return}"
             else
               dir_exit_codes["${dir}"]="${return}"
@@ -291,6 +296,7 @@ function {{ function }}() {
       popd > /dev/null
       _feedback ERROR "${FUNCNAME[0]} ${arguments[@]} exited ${return} in ${dir}"
       if [[ "${FAIL_FAST:-false}" == "true" ]]; then
+        _feedback INFO "FAIL_FAST is set to ${FAIL_FAST}; returning the exit code of ${return} immediately"
         return "${return}"
       else
         dir_exit_codes["${dir}"]="${return}"

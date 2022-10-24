@@ -126,19 +126,19 @@ If you'd like to autodetect where your Terraform files exist and run the provide
 you.  This is useful in cases where there is a single repository containing folders which store varying terraform files, and you would like to run a
 command (or series of commands) on all of them without needing to maintain a method of looping through them yourself.
 
-+----------------------+-----------+------------------------------------------------------------------------------------------------+
-| Environment variable | Default   | Result                                                                                         |
-+======================+===========+================================================================================================+
-| ``AUTODETECT``       | ``false`` | Autodetect folders containing Terraform files when set to ``true``                             |
-+------------------------+------------------------------+---------------------------------------------------------------------------+
-| ``FAIL_FAST``        | ``false`` | Exit as soon as the first failure is encountered, when ``AUTODETECT`` is also set to ``true``` |
-+----------------------+-----------+------------------------------------------------------------------------------------------------+
++----------------------+-----------+---------------------------------------------------------------------+
+| Environment variable | Default   | Result                                                              |
++======================+===========+=====================================================================+
+| ``AUTODETECT``       | ``false`` | Autodetect folders containing Terraform files when set to ``true``  |
++------------------------+------------------------------+------------------------------------------------+
+| ``FAIL_FAST``        | ``false`` | Exit as soon as the first failure is encountered                    |
++----------------------+-----------+---------------------------------------------------------------------+
 
 .. note::
     Only .tf files are supported; .tf.json files will not be detected
 
 .. note::
-    When autodetect is enabled, the exit code will be the last non-zero exit code in the series
+    When AUTODETECT is enabled, the exit code will be the last non-zero exit code in the series
 
 
 Resources
