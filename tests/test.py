@@ -291,16 +291,16 @@ def run_terraform(*, image: str, final: bool = False):
     )
     num_tests_ran += 1
 
-    # Test informational mode on an invalid configuration
+    # Test learning mode on an invalid configuration
     command = "terraform validate"
-    LOG.debug("Testing informational mode on an invalid configuration")
-    informational_environment = copy.deepcopy(environment)
-    informational_environment["LEARNING_MODE"] = "true"
+    LOG.debug("Testing learning mode on an invalid configuration")
+    learning_environment = copy.deepcopy(environment)
+    learning_environment["LEARNING_MODE"] = "true"
     utils.opinionated_docker_run(
         image=image,
         volumes=invalid_volumes,
         command=command,
-        environment=informational_environment,
+        environment=learning_environment,
         expected_exit=1,  # This still fails terraform validate
     )
     num_tests_ran += 1
@@ -325,7 +325,7 @@ def run_terraform(*, image: str, final: bool = False):
         else:
             general_test_dirs_containing_only_files.append(directory)
     number_of_testing_dirs = len(general_test_dirs_containing_only_files)
-    learning_mode_and_autodetect_environment = copy.deepcopy(informational_environment)
+    learning_mode_and_autodetect_environment = copy.deepcopy(learning_environment)
     learning_mode_and_autodetect_environment["DISABLE_HOOKS"] = "true"
     LOG.debug("Testing LEARNING_MODE with various AUTODETECT configurations")
 
@@ -346,8 +346,6 @@ def run_terraform(*, image: str, final: bool = False):
             + f'echo \\"/var/log/easy_infra.log had a length of ${{actual_number_of_logs}} when a length of {expected_number_of_logs} was expected\\"; '
             + "exit 230; fi"
         )
-        actual = 6
-        expected = 9
         command = f'/bin/bash -c "terraform init -backend=false && {test_log_length}"'
         learning_mode_and_autodetect_environment["AUTODETECT"] = autodetect_status
         tests.append(
@@ -403,12 +401,8 @@ def run_terraform(*, image: str, final: bool = False):
         )
 
         if autodetect_status == "true":
-            # Use the index of the 'invalid' dir as the expected number of logs, since it fails at invalid, + 1 to adjust for 0-indexing. Note that
-            # the general_test_dirs list needs to be alphabetically sorted
-            invalid_dir_index = general_test_dirs.index(invalid_test_dir) + 1
-            # One log for each folder that would be encountered
-            logs_from_disable_hooks = invalid_dir_index
-            expected_number_of_logs = invalid_dir_index + logs_from_disable_hooks
+            # Since DISABLE_HOOKS and DISABLE_SECURITY are both true, you should expect 1 log each (2) for each testing directory
+            expected_number_of_logs = number_of_testing_dirs + number_of_testing_dirs
         else:
             # If DISABLE_SECURITY is true, one log is generated per dir where the related command is run. Since AUTODETECT is false, the related
             # command is only run in a single dir.
