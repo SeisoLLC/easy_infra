@@ -286,7 +286,7 @@ function {{ function }}() {
   something_failed="false"
 
   for dir in "${!dir_exit_codes[@]}"; do
-    if [[ "${dir_exit_codes[]}" -gt 0 ]]; then
+    if [[ "${dir_exit_codes[${dir}]}" -gt 0 ]]; then
       feedback_label="ERROR"
       something_failed="true"
     else
