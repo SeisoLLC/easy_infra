@@ -331,6 +331,7 @@ def run_terraform(*, image: str, final: bool = False):
 
     tests: list[tuple[dict, str, int]] = []
     for index, autodetect_status in enumerate(["true", "false", "true"]):
+        fail_fast = "false"
         if autodetect_status == "true":
             if index == 0:
                 # Since DISABLE_HOOKS is true and FAIL_FAST is left to its default, there is one log per number_of_testing_dirs saying that hooks are disabled
@@ -347,6 +348,8 @@ def run_terraform(*, image: str, final: bool = False):
                 # One log for each folder that would be encountered
                 logs_from_disable_hooks = invalid_dir_index
                 expected_number_of_logs = invalid_dir_index + logs_from_disable_hooks
+
+                fail_fast = "true"
         else:
             # Since DISABLE_HOOKS is true and AUTODETECT is false, there is one log added saying that hooks are disabled in the working dir
             expected_number_of_logs = number_of_security_tools + 1
@@ -358,6 +361,7 @@ def run_terraform(*, image: str, final: bool = False):
         )
         command = f'/bin/bash -c "terraform init -backend=false && {test_log_length}"'
         learning_mode_and_autodetect_environment["AUTODETECT"] = autodetect_status
+        learning_mode_and_autodetect_environment["FAIL_FAST"] = fail_fast
         tests.append(
             (copy.deepcopy(learning_mode_and_autodetect_environment), command, 0)
         )
