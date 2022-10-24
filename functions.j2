@@ -289,6 +289,7 @@ function {{ function }}() {
     if [[ "${dir_exit_codes[${dir}]}" -gt 0 ]]; then
       feedback_label="ERROR"
       something_failed="true"
+      failure_exit_code="${dir_exit_codes[${dir}]}"
     else
       feedback_label="DEBUGGING"
     fi
@@ -297,7 +298,8 @@ function {{ function }}() {
   done
 
   if [[ "${something_failed:-false}" == "true" ]]; then
-    return 1
+    # Returns the last exit code encountered
+    return "${failure_exit_code}"
   fi
 }
 {% endmacro %}
