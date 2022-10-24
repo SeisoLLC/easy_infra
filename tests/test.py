@@ -334,22 +334,24 @@ def run_terraform(*, image: str, final: bool = False):
         fail_fast = "false"
         if autodetect_status == "true":
             if index == 0:
-                # Since DISABLE_HOOKS is true and FAIL_FAST is left to its default, there is one log per number_of_testing_dirs saying that hooks are disabled
+                # Since DISABLE_HOOKS and LEARNING_MODE are true and FAIL_FAST is left to its default, there is:
+                # - one log per number_of_testing_dirs saying that hooks are disabled
+                # - one log per number_of_security_tools per number_of_testing_dirs for those security tools
                 expected_number_of_logs = (
                     number_of_security_tools * number_of_testing_dirs
                     + number_of_testing_dirs
                 )
             else:
-                # Test FAIL_FAST; since DISABLE_HOOKS, FAIL_FAST, and AUTODETECT are all true, it should fail after the first issue (the "invalid" test)
+                # Test FAIL_FAST; since LEARNING_MODE is true, FAIL_FAST is not effective
                 fail_fast = "true"
 
-                # Use the index of the 'invalid' dir as the expected number of logs, since it fails at invalid, + 1 to adjust for 0-indexing. Note
-                # that the general_test_dirs list needs to be alphabetically sorted
-                invalid_dir_index = general_test_dirs.index(invalid_test_dir) + 1
-
-                # One log for each folder that would be encountered
-                logs_from_disable_hooks = invalid_dir_index
-                expected_number_of_logs = invalid_dir_index + logs_from_disable_hooks
+                # Since DISABLE_HOOKS and LEARNING_MODE are true and FAIL_FAST is left to its default, there is:
+                # - one log per number_of_testing_dirs saying that hooks are disabled
+                # - one log per number_of_security_tools per number_of_testing_dirs for those security tools
+                expected_number_of_logs = (
+                    number_of_security_tools * number_of_testing_dirs
+                    + number_of_testing_dirs
+                )
         else:
             # Since DISABLE_HOOKS is true and AUTODETECT is false, there is one log added saying that hooks are disabled in the working dir
             expected_number_of_logs = number_of_security_tools + 1
@@ -365,6 +367,24 @@ def run_terraform(*, image: str, final: bool = False):
         tests.append(
             (copy.deepcopy(learning_mode_and_autodetect_environment), command, 0)
         )
+
+    # Test FAIL_FAST when autodetect is true but learning_mode is false; the logs should be limited to those expected up until the first encountered
+    # failure
+    fail_fast_environment = copy.deepcopy(learning_mode_and_autodetect_environment)
+    fail_fast_environment["LEARNING_MODE"] = "false"
+    fail_fast_environment["FAIL_FAST"] = "true"
+
+    # Use the index of the 'invalid' dir as the expected number of logs, since it fails at invalid. Note that the general_test_dirs list needs to be
+    # alphabetically sorted
+    invalid_dir_index = general_test_dirs.index(invalid_test_dir)
+
+    # One log for each folder that would be encountered; + 1 to adjust for 0-indexing
+    logs_from_disable_hooks = invalid_dir_index + 1
+    expected_number_of_logs = (
+        invalid_dir_index + 1
+    ) * number_of_security_tools + logs_from_disable_hooks
+
+    tests.append((copy.deepcopy(learning_mode_and_autodetect_environment), command, 0))
 
     num_tests_ran += exec_tests(tests=tests, volumes=general_test_volumes, image=image)
 
