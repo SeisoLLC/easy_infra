@@ -63,18 +63,18 @@ for VARIANT in VARIANTS:
     ):
         if VARIANT == "final":
             CONTEXT[VARIANT]["buildargs"] = {
-                "VERSION": __version__,
+                "EASY_INFRA_VERSION": __version__,
             }
         else:
             CONTEXT[VARIANT]["buildargs"] = {
-                "VERSION": f"{__version__}-{VARIANT}",
+                "EASY_INFRA_VERSION": f"{__version__}-{VARIANT}",
             }
     else:
         if VARIANT == "final":
             CONTEXT[VARIANT]["buildargs"] = {
-                "VERSION": f"{__version__}-{COMMIT_HASH_SHORT}",
+                "EASY_INFRA_VERSION": f"{__version__}-{COMMIT_HASH_SHORT}",
             }
         else:
             CONTEXT[VARIANT]["buildargs"] = {
-                "VERSION": f"{__version__}-{VARIANT}-{COMMIT_HASH_SHORT}",
+                "EASY_INFRA_VERSION": f"{__version__}-{VARIANT}-{COMMIT_HASH_SHORT}",
             }
