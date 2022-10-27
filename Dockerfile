@@ -70,7 +70,8 @@ RUN groupadd --gid 53150 -r easy_infra \
                                                unzip \
  && apt-get -y upgrade \
  && su - easy_infra -c "mkdir -p /home/easy_infra/.ssh" \
- && su - easy_infra -c 'echo -e "# START preloaded known_hosts"' >> /home/easy_infra/.ssh/known_hosts \
+ && su - easy_infra -c "touch /home/easy_infra/.ssh/known_hosts" \
+ && echo -e "# START preloaded known_hosts" >> /home/easy_infra/.ssh/known_hosts \
  && ssh-keyscan gitlab.com \
                 github.com \
                 bitbucket.org \
