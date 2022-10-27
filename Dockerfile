@@ -69,7 +69,7 @@ RUN groupadd --gid 53150 -r easy_infra \
                                                tini \
                                                unzip \
  && apt-get -y upgrade \
- && mkdir -p /home/easy_infra/.ssh \
+ && su - easy_infra -c "mkdir -p /home/easy_infra/.ssh" \
  && echo -e "# START preloaded known_hosts" >> /home/easy_infra/.ssh/known_hosts \
  && ssh-keyscan gitlab.com \
                 github.com \
