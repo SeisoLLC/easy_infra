@@ -239,7 +239,7 @@ def build(_c, stage="all", trace=False, debug=False):
         CLIENT.images.pull(image_and_latest_tag)
 
         buildargs.update(constants.CONTEXT[variant]["buildargs"])
-        versioned_tag = constants.CONTEXT[variant]["buildargs"]["VERSION"]
+        versioned_tag = constants.CONTEXT[variant]["buildargs"]["EASY_INFRA_VERSION"]
         image_and_versioned_tag = f"{constants.IMAGE}:{versioned_tag}"
 
         LOG.info(f"Building {image_and_versioned_tag} (platform {PLATFORM})...")
@@ -274,7 +274,7 @@ def sbom(_c, stage="all", debug=False):
     variants = process_stages(stage=stage)
 
     for variant in variants:
-        latest_tag = constants.CONTEXT[variant]["buildargs"]["VERSION"]
+        latest_tag = constants.CONTEXT[variant]["buildargs"]["EASY_INFRA_VERSION"]
         image_and_tag = f"{constants.IMAGE}:{latest_tag}"
 
         try:
@@ -331,7 +331,7 @@ def test(_c, stage="all", debug=False):
 
     for variant in variants:
         # Only test using the current, versioned tag of each variant
-        versioned_tag = constants.CONTEXT[variant]["buildargs"]["VERSION"]
+        versioned_tag = constants.CONTEXT[variant]["buildargs"]["EASY_INFRA_VERSION"]
         image_and_tag = f"{constants.IMAGE}:{versioned_tag}"
 
         LOG.info(f"Testing {image_and_tag} for platform {PLATFORM}...")
@@ -431,7 +431,7 @@ def publish(_c, tag, stage="all", debug=False):
 
     for variant in variants:
         # Always push the versioned tag (should already have a unique ID when appropriate)
-        versioned_tag = constants.CONTEXT[variant]["buildargs"]["VERSION"]
+        versioned_tag = constants.CONTEXT[variant]["buildargs"]["EASY_INFRA_VERSION"]
         image_and_tags = [f"{constants.IMAGE}:{versioned_tag}"]
 
         # Add the latest tag for merges into main

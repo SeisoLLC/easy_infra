@@ -3,6 +3,21 @@ ARG FROM_IMAGE_TAG=20.04
 
 FROM "${FROM_IMAGE}":"${FROM_IMAGE_TAG}" AS minimal
 
+ARG EASY_INFRA_VERSION
+ENV EASY_INFRA_VERSION="${EASY_INFRA_VERSION}"
+ARG VERSION="${EASY_INFRA_VERSION}"
+ARG COMMIT_HASH
+
+LABEL org.opencontainers.image.authors="Jon Zeolla"
+LABEL org.opencontainers.image.licenses="BSD-3-Clause"
+LABEL org.opencontainers.image.vendor="Seiso"
+LABEL org.opencontainers.image.version="${VERSION}"
+LABEL org.opencontainers.image.title="easy_infra"
+LABEL org.opencontainers.image.description="This is a docker container that simplifies and secures Infrastructure as Code deployments"
+LABEL org.opencontainers.image.url="https://seisollc.com"
+LABEL org.opencontainers.image.source="https://github.com/SeisoLLC/easy_infra"
+LABEL org.opencontainers.image.revision="${COMMIT_HASH}"
+
 # minimal setup
 ARG BUILDARCH
 ARG KICS_ARCH
@@ -55,6 +70,19 @@ RUN groupadd --gid 53150 -r easy_infra \
                                                tini \
                                                unzip \
  && apt-get -y upgrade \
+ && su - easy_infra -c "mkdir -p /home/easy_infra/.ssh" \
+ && su - easy_infra -c "touch /home/easy_infra/.ssh/known_hosts" \
+ && echo "# START preloaded known_hosts" >> /home/easy_infra/.ssh/known_hosts \
+ && ssh-keyscan gitlab.com \
+                github.com \
+                bitbucket.org \
+                ssh.dev.azure.com \
+                git-codecommit.us-east-1.amazonaws.com \
+                git-codecommit.us-east-2.amazonaws.com \
+                git-codecommit.us-west-1.amazonaws.com \
+                git-codecommit.us-west-2.amazonaws.com \
+    >> /home/easy_infra/.ssh/known_hosts \
+ && echo "# END preloaded known_hosts" >> /home/easy_infra/.ssh/known_hosts \
  && if [ "${TRACE}" = "true" ]; then \
     apt-get -y install --no-install-recommends libcap2-bin \
                                                strace \
@@ -120,19 +148,6 @@ COPY --chown=easy_infra:easy_infra fluent-bit.outputs.conf /usr/local/etc/fluent
 ENV BASH_ENV=/functions
 WORKDIR /iac
 ENTRYPOINT ["tini", "-g", "--", "/usr/local/bin/docker-entrypoint.sh"]
-
-ARG VERSION
-ARG COMMIT_HASH
-
-LABEL org.opencontainers.image.authors="Jon Zeolla"
-LABEL org.opencontainers.image.licenses="BSD-3-Clause"
-LABEL org.opencontainers.image.vendor="Seiso"
-LABEL org.opencontainers.image.version="${VERSION}"
-LABEL org.opencontainers.image.title="easy_infra"
-LABEL org.opencontainers.image.description="This is a docker container that simplifies and secures Infrastructure as Code deployments"
-LABEL org.opencontainers.image.url="https://seisollc.com"
-LABEL org.opencontainers.image.source="https://github.com/SeisoLLC/easy_infra"
-LABEL org.opencontainers.image.revision="${COMMIT_HASH}"
 
 
 FROM minimal AS az
