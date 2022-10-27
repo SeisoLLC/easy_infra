@@ -5,12 +5,13 @@ FROM "${FROM_IMAGE}":"${FROM_IMAGE_TAG}" AS minimal
 
 ARG EASY_INFRA_VERSION
 ENV EASY_INFRA_VERSION="${EASY_INFRA_VERSION}"
+ARG VERSION="${EASY_INFRA_VERSION}"
 ARG COMMIT_HASH
 
 LABEL org.opencontainers.image.authors="Jon Zeolla"
 LABEL org.opencontainers.image.licenses="BSD-3-Clause"
 LABEL org.opencontainers.image.vendor="Seiso"
-LABEL org.opencontainers.image.version="${EASY_INFRA_VERSION}"
+LABEL org.opencontainers.image.version="${VERSION}"
 LABEL org.opencontainers.image.title="easy_infra"
 LABEL org.opencontainers.image.description="This is a docker container that simplifies and secures Infrastructure as Code deployments"
 LABEL org.opencontainers.image.url="https://seisollc.com"
