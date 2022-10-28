@@ -37,6 +37,19 @@ RUN groupadd --gid 53150 -r easy_infra \
                                                tini \
                                                unzip \
  && apt-get -y upgrade \
+ && su - easy_infra -c "mkdir -p /home/easy_infra/.ssh" \
+ && su - easy_infra -c "touch /home/easy_infra/.ssh/known_hosts" \
+ && echo "# START preloaded known_hosts" >> /home/easy_infra/.ssh/known_hosts \
+ && ssh-keyscan gitlab.com \
+                github.com \
+                bitbucket.org \
+                ssh.dev.azure.com \
+                git-codecommit.us-east-1.amazonaws.com \
+                git-codecommit.us-east-2.amazonaws.com \
+                git-codecommit.us-west-1.amazonaws.com \
+                git-codecommit.us-west-2.amazonaws.com \
+    >> /home/easy_infra/.ssh/known_hosts \
+ && echo "# END preloaded known_hosts" >> /home/easy_infra/.ssh/known_hosts \
  && if [ "${TRACE}" = "true" ]; then \
     apt-get -y install --no-install-recommends libcap2-bin \
                                                strace \
@@ -51,13 +64,13 @@ RUN groupadd --gid 53150 -r easy_infra \
  && unzip /usr/local/bin/envconsul.zip -d /usr/local/bin/ \
  && rm -f /usr/local/bin/envconsul.zip \
  && chmod 0755 /usr/local/bin/envconsul \
- && apt-get install -y --no-install-recommends cmake build-essential flex bison libyaml-dev \
+ && apt-get install -y --no-install-recommends cmake build-essential flex bison libyaml-dev libssl-dev \
  && git clone https://github.com/fluent/fluent-bit --depth 1 --branch ${FLUENT_BIT_VERSION} \
  && cd fluent-bit/build \
  && cmake ../ && make && make install \
  && cd ../.. \
  && rm -rf fluent-bit \
- && apt-get remove -y cmake build-essential flex bison libyaml-dev \
+ && apt-get remove -y cmake build-essential flex bison libyaml-dev libssl-dev \
  && echo "source /functions" >> /home/easy_infra/.bashrc \
  && apt-get clean autoclean \
  && apt-get -y autoremove \
@@ -78,13 +91,13 @@ ENV BASH_ENV=/functions
 WORKDIR /iac
 ENTRYPOINT ["tini", "-g", "--", "/usr/local/bin/docker-entrypoint.sh"]
 
-ARG VERSION
+ARG VERSION="${EASY_INFRA_VERSION}"
 ARG COMMIT_HASH
 
 LABEL org.opencontainers.image.authors="Jon Zeolla"
 LABEL org.opencontainers.image.licenses="BSD-3-Clause"
 LABEL org.opencontainers.image.vendor="Seiso"
-LABEL org.opencontainers.image.version="${EASY_INFRA_VERSION}"
+LABEL org.opencontainers.image.version="${VERSION}"
 LABEL org.opencontainers.image.title="easy_infra"
 LABEL org.opencontainers.image.description="This is a docker container that simplifies and secures Infrastructure as Code deployments"
 LABEL org.opencontainers.image.url="https://seisollc.com"
