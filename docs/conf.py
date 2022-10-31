@@ -20,7 +20,7 @@ copyright = "2022, Seiso, LLC"
 author = "Jon Zeolla"
 
 # The full version, including alpha/beta/rc tags
-release = "2022.10.13"
+release = "2022.10.14"
 
 
 # -- General configuration ---------------------------------------------------
