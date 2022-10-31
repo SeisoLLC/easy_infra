@@ -111,7 +111,7 @@ jobs:
           TAG="$(git describe --tags)"
           BRANCH="$(git branch --show-current)"
           git push --atomic origin "${BRANCH}" "${TAG}"
-          echo "::set-output name=tag::${TAG}"
+          echo "tag=${TAG}" >> "${GITHUB_OUTPUT}"
   cut-release:
     name: Cut a release
     needs: [bump-version]
@@ -227,7 +227,7 @@ jobs:
       - name: Sign the image
         run: |
           version_tag=$(pipenv run python -c "from easy_infra import constants; \
-                                              print(constants.CONTEXT['${STAGE}']['buildargs']['VERSION'])")
+                                              print(constants.CONTEXT['${STAGE}']['buildargs']['EASY_INFRA_VERSION'])")
           IMAGE_AND_DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' \
                   "seiso/easy_infra:${version_tag}" )
           echo -n "${COSIGN_PASSWORD}" |
