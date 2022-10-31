@@ -548,7 +548,9 @@ def run_terraform(*, image: str, final: bool = False):
         # It fails because it ignores the 50- terraform due to AUTODETECT=false, and the v_0_14_dir files fail given the version of
         # TERRAFORM_VERSION specified above
     ]
-    LOG.debug("Fail when using terraform 1.3.2 in a repo which expects 0.14.x")
+    LOG.debug(
+        "Fail when using a modern version of terraform in a repo which expects 0.14.x"
+    )
     num_tests_ran += exec_tests(
         tests=tests,
         volumes=hooks_secure_terraform_v_0_14_dir_volumes,

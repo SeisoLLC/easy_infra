@@ -7,8 +7,11 @@ set -o pipefail
 shopt -s dotglob
 
 function shutdown() {
-  # Wait on shutdown to allow fluent-bit to dequeue
-  sleep .2s
+  # Have fluent-bit dequeue and then exit
+  kill -SIGTERM "$(pidof fluent-bit)"
+
+  # And then wait for it to exit
+  tail --pid="$(pidof fluent-bit)" -f /dev/null
 }
 
 trap shutdown EXIT
