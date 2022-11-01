@@ -50,6 +50,7 @@ ENV DISABLE_HOOKS="false"
 ENV PATH="/home/easy_infra/.local/bin:${PATH}"
 ARG DEBIAN_FRONTEND="noninteractive"
 ARG TRACE="false"
+ENV FAIL_FAST="false"
 # hadolint ignore=DL3003,DL3008,DL3013,SC1091
 RUN groupadd --gid 53150 -r easy_infra \
  && useradd -r -g easy_infra -s "$(which bash)" --create-home --uid 53150 easy_infra \

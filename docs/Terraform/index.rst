@@ -74,7 +74,7 @@ Customizing KICS
 Preinstalled Hooks
 ^^^^^^^^^^^^^^^^^^
 
-There are some preinstalled hooks in ``/opt/hooks/bin/`` which apply to terraform commands::
+There are some preinstalled hooks in ``/opt/hooks/bin/`` which apply to terraform commands:
 
 * If the ``TERRAFORM_VERSION`` environment variable is customized, easy_infra will attempt to install and switch to that version at runtime.
 * If ``AUTODETECT`` is set to ``true``, easy_infra will attempt to detect and install the correct version of terraform for each folder that a
@@ -84,8 +84,7 @@ There are some preinstalled hooks in ``/opt/hooks/bin/`` which apply to terrafor
 Terraform Caching
 ^^^^^^^^^^^^^^^^^
 
-If you're working with the same terraform code across multiple runs, you can
-leverage the cache::
+If you're working with the same terraform code across multiple runs, you can leverage the cache::
 
     docker run -v $(pwd):/iac -v $(pwd)/plugin-cache:/home/easy_infra/.terraform.d/plugin-cache easy_infra:latest-minimal /bin/bash -c "terraform init; terraform validate"
 
@@ -127,14 +126,19 @@ If you'd like to autodetect where your Terraform files exist and run the provide
 you.  This is useful in cases where there is a single repository containing folders which store varying terraform files, and you would like to run a
 command (or series of commands) on all of them without needing to maintain a method of looping through them yourself.
 
-+----------------------+-----------+--------------------------------------------------------------------+
-| Environment variable | Default   | Result                                                             |
-+======================+===========+====================================================================+
-| ``AUTODETECT``       | ``false`` | Autodetect folders containing Terraform files when set to ``true`` |
-+----------------------+-----------+--------------------------------------------------------------------+
++----------------------+-----------+--------------------------------------------------------------------------------------+
+| Environment variable | Default   | Result                                                                               |
++======================+===========+======================================================================================+
+| ``AUTODETECT``       | ``false`` | Autodetect folders containing Terraform files when set to ``true``                   |
++------------------------+------------------------------+-----------------------------------------------------------------+
+| ``FAIL_FAST``        | ``false`` | Exit as soon as the first failure is encountered, if LEARNING_MODE is also ``false`` |
++----------------------+-----------+--------------------------------------------------------------------------------------+
 
 .. note::
     Only .tf files are supported; .tf.json files will not be detected
+
+.. note::
+    When AUTODETECT is enabled, the exit code will be the last non-zero exit code in the series
 
 
 Resources

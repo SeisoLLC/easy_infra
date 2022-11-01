@@ -19,8 +19,7 @@ function process_command_exit_status() {
     _feedback INFORMATIONAL "Passed ${command} ${description}"
   fi
 
-  # If the shell is not interactive ("i" is not in the $- variable), skip
-  # multiple runs of the provided command by timestamping the touch file
+  # If the shell is not interactive ("i" is not in the $- variable), skip multiple runs of the provided command by timestamping the touch file
   if [[ ! "${-}" =~ .*i.* ]]; then
     # If there are any spaces in the provided command, replace them with _s
     date +%s > "/tmp/${command// /_}_complete"
@@ -35,8 +34,7 @@ function {{ function }}() {
   arguments=("${@}")
   easy_infra_{{ function | replace("-", "_") }}_tools=({% for security_tool in security_tools %}{{ security_tool | replace("-", "_") }}{% if not loop.last %} {% endif %}{% endfor %})
 
-  # If an argument was provided which adjusts the easy_infra runtime, set a
-  # related variable and remove that argument from the arguments array
+  # If an argument was provided which adjusts the easy_infra runtime, set a related variable and remove that argument from the arguments array
   for i in "${!arguments[@]}"; do
     if [[ "${arguments[i],,}" == "--disable-security" ]]; then
       unset 'arguments[i]'
@@ -52,8 +50,7 @@ function {{ function }}() {
   done
 
 {% if allow_filter is defined %}
-  # Apply the allow filters after easy_infra specific arguments have been
-  # removed
+  # Apply the allow filters after easy_infra specific arguments have been removed
   for i in "${!arguments[@]}"; do
 {%- for filter in allow_filter %}
     if [[ "${i}" == "{{ filter['position'] }}" && "${arguments[i]}" == "{{ filter['match'] }}" ]]; then
@@ -108,7 +105,10 @@ function {{ function }}() {
     return $?
   fi
 
+  declare -A dir_exit_codes
+
   for dir in "${dirs[@]}"; do
+    _feedback INFO "Changing into the ${dir} directory..."
     pushd "${dir}" > /dev/null
 
     # Export variables to be used in the hooks
@@ -122,9 +122,15 @@ function {{ function }}() {
       for hook in ${easy_infra_{{ function | replace("-", "_") }}_hooks[@]}; do
         bash "${hook}"
         return=$?
-        if [[ ${return:-1} != 0 ]]; then
+        if [[ "${return:-1}" != 0 ]]; then
           popd > /dev/null
-          return "${return}"
+          if [[ "${FAIL_FAST:-false}" == "true" ]]; then
+            _feedback INFO "FAIL_FAST is set to ${FAIL_FAST}; returning the exit code of ${return} immediately"
+            return "${return}"
+          else
+            dir_exit_codes["${dir}"]="${return}"
+            continue
+          fi
         fi
       done
     fi
@@ -136,8 +142,14 @@ function {{ function }}() {
       command "${FUNCNAME[0]}" "${arguments[@]}"
       return=$?
       popd > /dev/null
-      if [[ ${return:-1} != 0 ]]; then
-        return "${return}"
+      if [[ "${return:-1}" != 0 ]]; then
+        if [[ "${FAIL_FAST:-false}" == "true" ]]; then
+          _feedback INFO "FAIL_FAST is set to ${FAIL_FAST}; returning the exit code of ${return} immediately"
+          return "${return}"
+        else
+          dir_exit_codes["${dir}"]="${return}"
+          continue
+        fi
       fi
       continue
     elif [[ "${DISABLE_SECURITY,,}" == "true" ]]; then
@@ -146,8 +158,14 @@ function {{ function }}() {
       command "${FUNCNAME[0]}" "${arguments[@]}"
       return=$?
       popd > /dev/null
-      if [[ ${return:-1} != 0 ]]; then
-        return "${return}"
+      if [[ "${return:-1}" != 0 ]]; then
+        if [[ "${FAIL_FAST:-false}" == "true" ]]; then
+          _feedback INFO "FAIL_FAST is set to ${FAIL_FAST}; returning the exit code of ${return} immediately"
+          return "${return}"
+        else
+          dir_exit_codes["${dir}"]="${return}"
+          continue
+        fi
       fi
       continue
     fi
@@ -155,19 +173,24 @@ function {{ function }}() {
   {%- if validations is defined %}
     ## Validate the input prior to running security tooling
     {%- for validation in validations %}
-    # If the initialization was already run successfully in a non-interactive
-    # shell with AUTODETECT not set to true, don't run it again
+    # If the initialization was already run successfully in a non-interactive shell with AUTODETECT not set to true, don't run it again
     if [[ -r "/tmp/{{ validation.command | replace(" ", "_") }}_complete" && "${AUTODETECT:-false}" != "true" ]]; then
       _feedback INFORMATIONAL "Skipping \`{{ validation.command }}\` because it was already run on $(date -d @"$(cat /tmp/{{ validation.command | replace(" ", "_") }}_complete)")"
     else
       command {{ validation.command }} &>/tmp/{{ validation.command | replace(" ", "_") }}_stdouterr
       process_command_exit_status "$?" "{{ validation.command }}" "{{ validation.description }}"
       return=$?
-      if [[ ${return:-1} != 0 ]]; then
+      if [[ "${return:-1}" != 0 ]]; then
         cat /tmp/{{ validation.command | replace(" ", "_") }}_stdouterr
         if [[ "${LEARNING_MODE,,}" != "true" ]]; then
           popd > /dev/null
-          return "${return}"
+          if [[ "${FAIL_FAST:-false}" == "true" ]]; then
+            _feedback INFO "FAIL_FAST is set to ${FAIL_FAST}; returning the exit code of ${return} immediately"
+            return "${return}"
+          else
+            dir_exit_codes["${dir}"]="${return}"
+            continue
+          fi
         else
           _feedback DEBUGGING "Learning mode enabled, not returning {{ validation.command }}'s exit code of ${return}"
         fi
@@ -193,8 +216,7 @@ function {{ function }}() {
     elif [[ "${!{{ security_tool | replace("-", "_") }}_skip_env_var,,}" == "true" ]]; then
       _feedback WARNING "Skipping {{ security_tool }} due to the {{ '${' }}{{ security_tool | replace("-", "_") }}_skip_env_var} environment variable value"
       _log "easy_infra.stdouterr" info unknown "{{ security_tool }}-skipped" "${dir}" string "Skipping {{ security_tool }} due to the {{ '${' }}{{ security_tool | replace("-", "_") }}_skip_env_var} environment variable value"
-    # If the security scan was already run successfully in a non-interactive
-    # shell with AUTODETECT not set to true, don't run it again
+    # If the security scan was already run successfully in a non-interactive shell with AUTODETECT not set to true, don't run it again
     elif [[ -r "/tmp/{{ security_tool | replace("-", "_") }}_complete" && "${AUTODETECT:-false}" != "true" ]]; then
       _feedback INFORMATIONAL "Skipping {{ security_tool }} because it was already run on $(date -d @"$(cat /tmp/{{ security_tool | replace("-", "_") }}_complete)")"
       _log "easy_infra.stdouterr" info unknown "{{ security_tool }}-skipped" "${dir}" string "Skipping {{ security_tool }} because it was already run on $(date -d @"$(cat /tmp/{{ security_tool | replace("-", "_") }}_complete)")"
@@ -231,25 +253,30 @@ function {{ function }}() {
         # Identify the interpolated security tool command
         interpolated_security_tool_command="$(envsubst "$(printf '{{ '${' }}%s{{ '}' }} ' $(env | awk -F\= '{print $1}'))" < <(echo "${security_tool_command}"))"
 
-        if [[ ${return:-1} != 0 ]]; then
+        if [[ "${return:-1}" != 0 ]]; then
           cat /tmp/{{ security_tool | replace("-", "_") }}_stdouterr
 
           if [[ "${LEARNING_MODE,,}" != "true" ]]; then
             # easy_infra denied the command because the security tool failed
             _log "{{ security_tool }}.stdouterr" denied failure "${interpolated_security_tool_command}" "${dir}" "${message_type}" "${message_content}"
-            _feedback DEBUGGING "{{ security_tool }}'s exit code was ${return}; learning mode was ${LEARNING_MODE:-null or unset}. Returning ${return}"
+            _feedback DEBUGGING "{{ security_tool }} running from the ${dir} folder exited ${return}; learning mode was ${LEARNING_MODE:-null or unset}. Returning ${return}"
             popd > /dev/null
-            return ${return}
+            if [[ "${FAIL_FAST:-false}" == "true" ]]; then
+              _feedback INFO "FAIL_FAST is set to ${FAIL_FAST}; returning the exit code of ${return} immediately"
+              return "${return}"
+            else
+              dir_exit_codes["${dir}"]="${return}"
+              continue
+            fi
           else
-            # easy_infra allowed the command due to learning mode, but the
-            # security tool failed
+            # easy_infra allowed the command due to learning mode, but the security tool failed
             _log "{{ security_tool }}.stdouterr" allowed failure "${interpolated_security_tool_command}" "${dir}" "${message_type}" "${message_content}"
-            _feedback DEBUGGING "{{ security_tool }}'s exit code was ${return}, but suppressing it due to learning mode"
+            _feedback DEBUGGING "{{ security_tool }} running from the ${dir} folder exited ${return}, but suppressing it due to learning mode"
           fi
         else
           # easy_infra allowed the command and the security tool succeeded
           _log "{{ security_tool }}.stdouterr" allowed success "${interpolated_security_tool_command}" "${dir}" "${message_type}" "${message_content}"
-          _feedback DEBUGGING "{{ security_tool }} was run successfully; specifically '${interpolated_security_tool_command}'"
+          _feedback DEBUGGING "{{ security_tool }} was run successfully from the ${dir} folder; specifically '${interpolated_security_tool_command}'"
         fi
       else
         # easy_infra skipped the security tool
@@ -259,18 +286,43 @@ function {{ function }}() {
     fi
     {%- endfor %}
 
-    # Run the command per a PATH lookup, after any easy_infra specific arguments
-    # are removed
+    # Run the command per a PATH lookup, after any easy_infra specific arguments are removed
     command "${FUNCNAME[0]}" "${arguments[@]}"
     return=$?
-    if [[ ${return:-1} != 0 ]]; then
+    if [[ "${return:-1}" != 0 ]]; then
       popd > /dev/null
       _feedback ERROR "${FUNCNAME[0]} ${arguments[@]} exited ${return} in ${dir}"
-      return ${return}
+      if [[ "${FAIL_FAST:-false}" == "true" ]]; then
+        _feedback INFO "FAIL_FAST is set to ${FAIL_FAST}; returning the exit code of ${return} immediately"
+        return "${return}"
+      else
+        dir_exit_codes["${dir}"]="${return}"
+        continue
+      fi
     fi
 
     popd > /dev/null
   done
+
+  ## Process the exit codes from each directory
+  something_failed="false"
+
+  for dir in "${!dir_exit_codes[@]}"; do
+    if [[ "${dir_exit_codes[${dir}]}" -gt 0 ]]; then
+      feedback_label="ERROR"
+      something_failed="true"
+      failure_exit_code="${dir_exit_codes[${dir}]}"
+    else
+      feedback_label="DEBUGGING"
+    fi
+    exit_code="${dir_exit_codes[${dir}]}"
+    _feedback "${feedback_label}" "${dir} resulted in an exit code of ${exit_code}"
+  done
+
+  if [[ "${something_failed:-false}" == "true" ]]; then
+    # Returns the last exit code encountered
+    return "${failure_exit_code}"
+  fi
 }
 {% endmacro %}
 
