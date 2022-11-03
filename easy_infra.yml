@@ -82,3 +82,8 @@ commands:
     validation: *id003
     version: v3.0.0
     version_argument: --version
+environments:
+  aws:
+    commands: [aws-cli]
+  azure:
+    commands: [azure-cli]

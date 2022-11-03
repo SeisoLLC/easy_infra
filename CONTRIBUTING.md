@@ -45,3 +45,29 @@ pipenv run invoke build --trace
 ```
 
 This will add additional troubleshooting tools to the container, and perform some tracing, putting the details in `/tmp/`.
+
+## High-Level Design
+
+### Building
+
+When building the `easy_infra` images, the high level design is that files in the `build/` directory are composed together using `tasks.py` to create
+multiple final container images for various use cases. Those use cases are primarily based around the use of an IaC "tool" (i.e. `terraform` or
+`ansible`), and an associated set of "security tools" (i.e. `checkov` or `kics`) which will run transparently when the IaC tool is used inside of a
+container. There are also sometimes optional "environment" (i.e. `aws` or `azure`) images which add environment-specific helpers or tools, based on
+the tool that the image focuses on.
+
+There are two general types of files in `build/`; `Dockerfile`s and `Dockerfrag`s.
+
+`Dockerfile`s should be able to be built and tested independently, and are effectively the "install" step of building the `easy_infra` images. It is
+possible that an `easy_infra` `Dockerfile` may only contain a `FROM` statement, if we are using a container built and distributed by the upstream
+project. `Dockerfile` extensions MUST also be the same as a given `command` as outlined in the `easy_infra.yml` (aliases are not supported), with the
+single exception of `Dockerfile.base`.
+
+`Dockerfrag`s cannot be built and tested independently, as they are solely fragments which depend on the related `Dockerfile`. For instance,
+`Dockerfrag.terraform` is meant to build on top of `Dockerfile.terraform`. The contents of a `Dockerfrag` often hinge around `COPY`ing files from the
+`Dockerfile`. This model allows us to create extremely minimal final images with no bloat or consideration of extraneous packages or dependencies
+which are only needed at build time.
+
+In order for a `Dockerfile` and a `Dockerfrag` to be "linked" together, they must share the same extension. For example,`Dockerfrag.abc` should build
+on top of `Dockerfile.abc`, and it is both expected that in `Dockerfrag.abc` it copies files using `COPY --from=abc ...`, and that in `Dockerfile.abc`
+the `FROM` statement ends with `... as abc`.
