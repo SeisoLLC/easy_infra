@@ -124,7 +124,7 @@ command (or series of commands) on all of them without needing to maintain a met
 | Environment variable | Default   | Result                                                                               |
 +======================+===========+======================================================================================+
 | ``AUTODETECT``       | ``false`` | Autodetect folders containing Terraform files when set to ``true``                   |
-+------------------------+------------------------------+-----------------------------------------------------------------+
++----------------------+-----------+--------------------------------------------------------------------------------------+
 | ``FAIL_FAST``        | ``false`` | Exit as soon as the first failure is encountered, if LEARNING_MODE is also ``false`` |
 +----------------------+-----------+--------------------------------------------------------------------------------------+
 
