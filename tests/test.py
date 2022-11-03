@@ -1162,8 +1162,8 @@ def run_ansible(*, image: str):
     LOG.info("%s passed %d end to end ansible-playbook tests", image, num_tests_ran)
 
 
-def run_az_stage(*, image: str):
-    """Run the az tests"""
+def run_azure_stage(*, image: str):
+    """Run the azure tests"""
     num_tests_ran = 0
 
     # Ensure a basic azure help command succeeds

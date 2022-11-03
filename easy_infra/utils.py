@@ -75,8 +75,9 @@ def write_config(*, config: dict):
 
 def get_latest_release_from_apt(*, package: str) -> str:
     """Get the latest release of a project via apt"""
-    # latest-az is used because it has the Microsoft repo added
-    image = constants.IMAGE + ":latest-az"
+    # TODO: Reassess this
+    # latest-azure is used because it has the Microsoft repo added
+    image = constants.IMAGE + ":latest-azure"
     CLIENT.images.pull(repository=image)
     release = CLIENT.containers.run(
         image=image,

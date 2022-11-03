@@ -33,7 +33,7 @@ TOOLS = set()
 for command in CONFIG["commands"]:
     if "security" in CONFIG["commands"][command]:
         TOOLS.add(command)
-ENVIRONMENTS = ["aws", "az"]
+ENVIRONMENTS = ["aws", "azure"]
 
 LOG_FORMAT = json.dumps(
     {

@@ -15,11 +15,11 @@ from logging import basicConfig, getLogger
 from pathlib import Path
 from typing import Union
 
+import docker
 import requests
 from bumpversion.cli import main as bumpversion
 from invoke import task
 
-import docker
 from easy_infra import __project_name__, __version__, constants, utils
 from tests import test as run_test
 
@@ -439,6 +439,7 @@ def test(_c, stage="all", debug=False):
     # TODO: Fix
     variants = process_stages(stage=stage)
 
+    # TODO: Replace variants with tool, security_tool, and/or environment, refactor downstream
     for variant in variants:
         # Only test using the current, versioned tag of each variant
         versioned_tag = constants.CONTEXT[variant]["buildargs"]["EASY_INFRA_VERSION"]
@@ -449,8 +450,8 @@ def test(_c, stage="all", debug=False):
             run_test.run_terraform(image=image_and_tag)
             run_test.run_ansible(image=image_and_tag)
             run_test.run_security(image=image_and_tag, variant=variant)
-        elif variant == "az":
-            run_test.run_az_stage(image=image_and_tag)
+        elif variant == "azure":
+            run_test.run_azure_stage(image=image_and_tag)
             run_test.run_terraform(image=image_and_tag)
             run_test.run_ansible(image=image_and_tag)
             run_test.run_security(image=image_and_tag, variant=variant)
