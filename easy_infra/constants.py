@@ -15,9 +15,9 @@ CONFIG_FILE = Path(f"{__project_name__}.yml").absolute()
 CWD = Path(".").absolute()
 FUNCTIONS_INPUT_FILE = CWD.joinpath("functions.j2")
 FUNCTIONS_OUTPUT_FILE = CWD.joinpath(FUNCTIONS_INPUT_FILE.stem)
-DOCKER = CWD.joinpath("docker")
-DOCKERFILE_INPUT_FILE = DOCKER.joinpath("Dockerfile.j2")
-DOCKERFILE_OUTPUT_FILE = DOCKER.joinpath("Dockerfile")
+BUILD = CWD.joinpath("build")
+DOCKERFILE_INPUT_FILE = BUILD.joinpath("Dockerfile.j2")
+DOCKERFILE_OUTPUT_FILE = BUILD.joinpath("Dockerfile")
 
 LOG_DEFAULT = "INFO"
 IMAGE = f"seiso/{__project_name__}"
@@ -33,6 +33,7 @@ TOOLS = set()
 for command in CONFIG["commands"]:
     if "security" in CONFIG["commands"][command]:
         TOOLS.add(command)
+
 ENVIRONMENTS = ["aws", "azure"]
 
 LOG_FORMAT = json.dumps(

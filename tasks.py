@@ -13,7 +13,7 @@ import sys
 from datetime import datetime
 from logging import basicConfig, getLogger
 from pathlib import Path
-from typing import Union
+from typing import Any, Union
 
 import docker
 import requests
@@ -71,13 +71,13 @@ def log_build_log(*, build_err: docker.errors.BuildError) -> None:
 
 
 def gather_tools_and_environments(
-    *, tool: str, environment: str
+    *, tool: str = "all", environment: str
 ) -> dict[str, dict[str, list[str]]]:
     """
-    Returns a dict with a key of the tool (the cornerstone of this project), which contains a list of requested environments
+    Returns a dict with a key of the tool, and a value of a list of environments
     """
     if tool == "all":
-        tools = constants.TOOLS
+        tools: Union[set[Any], list[str]] = constants.TOOLS
     elif tool not in constants.TOOLS:
         LOG.error(f"{tool} is not a supported tool, exiting...")
         sys.exit(1)
@@ -190,12 +190,20 @@ def build_and_tag(
     image_and_versioned_tag = f"{constants.IMAGE}:{versioned_tag}"
     image_and_latest_tag = f"{constants.IMAGE}:{latest_tag}"
 
+    # Build the config for rendering Dockerfile.j2
     config = {}
     config["versioned_tag"] = versioned_tag
-    config["dockerfile_base"] = constants.DOCKER.joinpath("Dockerfile.base").read_text(
+    config["dockerfile_base"] = constants.BUILD.joinpath("Dockerfile.base").read_text(
         encoding="UTF-8"
     )
-    # TODO: Populate with necessary context for building the image at hand
+
+    # TODO: Here we are composing things together - get this working...
+    # In the config, we need:
+    # - A list of dockerfile_envs
+    # - A list of dockerfile_tool_envs
+    # - A list of dockerfrag_tools
+    # - A list of dockerfrag_envs
+    # - A list of dockerfrag_tool_envs
 
     utils.render_jinja2(
         template_file=constants.DOCKERFILE_INPUT_FILE,
@@ -203,14 +211,19 @@ def build_and_tag(
         output_file=constants.DOCKERFILE_OUTPUT_FILE,
     )
 
+    # TODO: Build the Dockerfile.base as easy_infra_base:versioned_tag; needed for downstream Dockerfiles
+
     try:
         buildargs = setup_buildargs(tool=tool, trace=trace)
 
         # Warm up the cache
         pull_image(image_and_tag=image_and_latest_tag)
 
+        # TODO: Check if the file associated with the environment exists; if not, warn for now maybe cleanup later
+        # TODO: Check for the
+
         # if environment: ????
-        # path = DOCKER.joinpath("TODO")
+        # path = BUILD.joinpath("TODO")
         #   path=str(constants.CWD),  ??? How do we auto construct the Dockerfile
         #   target=variant,  ??? Always final?
 
