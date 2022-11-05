@@ -18,6 +18,11 @@ _anchors:
         KICS_EXCLUDE_SEVERITIES: --exclude-severities
         KICS_INCLUDE_QUERIES: --include-queries
       description: directory scan
+  validation: &id003
+  - command: terraform init -backend=false
+    description: initialization
+  - command: terraform validate
+    description: validation
 commands:
   ansible:
     aliases:
@@ -63,6 +68,7 @@ commands:
   terraform:
     file_extensions: *id001
     security: *id002
+    validation: *id003
     version: 1.3.3
     version_argument: version
   terratag:
@@ -73,5 +79,6 @@ commands:
       position: 0
     file_extensions: *id001
     security: *id002
+    validation: *id003
     version: v3.0.0
     version_argument: --version
