@@ -5,10 +5,3 @@
 
 
 .. mdinclude:: ../README.md
-
-.. toctree::
-   Home <self>
-   Terraform/index
-   Ansible/index
-   Logging/index
-   Hooks/index
