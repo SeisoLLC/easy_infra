@@ -169,4 +169,6 @@ security scans (and validation, if any is specified) when the version of a tool 
 ===========================
 
 Inside of the container images, ``/functions`` and the related ``BASH_ENV`` environment variable are the functional ways that the security scans, arbitrary
-hooks, and logging happens.
+hooks, and logging happens. There are aliases loaded into your environment, which are evaluated prior to searching the ``PATH`` for a file. This means
+that when you run ``terraform`` or some other command, it will actually run the function "terraform", which will run the security scans, hooks, and
+logging, and only after evaluating the precursor logic will it run ``command terraform`` which runs the ``terraform`` binary.
