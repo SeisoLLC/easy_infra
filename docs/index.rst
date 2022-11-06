@@ -6,7 +6,6 @@
 
 .. mdinclude:: ../README.md
 
-
 .. toctree::
    Home <self>
    Terraform/index
