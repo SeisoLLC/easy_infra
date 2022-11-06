@@ -184,6 +184,6 @@ Because ``BASH_ENV`` will ensure that ``/functions`` is loaded into the shell at
 name of tools which we are protecting, we can use those functions to perform security scans, arbitrary hooks, and logging prior to executing the
 original command.
 
-Ultimately, this means that when you run ``terraform`` (or some other properly defined command in `easy_infra.yml <easy_infra.yml>`_) inside of
-``easy_infra``, it will actually run the function "terraform", which will run the security scans, hooks, and logging, and only after evaluating the
-precursor logic will it run ``command terraform`` which runs the ``terraform`` binary from the ``PATH``.
+Ultimately, this means that when you run ``terraform`` (or some other properly defined command in `easy_infra.yml`_) inside of ``easy_infra``, it will
+actually run the function "terraform", which will run the security scans, hooks, and logging, and only after evaluating the precursor logic will it
+run ``command terraform`` which runs the ``terraform`` binary from the ``PATH``.
