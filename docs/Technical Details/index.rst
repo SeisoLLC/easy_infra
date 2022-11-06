@@ -144,10 +144,14 @@ After building ``easy_infra`` with this configuration, you should be able to exp
 then it would run both the ``kics`` and ``checkov`` commands as described under ``kics: command: ...`` and ``checkov: command: ...``, with additional
 customizations as defined under ``kics: customizations: ...`` and ``checkov: customizations: ...`` when the associated environment variables are set.
 
-As an example, if you ran ``tfenv exec init`` and also had the ``CHECKOV_BASELINE`` environment variable set to ``/iac/.checkov.baseline`` then the actual
-checkov command that would be run would be ``checkov -d . --download-external-modules True --skip-download --output json --output-file-path
-${CHECKOV_JSON_REPORT_PATH}/checkov.json, --baseline /iac/.checkov.baseline`` (Note the ``--baseline ...`` at the end was dynamically added due to the
-enviornment variable).
+As an example, if you ran ``tfenv exec init`` and also had the ``CHECKOV_BASELINE`` environment variable set to ``/iac/.checkov.baseline`` then the
+actual checkov command that would be run would be::
+
+    checkov -d . --download-external-modules True --skip-download --output json --output-file-path ${CHECKOV_JSON_REPORT_PATH}/checkov.json,
+    --baseline /iac/.checkov.baseline
+
+.. note::
+    The ``--baseline ...`` at the end was dynamically added due to the enviornment variable.
 
 Validation
 ^^^^^^^^^^
