@@ -37,9 +37,9 @@ Here is an ficticious ``easy_infra.yml`` that concisely demonstrates the various
         allow_filter:
         - match: exec
           position: 0
-        file_extensions: \*id001
-        security: \*id002
-        validation: \*id003
+        file_extensions: *id001
+        security: *id002
+        validation: *id003
         version: v3.0.0
         version_argument: --version
 
