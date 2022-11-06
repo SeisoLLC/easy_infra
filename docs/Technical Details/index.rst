@@ -9,7 +9,7 @@ easy_infra.yml
 configuration to instruct those generation and composition processes. It describes which version of software to use where, how to generate the very
 important ``/functions`` script (more on that in `/functions and functions.j2`_), which is what provides all of the hooking and capabilities.
 
-Here is an ficticious ``easy_infra.yml`` that concisely demonstrates the various features that are possible::
+Here is a ficticious ``easy_infra.yml`` that concisely demonstrates the various features that are possible::
 
     _anchors:
       file_extensions: &id001
@@ -59,6 +59,9 @@ Commands
 All of the terms under ``commands`` are the names of packages or tools, and the details of how and when they are installed are described in that
 object of the ``easy_infra.yml``. In order to register a runtime hook against a command (Learn more about hooks `here <Hooks/index.html>`_), or define
 what security scans occur prior to executing, it must be defined under ``commands``.
+
+The term ``commands`` was chosen in alignment with the `bash builtin <https://linux.die.net/man/1/bash>`_ command (see the "Command Execution"
+section).
 
 Alias
 ^^^^^
@@ -168,7 +171,15 @@ security scans (and validation, if any is specified) when the version of a tool 
 /functions and functions.j2
 ===========================
 
-Inside of the container images, ``/functions`` and the related ``BASH_ENV`` environment variable are the functional ways that the security scans, arbitrary
-hooks, and logging happens. There are aliases loaded into your environment, which are evaluated prior to searching the ``PATH`` for a file. This means
-that when you run ``terraform`` or some other command, it will actually run the function "terraform", which will run the security scans, hooks, and
-logging, and only after evaluating the precursor logic will it run ``command terraform`` which runs the ``terraform`` binary.
+``functions.j2`` is a Jinja2 template, which is rendered into a ``functions`` script, and then copied into each ``easy_infra`` image at build time.
+This all works based on the combination of this ``/functions`` file existing inside of the container, commands being run from within a shell (whether
+or not you specify ``bash -c`` or not when running a container), and the ``BASH_ENV`` environment variable pointing to ``/functions``. The way that we
+ensure that all commands are run inside a shell is by using ``"$@"`` in the ``easy_infra`` image ``entrypoint`` of ``docker-entrypoint.sh``.
+
+Because ``BASH_ENV`` will ensure that ``/functions`` is loaded into the shell at initialization, and ``/functions`` contains functions which match the
+name of tools which we are protecting, we can use those functions to perform security scans, arbitrary hooks, and logging prior to executing the
+original command.
+
+Ultimately, this means that when you run ``terraform`` (or some other properly defined command in `easy_infra.yml <easy_infra.yml>`_) inside of
+``easy_infra``, it will actually run the function "terraform", which will run the security scans, hooks, and logging, and only after evaluating the
+precursor logic will it run ``command terraform`` which runs the ``terraform`` binary from the ``PATH``.
