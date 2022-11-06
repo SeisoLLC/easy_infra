@@ -57,7 +57,7 @@ Commands
 --------
 
 All of the terms under ``commands`` are the names of packages or tools, and the details of how and when they are installed are described in that
-object of the ``easy_infra.yml``. In order to register a runtime hook against a command (Learn more about hooks `here <Hooks/index.html>`_), or define
+object of the ``easy_infra.yml``. In order to register a runtime hook against a command (Learn more about hooks `here <../Hooks/index.html>`_), or define
 what security scans occur prior to executing, it must be defined under ``commands``.
 
 The term ``commands`` was chosen in alignment with the `bash builtin <https://linux.die.net/man/1/bash>`_ command (see the "Command Execution"
