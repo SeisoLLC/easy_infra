@@ -156,7 +156,7 @@ actual checkov command that would be run would be::
 Validation
 ^^^^^^^^^^
 
-Sometimes security scanning tools are only equipped to run against IaC which is in a certain state, such as ensuing that the IaC is formatted properly and
+Sometimes security scanning tools are only equipped to run against IaC which is in a certain state, such as ensuring that the IaC is formatted properly and
 valid. ``validation`` is where you can specify what those are, and you can specify a list of commands to run in the specified order, prior to running the
 security scanning tools.
 
