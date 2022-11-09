@@ -89,7 +89,7 @@ Allow update
 ^^^^^^^^^^^^
 
 When projects are added to ``easy_infra`` they are automatically onboarded to our automated maintenance scripts (see ``def update`` under ``tasks.py`` for how
-that works). All projectrs that are properly configured will be automatically updated when ``invoke update`` is run, and ``allow_update`` is a boolean field
+that works). All projects that are properly configured will be automatically updated when ``invoke update`` is run, and ``allow_update`` is a boolean field
 under that command in ``easy_infra.yml`` which allows the onboarding but exemption of updates to a given project. This is sometimes done when a given project
 changes how it performs releases or makes a breaking changes that we have yet to accomodate.
 
