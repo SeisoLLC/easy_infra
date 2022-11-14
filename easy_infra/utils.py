@@ -1,7 +1,7 @@
 import sys
 from logging import getLogger
 from pathlib import Path
-from typing import Union
+from typing import Optional, Union
 
 import docker
 import git
@@ -21,7 +21,7 @@ def render_jinja2(
     template_file: Path = constants.FUNCTIONS_INPUT_FILE,
     config: dict = constants.CONFIG,
     output_file: Path = constants.FUNCTIONS_OUTPUT_FILE,
-    output_mode: int,
+    output_mode: Optional[int],
 ) -> None:
     """Render the functions file"""
     LOG.debug(f"Rendering {template_file}...")
@@ -31,7 +31,7 @@ def render_jinja2(
     template = Environment(loader=FileSystemLoader(folder)).get_template(file)
     out = template.render(config)
     output_file.write_text(out)
-    if output_mode:
+    if output_mode is not None:
         output_file.chmod(output_mode)
 
 

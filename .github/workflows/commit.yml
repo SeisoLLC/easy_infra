@@ -22,6 +22,8 @@ jobs:
       - uses: seisollc/goat@main
         with:
           exclude: .*tests/(ansible|terraform)/.*
+        env:
+          ACTIONS_RUNNER_DEBUG: true
   test:
     name: Test
     runs-on: ubuntu-20.04
