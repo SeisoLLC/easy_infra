@@ -18,9 +18,9 @@ CLIENT = docker.from_env()
 # Helper functions
 def render_jinja2(
     *,
-    template_file: Path = constants.FUNCTIONS_INPUT_FILE,
+    template_file: Path,
     config: dict = constants.CONFIG,
-    output_file: Path = constants.FUNCTIONS_OUTPUT_FILE,
+    output_file: Path,
     output_mode: Optional[int],
 ) -> None:
     """Render the functions file"""

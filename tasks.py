@@ -374,7 +374,12 @@ def build(_c, tool="all", environment="all", trace=False, debug=False):
     for tool in tools_to_environments:
         # Render the functions that the tool cares about
         filtered_config = filter_config(config=constants.CONFIG, tool=tool)
-        utils.render_jinja2(config=filtered_config, output_mode=0o755)
+        utils.render_jinja2(
+            template_file=constants.FUNCTIONS_INPUT_FILE,
+            config=filtered_config,
+            output_file=constants.FUNCTIONS_OUTPUT_FILE,
+            output_mode=0o755,
+        )
 
         # TODO: Figure out how to handle -large, somewhere in this function?
 
