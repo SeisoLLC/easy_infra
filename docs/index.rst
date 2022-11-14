@@ -12,3 +12,4 @@
    Ansible/index
    Logging/index
    Hooks/index
+   Technical Details/index
