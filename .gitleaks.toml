@@ -1,3 +1,4 @@
-[rules.allowlist]
+[private-key.allowlist]
+# Pending https://github.com/zricethezav/gitleaks/issues/1034
 description = "Ignore encrypted keys"
 paths = ['''cosign\.key''']
