@@ -1,0 +1,3 @@
+[rules.allowlist]
+description = "Ignore encrypted keys"
+paths = ['''cosign\.key''']
