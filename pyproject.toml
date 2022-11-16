@@ -1,3 +1,3 @@
 [tool.isort]
 profile = "black"
-src_paths = ["easy_infra", "tests", "hooks"]
+src_paths = ["easy_infra", "hooks", "tests"]
