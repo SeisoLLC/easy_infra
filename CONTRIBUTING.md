@@ -9,6 +9,14 @@ If you'd like to [run the test suite](#running-tests), you will also need `grype
 
 If you'd like to [generate an SBOM](#generating-an-sbom), you will also need `syft` downloaded and in your `PATH`.
 
+### Building the image
+
+To build the docker image, run:
+
+```bash
+pipenv run invoke build
+```
+
 ### Running tests
 
 If you are attempting to run the tests locally, consider running the following to ensure that the user from inside the container can write to the
