@@ -1,2 +1,2 @@
 [tool.isort]
-src_paths = ["easy_infra"]
+src_paths = ["easy_infra", "tests", "hooks"]
