@@ -9,7 +9,7 @@ It supports three main use cases:
 1. **Continuous Integration** as a part of Pull/Merge Request validation.
 1. **Continuous Deployment** as an automated deployment tool.
 
-To build the docker image run:
+To build the docker image, run:
 
 ```bash
 pipenv run invoke build --debug
