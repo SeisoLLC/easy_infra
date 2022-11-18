@@ -22,7 +22,7 @@ similar:
 alias terraform="docker run -v $(pwd):/iac seiso/easy_infra terraform"
 ```
 
-This will allow you to run simple `terraform` commands at the command line, which will run transparently in easy_infra:
+This will allow you to run simple `terraform` commands at the command-line, which will run transparently in easy_infra:
 
 ```bash
 terraform validate
