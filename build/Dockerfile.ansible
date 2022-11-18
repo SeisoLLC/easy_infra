@@ -7,4 +7,5 @@ ARG ANSIBLE_VERSION
 ENV ANSIBLE_VERSION="${ANSIBLE_VERSION}"
 RUN apt-get update \
  && apt-get -y install --no-install-recommends ansible=${ANSIBLE_VERSION} \
+ && rm -rf /var/lib/apt/lists/* \
  && su easy_infra -c "mkdir /home/easy_infra/.ansible"
