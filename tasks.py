@@ -296,7 +296,7 @@ def reformat(_c, debug=False):
         getLogger().setLevel("DEBUG")
 
     entrypoint_and_command = [
-        ("isort", ". --settings-file /action/lib/.automation/.isort.cfg"),
+        ("isort", ". --settings-file /etc/opt/goat/.isort.cfg"),
         ("black", "."),
     ]
     image = "seiso/goat:latest"
