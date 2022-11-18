@@ -22,6 +22,7 @@ jobs:
       - uses: seisollc/goat@main
         with:
           exclude: (.*tests/(ansible|terraform)/.*|.*Dockerfile\.j2$)
+          disable_mypy: true
   test:
     name: Test
     runs-on: ubuntu-20.04
