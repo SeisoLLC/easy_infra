@@ -6,9 +6,10 @@ from typing import Union
 import docker
 import git
 import requests
-from easy_infra import __version__, constants
 from jinja2 import Environment, FileSystemLoader
 from yaml import YAMLError, dump, safe_load
+
+from easy_infra import __version__, constants
 
 LOG = getLogger(__name__)
 CLIENT = docker.from_env()
