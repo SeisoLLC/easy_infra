@@ -19,7 +19,7 @@ CLIENT = docker.from_env()
 def render_jinja2(
     *,
     template_file: Path,
-    config: dict = constants.CONFIG,
+    config: dict,
     output_file: Path,
     output_mode: Optional[int],
 ) -> None:
