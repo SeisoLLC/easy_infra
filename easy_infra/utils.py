@@ -21,7 +21,7 @@ def render_jinja2(
     template_file: Path,
     config: dict,
     output_file: Path,
-    output_mode: Optional[int],
+    output_mode: Optional[int] = None,
 ) -> None:
     """Render the functions file"""
     LOG.debug(f"Rendering {template_file}...")

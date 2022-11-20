@@ -1,5 +1,6 @@
-# functions is a generated file, don't check it in
+# Ignore generated files
 functions
+build/Dockerfile
 
 # Ignore .terraform.d, including the plugin cache
 .terraform.d
