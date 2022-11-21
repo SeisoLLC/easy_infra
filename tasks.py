@@ -158,6 +158,7 @@ def setup_buildargs(*, tool: str, trace: bool) -> dict:
 
 def pull_image(*, image_and_tag: str, platform: str = PLATFORM) -> None:
     """Pull the provided image but continue if it fails"""
+    # TODO: This isn't working
     registry_data = CLIENT.images.get_registry_data(name="{image_and_tag}")
     # TODO: Improve PLATFORM so it can handle Intel/amd64 systems
     if registry_data.has_platform(platform):
@@ -197,13 +198,63 @@ def build_and_tag(
         encoding="UTF-8"
     )
 
-    # TODO: Here we are composing things together - get this working...
-    # In the config, we need:
-    # - A list of dockerfile_envs
-    # - A list of dockerfile_tool_envs
-    # - A list of dockerfrag_tools
-    # - A list of dockerfrag_envs
-    # - A list of dockerfrag_tool_envs
+    # Required Dockerfile/frag combos
+    try:
+        config["dockerfile_tools"] = [
+            constants.BUILD.joinpath(f"Dockerfile.{tool}").read_text(encoding="UTF-8")
+        ]
+        config["dockerfrag_tools"] = [
+            constants.BUILD.joinpath(f"Dockerfrag.{tool}").read_text(encoding="UTF-8")
+        ]
+    except FileNotFoundError:
+        LOG.exception(
+            f"A file required to build a container containing {tool} was not found"
+        )
+        sys.exit(1)
+
+    # Required Dockerfile/frag combo if the environment is set
+    if environment:
+        try:
+            config["dockerfile_envs"] = [
+                constants.BUILD.joinpath(f"Dockerfile.{environment}").read_text(
+                    encoding="UTF-8"
+                )
+            ]
+            config["dockerfrag_envs"] = [
+                constants.BUILD.joinpath(f"Dockerfrag.{environment}").read_text(
+                    encoding="UTF-8"
+                )
+            ]
+        except FileNotFoundError:
+            LOG.exception(
+                f"An environment of {environment} was specified, but at least one of the required files were not found"
+            )
+            sys.exit(1)
+    else:
+        LOG.debug("Environment was not set; not requiring the related Dockerfile/frag")
+
+    # Optional Dockerfiles
+    if constants.BUILD.joinpath(f"Dockerfile.{tool}-{environment}").exists():
+        config["dockerfile_tool_envs"] = [
+            constants.BUILD.joinpath(f"Dockerfile.{tool}-{environment}").read_text(
+                encoding="UTF-8"
+            )
+        ]
+        try:
+            config["dockerfrag_tool_envs"] = [
+                constants.BUILD.joinpath(f"Dockerfrag.{tool}-{environment}").read_text(
+                    encoding="UTF-8"
+                )
+            ]
+        except FileNotFoundError:
+            LOG.exception(
+                f"Dockerfile.{tool}-{environment} existed but the related (required) Dockerfrag was not found"
+            )
+            sys.exit(1)
+    else:
+        LOG.debug(
+            f"No Dockerfile.{tool}-{environment} detected, skipping as it is optional..."
+        )
 
     utils.render_jinja2(
         template_file=constants.DOCKERFILE_INPUT_FILE,
@@ -211,7 +262,15 @@ def build_and_tag(
         output_file=constants.DOCKERFILE_OUTPUT_FILE,
     )
 
-    # TODO: Build the Dockerfile.base as easy_infra_base:versioned_tag; needed for downstream Dockerfiles
+    # TODO: Ensure this caches after back-to-back builds
+    CLIENT.images.build(
+        buildargs=buildargs,
+        dockerfile="Dockerfile.base",
+        path=str(constants.BUILD),
+        platform=PLATFORM,
+        rm=True,
+        tag=f"seiso/easy_infra_base:{versioned_tag}",
+    )
 
     try:
         buildargs = setup_buildargs(tool=tool, trace=trace)

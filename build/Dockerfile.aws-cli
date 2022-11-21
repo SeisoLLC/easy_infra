@@ -1,4 +1,4 @@
-ARG FROM_IMAGE=easy_infra_base
+ARG FROM_IMAGE=seiso/easy_infra_base
 ARG FROM_IMAGE_TAG
 
 FROM "${FROM_IMAGE}":"${FROM_IMAGE_TAG}" AS aws-cli
