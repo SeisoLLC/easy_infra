@@ -263,6 +263,7 @@ def build_and_tag(
     )
 
     # TODO: Ensure this caches after back-to-back builds
+    # TODO: Build fails?
     CLIENT.images.build(
         buildargs=buildargs,
         dockerfile="Dockerfile.base",
