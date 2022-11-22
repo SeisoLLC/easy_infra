@@ -36,11 +36,11 @@ RUN groupadd --gid 53150 -r easy_infra \
                                                less \
                                                time \
                                                tini \
-                                               unzip \
  && apt-get -y upgrade \
  && su - easy_infra -c "mkdir -p /home/easy_infra/.ssh" \
  && su - easy_infra -c "touch /home/easy_infra/.ssh/known_hosts" \
  && echo "# START preloaded known_hosts" >> /home/easy_infra/.ssh/known_hosts \
+ && apt-get -y install --no-install-recommends ssh \
  && ssh-keyscan gitlab.com \
                 github.com \
                 bitbucket.org \
@@ -50,6 +50,7 @@ RUN groupadd --gid 53150 -r easy_infra \
                 git-codecommit.us-west-1.amazonaws.com \
                 git-codecommit.us-west-2.amazonaws.com \
     >> /home/easy_infra/.ssh/known_hosts \
+ && apt-get remove -y ssh \
  && echo "# END preloaded known_hosts" >> /home/easy_infra/.ssh/known_hosts \
  && if [ "${TRACE}" = "true" ]; then \
     apt-get -y install --no-install-recommends libcap2-bin \
@@ -57,6 +58,7 @@ RUN groupadd --gid 53150 -r easy_infra \
   ; fi \
  && su easy_infra -c "mkdir -p /home/easy_infra/.local/bin/" \
  && echo "export PATH=/home/easy_infra/.local/bin:${PATH}" >> /home/easy_infra/.bashrc \
+ && apt-get -y install --no-install-recommends unzip \
  && curl -L https://releases.hashicorp.com/consul-template/${CONSUL_TEMPLATE_VERSION#v}/consul-template_${CONSUL_TEMPLATE_VERSION#v}_linux_${BUILDARCH}.zip -o /usr/local/bin/consul-template.zip \
  && unzip /usr/local/bin/consul-template.zip -d /usr/local/bin/ \
  && rm -f /usr/local/bin/consul-template.zip \
@@ -65,6 +67,7 @@ RUN groupadd --gid 53150 -r easy_infra \
  && unzip /usr/local/bin/envconsul.zip -d /usr/local/bin/ \
  && rm -f /usr/local/bin/envconsul.zip \
  && chmod 0755 /usr/local/bin/envconsul \
+ && apt-get remove -y unzip \
  && apt-get install -y --no-install-recommends cmake build-essential flex bison libyaml-dev libssl-dev \
  && git clone https://github.com/fluent/fluent-bit --depth 1 --branch ${FLUENT_BIT_VERSION} \
  && cd fluent-bit/build \

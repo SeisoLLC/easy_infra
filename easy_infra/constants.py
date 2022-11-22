@@ -34,7 +34,10 @@ for command in CONFIG["commands"]:
     if "security" in CONFIG["commands"][command]:
         TOOLS.add(command)
 
-ENVIRONMENTS = ["aws", "azure"]
+ENVIRONMENTS = set()
+for environment in CONFIG["environments"]:
+    if "commands" in CONFIG["environments"][environment]:
+        ENVIRONMENTS.add(environment)
 
 LOG_FORMAT = json.dumps(
     {
@@ -66,10 +69,10 @@ if (
     and REPO.tags[f"v{__version__}"].commit.hexsha == COMMIT_HASH
 ):
     CONTEXT["buildargs"]["EASY_INFRA_VERSION"] = __version__
-    CONTEXT["buildargs"]["RELEASE"] = True
+    RELEASE = True
 else:
     CONTEXT["buildargs"]["EASY_INFRA_VERSION"] = f"{__version__}-{COMMIT_HASH_SHORT}"
-    CONTEXT["buildargs"]["RELEASE"] = False
+    RELEASE = False
 
 # TODO: Build the ":latest" tag a special way; not accounted for in the TOOLS loop below
 for tool in TOOLS:
@@ -79,7 +82,7 @@ for tool in TOOLS:
     CONTEXT[tool]["latest_tag"] = f"latest-{tool}"
 
     # EASY_INFRA_TAG is a versioned tag which gets passed in at build time to populate an OCI annotation
-    if CONTEXT["buildargs"]["RELEASE"]:
+    if RELEASE:
         CONTEXT[tool]["buildargs"]["EASY_INFRA_TAG"] = f"{__version__}-{tool}"
         CONTEXT[tool]["versioned_tag"] = f"{__version__}-{tool}"
     else:
@@ -97,7 +100,7 @@ for tool in TOOLS:
             CONTEXT[tool]["buildargs"]
         )
 
-        if CONTEXT["buildargs"]["RELEASE"]:
+        if RELEASE:
             CONTEXT[tool][environment][
                 "versioned_tag"
             ] = f"{__version__}-{tool}-{environment}"

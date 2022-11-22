@@ -179,14 +179,27 @@ def build_and_tag(
     *, tool: str, environment: Union[str, None] = None, trace: bool = False
 ) -> None:
     """Build the provided image and tag it with the provided list of tags"""
+    # Input validation
+    if tool not in constants.TOOLS:
+        LOG.error(f"Provided an invalid tool of {tool}")
+        sys.exit(1)
+
+    if environment and environment not in constants.ENVIRONMENTS:
+        LOG.error(f"Provided an invalid environment of {environment}")
+        sys.exit(1)
+
     if environment:
         versioned_tag = constants.CONTEXT[tool][environment]["versioned_tag"]
         latest_tag = constants.CONTEXT[tool][environment]["latest_tag"]
-        buildargs = constants.CONTEXT[tool][environment]["buildargs"]
+        buildargs = copy.deepcopy(
+            constants.CONTEXT[tool][environment]["buildargs_base"]
+        )
     else:
         versioned_tag = constants.CONTEXT[tool]["versioned_tag"]
         latest_tag = constants.CONTEXT[tool]["latest_tag"]
-        buildargs = constants.CONTEXT[tool]["buildargs"]
+        buildargs = copy.deepcopy(constants.CONTEXT[tool]["buildargs_base"])
+
+    buildargs.update(setup_buildargs(tool=tool, trace=trace))
 
     image_and_versioned_tag = f"{constants.IMAGE}:{versioned_tag}"
     image_and_latest_tag = f"{constants.IMAGE}:{latest_tag}"
@@ -212,48 +225,57 @@ def build_and_tag(
         )
         sys.exit(1)
 
-    # Required Dockerfile/frag combo if the environment is set
-    if environment:
-        try:
-            config["dockerfile_envs"] = [
-                constants.BUILD.joinpath(f"Dockerfile.{environment}").read_text(
-                    encoding="UTF-8"
-                )
-            ]
-            config["dockerfrag_envs"] = [
-                constants.BUILD.joinpath(f"Dockerfrag.{environment}").read_text(
-                    encoding="UTF-8"
-                )
-            ]
-        except FileNotFoundError:
-            LOG.exception(
-                f"An environment of {environment} was specified, but at least one of the required files were not found"
-            )
-            sys.exit(1)
-    else:
-        LOG.debug("Environment was not set; not requiring the related Dockerfile/frag")
+    # Required Dockerfile/frag combos if the environment is set
+    if environment in constants.ENVIRONMENTS:
+        # Create the various config lists so they can be appended to below
+        config["dockerfile_envs"] = []
+        config["dockerfrag_envs"] = []
+        config["dockerfile_tool_envs"] = []
+        config["dockerfrag_tool_envs"] = []
 
-    # Optional Dockerfiles
-    if constants.BUILD.joinpath(f"Dockerfile.{tool}-{environment}").exists():
-        config["dockerfile_tool_envs"] = [
-            constants.BUILD.joinpath(f"Dockerfile.{tool}-{environment}").read_text(
-                encoding="UTF-8"
-            )
-        ]
-        try:
-            config["dockerfrag_tool_envs"] = [
-                constants.BUILD.joinpath(f"Dockerfrag.{tool}-{environment}").read_text(
-                    encoding="UTF-8"
+        for command in constants.CONFIG["environments"][environment]["commands"]:
+            try:
+                config["dockerfile_envs"].append(
+                    constants.BUILD.joinpath(f"Dockerfile.{command}").read_text(
+                        encoding="UTF-8"
+                    )
                 )
-            ]
-        except FileNotFoundError:
-            LOG.exception(
-                f"Dockerfile.{tool}-{environment} existed but the related (required) Dockerfrag was not found"
-            )
-            sys.exit(1)
+                config["dockerfrag_envs"].append(
+                    constants.BUILD.joinpath(f"Dockerfrag.{command}").read_text(
+                        encoding="UTF-8"
+                    )
+                )
+            except FileNotFoundError:
+                LOG.exception(
+                    f"An environment of {environment} was specified, but at least one of the required files for {command} was not found"
+                )
+                sys.exit(1)
+
+            # Optional Dockerfiles
+            if constants.BUILD.joinpath(f"Dockerfile.{tool}-{environment}").exists():
+                config["dockerfile_tool_envs"].append(
+                    constants.BUILD.joinpath(
+                        f"Dockerfile.{tool}-{environment}"
+                    ).read_text(encoding="UTF-8")
+                )
+                try:
+                    config["dockerfrag_tool_envs"].append(
+                        constants.BUILD.joinpath(
+                            f"Dockerfrag.{tool}-{environment}"
+                        ).read_text(encoding="UTF-8")
+                    )
+                except FileNotFoundError:
+                    LOG.exception(
+                        f"Dockerfile.{tool}-{environment} existed but the related (required) Dockerfrag was not found"
+                    )
+                    sys.exit(1)
+            else:
+                LOG.debug(
+                    f"No Dockerfile.{tool}-{environment} detected, skipping as it is optional..."
+                )
     else:
         LOG.debug(
-            f"No Dockerfile.{tool}-{environment} detected, skipping as it is optional..."
+            "The environment was not set (or not set properly); not requiring the related Dockerfile/frag"
         )
 
     utils.render_jinja2(
@@ -263,37 +285,28 @@ def build_and_tag(
     )
 
     # TODO: Ensure this caches after back-to-back builds
-    # TODO: Build fails?
     CLIENT.images.build(
         buildargs=buildargs,
         dockerfile="Dockerfile.base",
         path=str(constants.BUILD),
         platform=PLATFORM,
+        pull=True,
         rm=True,
         tag=f"seiso/easy_infra_base:{versioned_tag}",
     )
 
     try:
-        buildargs = setup_buildargs(tool=tool, trace=trace)
-
         # Warm up the cache
         pull_image(image_and_tag=image_and_latest_tag)
 
-        # TODO: Check if the file associated with the environment exists; if not, warn for now maybe cleanup later
-        # TODO: Check for the
-
-        # if environment: ????
-        # path = BUILD.joinpath("TODO")
-        #   path=str(constants.CWD),  ??? How do we auto construct the Dockerfile
-        #   target=variant,  ??? Always final?
-
-        image = CLIENT.images.build(
+        image_tuple = CLIENT.images.build(
             buildargs=buildargs,
             tag=image_and_versioned_tag,
             cache_from=[image_and_latest_tag],
             platform=PLATFORM,
             rm=True,
-        )[0]
+        )
+        image = image_tuple[0]
     except docker.errors.BuildError as build_err:
         LOG.exception(
             f"Failed to build {image_and_versioned_tag} platform {PLATFORM}...",
