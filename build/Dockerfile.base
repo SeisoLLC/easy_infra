@@ -39,7 +39,7 @@ RUN groupadd --gid 53150 -r easy_infra \
  && apt-get -y upgrade \
  && su - easy_infra -c "mkdir -p /home/easy_infra/.ssh" \
  && su - easy_infra -c "touch /home/easy_infra/.ssh/known_hosts" \
- && echo "# START preloaded known_hosts" >> /home/easy_infra/.ssh/known_hosts \
+ && echo "# START preloaded known_hosts as of $(date)" >> /home/easy_infra/.ssh/known_hosts \
  && apt-get -y install --no-install-recommends ssh \
  && ssh-keyscan gitlab.com \
                 github.com \
@@ -51,7 +51,7 @@ RUN groupadd --gid 53150 -r easy_infra \
                 git-codecommit.us-west-2.amazonaws.com \
     >> /home/easy_infra/.ssh/known_hosts \
  && apt-get remove -y ssh \
- && echo "# END preloaded known_hosts" >> /home/easy_infra/.ssh/known_hosts \
+ && echo "# END preloaded known_hosts as of $(date)" >> /home/easy_infra/.ssh/known_hosts \
  && if [ "${TRACE}" = "true" ]; then \
     apt-get -y install --no-install-recommends libcap2-bin \
                                                strace \

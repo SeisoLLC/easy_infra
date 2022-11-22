@@ -42,8 +42,8 @@ if [ "$#" -eq 0 ]; then
   if [ -x "$(which ansible)" ]; then
     echo -e "ansible\t\t ${ANSIBLE_VERSION}"
   fi
-  current_version=$(cat /home/easy_infra/.tfenv/version)
   if [ -x "$(which terraform)" ]; then
+    current_version=$(cat /home/easy_infra/.tfenv/version)
     if [[ "${TERRAFORM_VERSION}" != "${current_version}" ]]; then
       echo -e "terraform\t ${TERRAFORM_VERSION} (customized)"
     else
