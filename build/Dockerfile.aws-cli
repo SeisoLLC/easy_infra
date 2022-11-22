@@ -1,7 +1,6 @@
-ARG FROM_IMAGE=seiso/easy_infra_base
 ARG EASY_INFRA_TAG
 
-FROM "${FROM_IMAGE}":"${EASY_INFRA_TAG}" AS aws-cli
+FROM seiso/easy_infra_base:"${EASY_INFRA_TAG}" AS aws-cli
 
 USER root
 ARG AWS_CLI_ARCH
