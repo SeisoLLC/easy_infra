@@ -13,9 +13,9 @@ from easy_infra import __project_name__, __version__, utils
 
 CONFIG_FILE = Path(f"{__project_name__}.yml").absolute()
 CWD = Path(".").absolute()
-FUNCTIONS_INPUT_FILE = CWD.joinpath("functions.j2")
-FUNCTIONS_OUTPUT_FILE = CWD.joinpath(FUNCTIONS_INPUT_FILE.stem)
 BUILD = CWD.joinpath("build")
+FUNCTIONS_INPUT_FILE = BUILD.joinpath("functions.j2")
+FUNCTIONS_OUTPUT_FILE = BUILD.joinpath(FUNCTIONS_INPUT_FILE.stem)
 DOCKERFILE_INPUT_FILE = BUILD.joinpath("Dockerfile.j2")
 DOCKERFILE_OUTPUT_FILE = BUILD.joinpath("Dockerfile")
 
@@ -63,41 +63,43 @@ HASHICORP_PROJECTS = {"terraform"}
 
 # TODO: Fix typing hinting
 CONTEXT: dict[str, dict[str, Union[str, dict[str, Union[str, bool]]]]] = {}
-CONTEXT["buildargs"] = {"COMMIT_HASH": COMMIT_HASH}
+CONTEXT["buildargs_base"] = {"COMMIT_HASH": COMMIT_HASH}
 if (
     f"v{__version__}" in REPO.tags
     and REPO.tags[f"v{__version__}"].commit.hexsha == COMMIT_HASH
 ):
-    CONTEXT["buildargs"]["EASY_INFRA_VERSION"] = __version__
+    CONTEXT["buildargs_base"]["EASY_INFRA_VERSION"] = __version__
     RELEASE = True
 else:
-    CONTEXT["buildargs"]["EASY_INFRA_VERSION"] = f"{__version__}-{COMMIT_HASH_SHORT}"
+    CONTEXT["buildargs_base"][
+        "EASY_INFRA_VERSION"
+    ] = f"{__version__}-{COMMIT_HASH_SHORT}"
     RELEASE = False
 
 # TODO: Build the ":latest" tag a special way; not accounted for in the TOOLS loop below
 for tool in TOOLS:
     CONTEXT[tool] = {}
-    # Layer the tool-specific buildargs on top of the base buildargs
-    CONTEXT[tool]["buildargs"] = copy.deepcopy(CONTEXT["buildargs"])
+    # Layer the tool-specific buildargs_base on top of the base buildargs_base
+    CONTEXT[tool]["buildargs_base"] = copy.deepcopy(CONTEXT["buildargs_base"])
     CONTEXT[tool]["latest_tag"] = f"latest-{tool}"
 
     # EASY_INFRA_TAG is a versioned tag which gets passed in at build time to populate an OCI annotation
     if RELEASE:
-        CONTEXT[tool]["buildargs"]["EASY_INFRA_TAG"] = f"{__version__}-{tool}"
+        CONTEXT[tool]["buildargs_base"]["EASY_INFRA_TAG"] = f"{__version__}-{tool}"
         CONTEXT[tool]["versioned_tag"] = f"{__version__}-{tool}"
     else:
-        CONTEXT[tool]["buildargs"][
+        CONTEXT[tool]["buildargs_base"][
             "EASY_INFRA_TAG"
         ] = f"{__version__}-{tool}-{COMMIT_HASH_SHORT}"
         CONTEXT[tool]["versioned_tag"] = f"{__version__}-{tool}-{COMMIT_HASH_SHORT}"
 
     for environment in ENVIRONMENTS:
         CONTEXT[tool][environment] = {}
-        CONTEXT[tool][environment]["buildargs"] = {}
+        CONTEXT[tool][environment]["buildargs_base"] = {}
 
-        # Layer the tool-environment buildargs on top of the tool buildargs
-        CONTEXT[tool][environment]["buildargs"] = copy.deepcopy(
-            CONTEXT[tool]["buildargs"]
+        # Layer the tool-environment buildargs_base on top of the tool buildargs_base
+        CONTEXT[tool][environment]["buildargs_base"] = copy.deepcopy(
+            CONTEXT[tool]["buildargs_base"]
         )
 
         if RELEASE:
@@ -105,7 +107,7 @@ for tool in TOOLS:
                 "versioned_tag"
             ] = f"{__version__}-{tool}-{environment}"
             CONTEXT[tool][environment]["latest_tag"] = f"latest-{tool}-{environment}"
-            CONTEXT[tool][environment]["buildargs"][
+            CONTEXT[tool][environment]["buildargs_base"][
                 "EASY_INFRA_TAG"
             ] = f"{__version__}-{tool}-{environment}"
         else:
@@ -115,6 +117,6 @@ for tool in TOOLS:
             CONTEXT[tool][environment][
                 "latest_tag"
             ] = f"latest-{tool}-{environment}-{COMMIT_HASH_SHORT}"
-            CONTEXT[tool][environment]["buildargs"][
+            CONTEXT[tool][environment]["buildargs_base"][
                 "EASY_INFRA_TAG"
             ] = f"{__version__}-{tool}-{environment}-{COMMIT_HASH_SHORT}"

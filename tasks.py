@@ -142,15 +142,23 @@ def setup_buildargs(*, tool: str, trace: bool) -> dict:
 
     # Pull in any other buildargs that the tool cares about
     for command in constants.CONFIG["commands"]:
-        if command in constants.CONFIG["commands"][tool]["security"]:
+        if (
+            # Include all commands that are referenced in the tool's security section
+            command in constants.CONFIG["commands"][tool]["security"]
+            # Include the versions of commands which "help" other tools
+            or (
+                "helper" in constants.CONFIG["commands"][command]
+                and set(constants.CONFIG["commands"][command]["helper"]).intersection(
+                    {tool, "all"}
+                )
+            )
+        ):
             if "version" in constants.CONFIG["commands"][command]:
                 # Normalize and add to buildargs
                 arg = command.upper().replace("-", "_") + "_VERSION"
                 buildargs[arg] = constants.CONFIG["commands"][command]["version"]
             else:
-                LOG.error(
-                    f"Unable to identify the version of {command}, which {tool} depends on"
-                )
+                LOG.error(f"Unable to identify the version of {command}")
                 sys.exit(1)
 
     return buildargs
@@ -158,13 +166,19 @@ def setup_buildargs(*, tool: str, trace: bool) -> dict:
 
 def pull_image(*, image_and_tag: str, platform: str = PLATFORM) -> None:
     """Pull the provided image but continue if it fails"""
-    # TODO: This isn't working
-    registry_data = CLIENT.images.get_registry_data(name="{image_and_tag}")
-    # TODO: Improve PLATFORM so it can handle Intel/amd64 systems
-    if registry_data.has_platform(platform):
-        LOG.info(f"Pulling {image_and_tag} (platform {platform})...")
-    else:
-        LOG.info(f"{image_and_tag} does not have a {platform} image available")
+    try:
+        registry_data = CLIENT.images.get_registry_data(name=f"{image_and_tag}")
+
+        # TODO: Improve PLATFORM so it can handle Intel/amd64 systems
+        if registry_data.has_platform(platform):
+            LOG.info(f"Pulling {image_and_tag} (platform {platform})...")
+        else:
+            LOG.info(f"{image_and_tag} does not have a {platform} image available")
+            return
+    except docker.errors.NotFound:
+        LOG.error(
+            f"Unable to find {image_and_tag} registry data, not going to attempt to pull the image but continuing anyway..."
+        )
         return
 
     try:
@@ -199,10 +213,15 @@ def build_and_tag(
         latest_tag = constants.CONTEXT[tool]["latest_tag"]
         buildargs = copy.deepcopy(constants.CONTEXT[tool]["buildargs_base"])
 
+    # Layers the setup_buildargs on top of the base buildargs from the CONTEXT
     buildargs.update(setup_buildargs(tool=tool, trace=trace))
 
     image_and_versioned_tag = f"{constants.IMAGE}:{versioned_tag}"
     image_and_latest_tag = f"{constants.IMAGE}:{latest_tag}"
+
+    LOG.debug(
+        f"Running build_and_tag for {image_and_versioned_tag} and {trace=} using {versioned_tag=}, {latest_tag=}, {buildargs=}"
+    )
 
     # Build the config for rendering Dockerfile.j2
     config = {}
@@ -284,7 +303,8 @@ def build_and_tag(
         output_file=constants.DOCKERFILE_OUTPUT_FILE,
     )
 
-    # TODO: Ensure this caches after back-to-back builds
+    base_image_and_versioned_tag = f"seiso/easy_infra_base:{versioned_tag}"
+    LOG.info(f"Building {base_image_and_versioned_tag}...")
     CLIENT.images.build(
         buildargs=buildargs,
         dockerfile="Dockerfile.base",
@@ -292,7 +312,8 @@ def build_and_tag(
         platform=PLATFORM,
         pull=True,
         rm=True,
-        tag=f"seiso/easy_infra_base:{versioned_tag}",
+        tag=base_image_and_versioned_tag,
+        target="base",
     )
 
     try:
@@ -301,10 +322,13 @@ def build_and_tag(
 
         image_tuple = CLIENT.images.build(
             buildargs=buildargs,
-            tag=image_and_versioned_tag,
             cache_from=[image_and_latest_tag],
+            dockerfile="Dockerfile",
+            path=str(constants.BUILD),
             platform=PLATFORM,
             rm=True,
+            tag=image_and_versioned_tag,
+            target="final",
         )
         image = image_tuple[0]
     except docker.errors.BuildError as build_err:

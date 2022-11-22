@@ -27,6 +27,10 @@ Here is a ficticious ``easy_infra.yml`` that concisely demonstrates the various 
       - command: terraform validate
         description: validation
     commands:
+      fluent-bit:
+        helper: ["all"]
+        version: v2.0.5
+        version_argument: --version
       checkov:
         allow_update: False
         version: 2.2.8
@@ -38,6 +42,7 @@ Here is a ficticious ``easy_infra.yml`` that concisely demonstrates the various 
         - match: exec
           position: 0
         file_extensions: *id001
+        helper: ["terraform"]
         security: *id002
         validation: *id003
         version: v3.0.0
