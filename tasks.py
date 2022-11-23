@@ -307,6 +307,20 @@ def build_and_tag(
         output_file=constants.DOCKERFILE_OUTPUT_FILE,
     )
 
+    # Required so it doesn't attempt to look for the image in docker hub
+    base_image_and_versioned_tag = f"seiso/easy_infra_base:{versioned_tag}"
+    LOG.info(f"Building {base_image_and_versioned_tag}...")
+    CLIENT.images.build(
+        buildargs=buildargs,
+        dockerfile="Dockerfile.base",
+        path=str(constants.BUILD),
+        platform=PLATFORM,
+        pull=True,
+        rm=True,
+        tag=base_image_and_versioned_tag,
+        target="base",
+    )
+
     try:
         # Warm up the cache
         pull_image(image_and_tag=image_and_latest_tag)
