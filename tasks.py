@@ -32,7 +32,9 @@ LOG = getLogger(__project_name__)
 CLIENT = docker.from_env()
 
 basicConfig(level=constants.LOG_DEFAULT, format=constants.LOG_FORMAT)
+# Noise suppression
 getLogger("urllib3").setLevel(constants.LOG_DEFAULT)
+getLogger("docker").setLevel(constants.LOG_DEFAULT)
 
 
 def process_container(*, container: docker.models.containers.Container) -> None:
@@ -101,13 +103,14 @@ def gather_tools_and_environments(
     return image_and_tool_and_environment_tags
 
 
-def filter_config(*, config: str, tool: str) -> dict:
+def filter_config(*, config: str, tools: list[str]) -> dict:
     """Take in a configuration, filter it based on the provided tool, and return the result"""
     filtered_config = {}
 
-    for command in config["commands"]:
-        if command in config["commands"][tool]["security"]:
-            filtered_config[command] = copy.deepcopy(config["commands"][tool])
+    for tool in tools:
+        filtered_config[tool] = copy.deepcopy(config["commands"][tool])
+
+    LOG.debug(f"Returning a filtered config of {filtered_config}")
 
     return filtered_config
 
@@ -470,7 +473,7 @@ def build(_c, tool="all", environment="all", trace=False, debug=False):
     # pylint: disable=redefined-argument-from-local
     for tool in tools_to_environments:
         # Render the functions that the tool cares about
-        filtered_config = filter_config(config=constants.CONFIG, tool=tool)
+        filtered_config = filter_config(config=constants.CONFIG, tools=[tool])
         utils.render_jinja2(
             template_file=constants.FUNCTIONS_INPUT_FILE,
             config=filtered_config,

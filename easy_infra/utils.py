@@ -27,7 +27,7 @@ def render_jinja2(
     LOG.debug(f"Rendering {template_file} into {output_file}...")
     folder = str(template_file.parent)
     file = str(template_file.name)
-    LOG.info("Rendering %s...", file)
+    LOG.info(f"Rendering {file}...")
     template = Environment(loader=FileSystemLoader(folder)).get_template(file)
     out = template.render(config)
     output_file.write_text(out)
