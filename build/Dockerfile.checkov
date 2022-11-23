@@ -6,6 +6,8 @@ ARG CHECKOV_VERSION
 ENV CHECKOV_VERSION="${CHECKOV_VERSION}"
 ENV CHECKOV_JSON_REPORT_PATH="/tmp/reports/checkov"
 ENV SKIP_CHECKOV="false"
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 USER root
 # hadolint ignore=DL3008,DL3013
 RUN apt-get update \

@@ -9,6 +9,9 @@ ENV SKIP_KICS="false"
 ENV KICS_INCLUDE_QUERIES_PATH="/home/easy_infra/.kics/assets/queries"
 ENV KICS_LIBRARY_PATH="/home/easy_infra/.kics/assets/libraries"
 ENV KICS_JSON_REPORT_PATH="/tmp/reports/kics"
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+USER root
 RUN curl -L "https://github.com/checkmarx/kics/releases/download/${KICS_VERSION}/kics_${KICS_VERSION#v}_linux_${KICS_ARCH}.tar.gz" -o /usr/local/bin/kics.tar.gz \
  && tar -xvf /usr/local/bin/kics.tar.gz -C /usr/local/bin/ kics \
  && rm -f /usr/local/bin/kics.tar.gz \

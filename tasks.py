@@ -222,6 +222,9 @@ def build_and_tag(
         buildargs = copy.deepcopy(
             constants.CONTEXT[tool][environment]["buildargs_base"]
         )
+
+        # Needed for the base of Dockerfiles for {tool}-{environment} combos
+        buildargs["EASY_INFRA_TAG_TOOL_ONLY"] = constants.CONTEXT[tool]["versioned_tag"]
     else:
         versioned_tag = constants.CONTEXT[tool]["versioned_tag"]
         latest_tag = constants.CONTEXT[tool]["latest_tag"]

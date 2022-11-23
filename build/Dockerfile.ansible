@@ -4,6 +4,8 @@ FROM seiso/easy_infra_base:"${EASY_INFRA_TAG}" AS ansible
 
 ARG ANSIBLE_VERSION
 ENV ANSIBLE_VERSION="${ANSIBLE_VERSION}"
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 USER root
 RUN apt-get update \
  && apt-get -y install --no-install-recommends ansible=${ANSIBLE_VERSION} \

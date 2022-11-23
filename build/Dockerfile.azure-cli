@@ -4,6 +4,7 @@ FROM seiso/easy_infra_base:"${EASY_INFRA_TAG}" AS azure-cli
 
 ARG AZURE_CLI_VERSION
 ENV AZURE_CLI_VERSION="${AZURE_CLI_VERSION}"
+
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 USER root
 # hadolint ignore=DL3008
@@ -26,5 +27,4 @@ RUN apt-get update \
  && apt-get update \
  && apt-get -y install --no-install-recommends azure-cli=${AZURE_CLI_VERSION} \
  && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/cache/debconf/*-old
-
 USER easy_infra
