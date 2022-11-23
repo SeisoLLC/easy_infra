@@ -106,9 +106,10 @@ def gather_tools_and_environments(
 def filter_config(*, config: str, tools: list[str]) -> dict:
     """Take in a configuration, filter it based on the provided tool, and return the result"""
     filtered_config = {}
+    filtered_config["commands"] = {}
 
     for tool in tools:
-        filtered_config[tool] = copy.deepcopy(config["commands"][tool])
+        filtered_config["commands"][tool] = copy.deepcopy(config["commands"][tool])
 
     LOG.debug(f"Returning a filtered config of {filtered_config}")
 
@@ -323,6 +324,7 @@ def build_and_tag(
         # Warm up the cache
         pull_image(image_and_tag=image_and_latest_tag)
 
+        LOG.info(f"Building {image_and_versioned_tag}...")
         image_tuple = CLIENT.images.build(
             buildargs=buildargs,
             cache_from=[image_and_latest_tag],
