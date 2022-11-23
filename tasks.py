@@ -224,7 +224,8 @@ def build_and_tag(
         )
 
         # Needed for the base of Dockerfiles for {tool}-{environment} combos
-        buildargs["EASY_INFRA_TAG_TOOL_ONLY"] = constants.CONTEXT[tool]["versioned_tag"]
+        easy_infra_tag_tool_only = constants.CONTEXT[tool]["versioned_tag"]
+        buildargs["EASY_INFRA_TAG_TOOL_ONLY"] = easy_infra_tag_tool_only
     else:
         versioned_tag = constants.CONTEXT[tool]["versioned_tag"]
         latest_tag = constants.CONTEXT[tool]["latest_tag"]
@@ -235,6 +236,8 @@ def build_and_tag(
 
     image_and_versioned_tag = f"{constants.IMAGE}:{versioned_tag}"
     image_and_latest_tag = f"{constants.IMAGE}:{latest_tag}"
+    # Default; will be updated later if there are tool-env Dockerfile/frags
+    tool_env_exists = False
 
     LOG.debug(
         f"Running build_and_tag for {image_and_versioned_tag} and {trace=} using {versioned_tag=}, {latest_tag=}, {buildargs=}"
@@ -245,6 +248,29 @@ def build_and_tag(
     config["versioned_tag"] = versioned_tag
     config["dockerfile_base"] = constants.BUILD.joinpath("Dockerfile.base").read_text(
         encoding="UTF-8"
+    )
+
+    # First, build the easy_infra_base so it doesn't attempt to look for the image in docker hub
+    LOG.debug(
+        f"Rendering {constants.DOCKERFILE_INPUT_FILE} to build seiso/easy_infra_base for {tool=} and {environment=}"
+    )
+    utils.render_jinja2(
+        template_file=constants.DOCKERFILE_INPUT_FILE,
+        config=config,
+        output_file=constants.DOCKERFILE_OUTPUT_FILE,
+    )
+
+    base_image_and_versioned_tag = f"seiso/easy_infra_base:{versioned_tag}"
+    LOG.info(f"Building {base_image_and_versioned_tag}...")
+    CLIENT.images.build(
+        buildargs=buildargs,
+        dockerfile="Dockerfile.base",
+        path=str(constants.BUILD),
+        platform=PLATFORM,
+        pull=True,
+        rm=True,
+        tag=base_image_and_versioned_tag,
+        target="base",
     )
 
     # Required Dockerfile/frag combos
@@ -289,6 +315,7 @@ def build_and_tag(
 
             # Optional Dockerfiles
             if constants.BUILD.joinpath(f"Dockerfile.{tool}-{environment}").exists():
+                tool_env_exists = True
                 config["dockerfile_tool_envs"].append(
                     constants.BUILD.joinpath(
                         f"Dockerfile.{tool}-{environment}"
@@ -315,7 +342,7 @@ def build_and_tag(
         )
 
     LOG.debug(
-        f"Rendering {constants.DOCKERFILE_INPUT_FILE} for {tool=} and {environment=}"
+        f"Rendering {constants.DOCKERFILE_INPUT_FILE} to build seiso/easy_infra for {tool=} and {environment=}"
     )
     utils.render_jinja2(
         template_file=constants.DOCKERFILE_INPUT_FILE,
@@ -323,19 +350,18 @@ def build_and_tag(
         output_file=constants.DOCKERFILE_OUTPUT_FILE,
     )
 
-    # Required so it doesn't attempt to look for the image in docker hub
-    base_image_and_versioned_tag = f"seiso/easy_infra_base:{versioned_tag}"
-    LOG.info(f"Building {base_image_and_versioned_tag}...")
-    CLIENT.images.build(
-        buildargs=buildargs,
-        dockerfile="Dockerfile.base",
-        path=str(constants.BUILD),
-        platform=PLATFORM,
-        pull=True,
-        rm=True,
-        tag=base_image_and_versioned_tag,
-        target="base",
-    )
+    if tool_env_exists:
+        # Required so it doesn't attempt to look for the image in docker hub
+        tool_image_and_versioned_tag = f"seiso/easy_infra:{easy_infra_tag_tool_only}"
+        LOG.info(f"Building {tool_image_and_versioned_tag}...")
+        CLIENT.images.build(
+            buildargs=buildargs,
+            dockerfile=f"Dockerfile.{tool}",
+            path=str(constants.BUILD),
+            platform=PLATFORM,
+            rm=True,
+            tag=tool_image_and_versioned_tag,
+        )
 
     try:
         # Warm up the cache
