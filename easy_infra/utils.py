@@ -24,7 +24,6 @@ def render_jinja2(
     output_mode: Optional[int] = None,
 ) -> None:
     """Render the functions file"""
-    LOG.debug(f"Rendering {template_file} into {output_file}...")
     folder = str(template_file.parent)
     file = str(template_file.name)
     LOG.info(f"Rendering {file}...")

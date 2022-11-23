@@ -177,8 +177,22 @@ Version Argument
 ``version_argument`` is a way for us to describe how a command requests its version inside of ``easy_infra``. This is useful to know because we avoid running
 security scans (and validation, if any is specified) when the version of a tool is being queried inside of an ``easy_infra`` container.
 
+build/
+======
+
+``Dockerfile``s must all be able to be built independently, as long as their pre-requisites are met. Typically this means you pass in the appropriate
+``*_VERSION`` build arguments, and you pass in an ``EASY_INFRA_TAG`` build argument that maps to a seiso/easy_infra_base tag locally. For example,
+a command like the following should work when run from the ``build`` directory if seiso/easy_infra_base:2022.11.06-terraform-943a052 is available
+locally::
+
+    docker build -t ansible-test --build-arg ANSIBLE_VERSION=2.9.6+dfsg-1 --build-arg EASY_INFRA_TAG=2022.11.06-terraform-943a052 . -f
+    Dockerfile.ansible
+
+``Dockerfrag``s cannot be built individually and are only fragments of an image specification. They are meant to be layered on top of their respective
+``Dockerfile``.
+
 /functions and functions.j2
-===========================
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ``functions.j2`` is a Jinja2 template, which is rendered into a ``functions`` script, and then copied into each ``easy_infra`` image at build time.
 This all works based on the combination of this ``/functions`` file existing inside of the container, commands being run from within a shell (whether

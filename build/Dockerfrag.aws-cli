@@ -1,4 +1,10 @@
 COPY --from=aws-cli --chown=easy_infra:easy_infra /usr/local/aws-cli/ /usr/local/aws-cli/
-COPY --from=aws-cli --chown=easy_infra:easy_infra /aws-cli-bin/ /usr/local/bin/
+COPY --from=aws-cli --chown=easy_infra:easy_infra /aws-cli-bin/ /aws-cli-bin/
+
 ARG AWS_CLI_VERSION
 ENV AWS_CLI_VERSION="${AWS_CLI_VERSION}"
+
+USER root
+RUN echo 'complete -C /usr/local/bin/aws_completer aws' >> /home/easy_infra/.bashrc \
+ && ln -sf /aws-cli-bin/* /usr/local/bin/
+USER easy_infra

@@ -116,9 +116,8 @@ def filter_config(*, config: str, tools: list[str]) -> dict:
     return filtered_config
 
 
-def setup_buildargs(*, tool: str, trace: bool) -> dict:
+def setup_buildargs(*, tool: str, environment: str | None = None, trace: bool) -> dict:
     """Setup the buildargs for the provided tool"""
-    LOG.debug("Running setup_buildargs...")
     buildargs = {}
 
     if trace:
@@ -165,6 +164,17 @@ def setup_buildargs(*, tool: str, trace: bool) -> dict:
                 LOG.error(f"Unable to identify the version of {command}")
                 sys.exit(1)
 
+    # Finally, add in buildargs for the related environment
+    if environment:
+        for command in constants.CONFIG["environments"][environment]["commands"]:
+            if "version" in constants.CONFIG["commands"][command]:
+                # Normalize and add to buildargs
+                arg = command.upper().replace("-", "_") + "_VERSION"
+                buildargs[arg] = constants.CONFIG["commands"][command]["version"]
+            else:
+                LOG.error(f"Unable to identify the version of {command}")
+                sys.exit(1)
+
     return buildargs
 
 
@@ -194,7 +204,7 @@ def pull_image(*, image_and_tag: str, platform: str = PLATFORM) -> None:
 
 
 def build_and_tag(
-    *, tool: str, environment: Union[str, None] = None, trace: bool = False
+    *, tool: str, environment: str | None = None, trace: bool = False
 ) -> None:
     """Build the provided image and tag it with the provided list of tags"""
     # Input validation
@@ -218,7 +228,7 @@ def build_and_tag(
         buildargs = copy.deepcopy(constants.CONTEXT[tool]["buildargs_base"])
 
     # Layers the setup_buildargs on top of the base buildargs from the CONTEXT
-    buildargs.update(setup_buildargs(tool=tool, trace=trace))
+    buildargs.update(setup_buildargs(tool=tool, environment=environment, trace=trace))
 
     image_and_versioned_tag = f"{constants.IMAGE}:{versioned_tag}"
     image_and_latest_tag = f"{constants.IMAGE}:{latest_tag}"
@@ -301,6 +311,9 @@ def build_and_tag(
             "The environment was not set (or not set properly); not requiring the related Dockerfile/frag"
         )
 
+    LOG.debug(
+        f"Rendering {constants.DOCKERFILE_INPUT_FILE} for {tool=} and {environment=}"
+    )
     utils.render_jinja2(
         template_file=constants.DOCKERFILE_INPUT_FILE,
         config=config,
@@ -486,8 +499,9 @@ def build(_c, tool="all", environment="all", trace=False, debug=False):
 
         # TODO: Figure out how to handle -large, somewhere in this function?
 
-        # Build and Tag the tool-only tag
-        build_and_tag(tool=tool)
+        if environment not in constants.ENVIRONMENTS:
+            # Build and Tag the tool-only tag
+            build_and_tag(tool=tool, trace=trace)
 
         # Build and Tag the tool + environment tags
         for environment in tools_to_environments[tool]["environments"]:

@@ -1,0 +1,34 @@
+ARG EASY_INFRA_TAG
+
+FROM seiso/easy_infra_base:"${EASY_INFRA_TAG}" AS tfenv
+
+ARG BUILDARCH
+ARG TERRAFORM_VERSION
+ENV TERRAFORM_VERSION="${TERRAFORM_VERSION}"
+ARG TERRATAG_VERSION
+ENV TERRATAG_VERSION="${TERRATAG_VERSION}"
+ARG TFENV_VERSION
+ENV TFENV_VERSION="${TFENV_VERSION}"
+USER root
+# Dockerfile only
+RUN curl -L https://github.com/env0/terratag/releases/download/${TERRATAG_VERSION}/terratag_${TERRATAG_VERSION#v}_linux_${BUILDARCH}.tar.gz -o /usr/local/bin/terratag.tar.gz \
+ && tar -xvf /usr/local/bin/terratag.tar.gz -C /usr/local/bin/ terratag \
+ && rm -f /usr/local/bin/terratag.tar.gz \
+ && chmod 0755 /usr/local/bin/terratag \
+ && chown root: /usr/local/bin/terratag \
+ && apt-get update \
+ # unzip is required for tfenv now and at runtime
+ && apt-get install -y --no-install-recommends unzip \
+ && su easy_infra -c "git clone https://github.com/tfutils/tfenv.git /home/easy_infra/.tfenv --depth 1 --branch ${TFENV_VERSION}" \
+ && rm -rf /home/easy_infra/.tfenv/.git \
+ && su easy_infra -c "mkdir -p /home/easy_infra/.terraform.d/plugin-cache" \
+ && mkdir -p /home/easy_infra/.terraform.d/plugin-cache \
+ && mkdir -p /home/easy_infra/.local/bin/ \
+ && ln -s /home/easy_infra/.tfenv/bin/* /home/easy_infra/.local/bin \
+ && su - easy_infra -c "tfenv install ${TERRAFORM_VERSION}" \
+ && su - easy_infra -c "tfenv use ${TERRAFORM_VERSION}" \
+ && terraform -install-autocomplete \
+ && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/cache/debconf/*-old
+USER easy_infra
+
+COPY --chown=easy_infra:easy_infra .terraformrc /home/easy_infra/

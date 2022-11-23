@@ -12,7 +12,7 @@ RUN apt-get update \
  && apt-get -y install --no-install-recommends python3 \
                                                python3-pip \
  && apt-get -y upgrade \
- && rm -rf /var/lib/apt/lists/* \
+ && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/cache/debconf/*-old \
  && python3 -m pip install --upgrade --no-cache-dir pip \
  && su - easy_infra -c "pip install --user --no-cache-dir checkov==${CHECKOV_VERSION}" \
  && mkdir -p "${CHECKOV_JSON_REPORT_PATH}"

@@ -1,0 +1,5 @@
+ARG EASY_INFRA_TAG
+
+FROM seiso/easy_infra:"${EASY_INFRA_TAG}" AS ansible-aws
+
+RUN ansible-galaxy collection install amazon.aws
