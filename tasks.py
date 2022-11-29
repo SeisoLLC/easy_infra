@@ -566,23 +566,49 @@ def build(_c, tool="all", environment="all", trace=False, debug=False):
 
 
 @task
-def sbom(_c, stage="all", debug=False):
+def sbom(_c, tool="all", environment="all", debug=False):
     """Generate an SBOM"""
     if debug:
         getLogger().setLevel("DEBUG")
 
-    # TODO: Fix
-    variants = process_stages(stage=stage)
+    tools_to_environments = utils.gather_tools_and_environments(
+        tool=tool, environment=environment
+    )
 
-    for variant in variants:
-        latest_tag = constants.CONTEXT[variant]["buildargs"]["EASY_INFRA_VERSION"]
-        image_and_tag = f"{constants.IMAGE}:{latest_tag}"
+    # pylint: disable=redefined-argument-from-local
+    for tool in tools_to_environments:
+        versioned_tags = []
+        latest_tags = []
+        image_and_versioned_tags = []
+        image_and_latest_tags = []
+        if not (environments := tools_to_environments[tool]["environments"]):
+            versioned_tags.append(constants.CONTEXT[tool]["versioned_tag"])
+            latest_tags.append(constants.CONTEXT[tool]["latest_tag"])
+            image_and_versioned_tags.append(f"{constants.IMAGE}:{versioned_tag}")
+            image_and_latest_tags.append(f"{constants.IMAGE}:{latest_tag}")
+        else:
+            for environment in environments:
+                versioned_tags.append(
+                    constants.CONTEXT[tool][environment]["versioned_tag"]
+                )
+                latest_tags.append(constants.CONTEXT[tool][environment]["latest_tag"])
+
+            for versioned_tag in versioned_tags:
+                image_and_versioned_tags.append(f"{constants.IMAGE}:{versioned_tag}")
+
+            for latest_tag in latest_tags:
+                image_and_latest_tags.append(f"{constants.IMAGE}:{latest_tag}")
 
         try:
-            artifact_labels = utils.get_artifact_labels(variant=variant)
+            # the latest tag must be last; this interleaves the versioned and latest lists. it assumes the image and tag lists are the same length
+            artifact_labels = [
+                item
+                for pair in zip(image_and_versioned_tags, image_and_latest_tags)
+                for item in pair
+            ]
 
             for iteration, label in enumerate(artifact_labels):
-                if iteration > 0:
+                if iteration % 2 == 1:  # True when iteration is odd
                     prior_label = artifact_labels[iteration - 1]
                     prior_file_name = f"sbom.{prior_label}.json"
                 file_name = f"sbom.{label}.json"
