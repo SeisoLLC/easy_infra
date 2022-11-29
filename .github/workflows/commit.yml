@@ -54,7 +54,7 @@ jobs:
             print("tools=" + json.dumps(list(constants.TOOLS)))' >> "${GITHUB_OUTPUT}"
           pipenv run python -c \
             'from easy_infra import constants; import json; \
-            print("environments=" + json.dumps(list(constants.ENVIRONMENTS)))' >> "${GITHUB_OUTPUT}"
+            print("environments=" + json.dumps(list(constants.ENVIRONMENTS) + "none"))' >> "${GITHUB_OUTPUT}"
   test:
     name: Test
     needs: [generate-matrix]
