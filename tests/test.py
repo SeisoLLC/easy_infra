@@ -3,6 +3,7 @@
 Test Functions
 """
 
+import ast
 import copy
 import subprocess
 import sys
@@ -229,7 +230,30 @@ def exec_tests(
     return num_tests_ran
 
 
-def run_terraform(*, image: str, final: bool = False):
+def run_tests(*, image: str, tool: str, environment: str | None) -> None:
+    """Fanout function to run the appropriate tests"""
+    # TODO: Fix final=True for run_terraform
+    # TODO: Fix run_security variant=
+    # TODO: When do we do run_path_check, version_arguments, or run_cli?
+    #  run_test.run_path_check(image=image_and_tag)
+    #  run_test.version_arguments(
+    #      image=image_and_tag,
+    #      volumes=default_volumes,
+    #      working_dir=default_working_dir,
+    #  )
+    tool_test_function = f"run_{tool}"
+    ast.literal_eval(tool_test_function(image=image))
+
+    if environment:
+        environment_test_function = f"run_{environment}"
+        # TODO: Consider how we may want to test {tool}-{environment} features specially; right now it is environment-only testing
+        ast.literal_eval(environment_test_function(image=image))
+
+    # Always run the security checks
+    run_security(image=image)
+
+
+def run_terraform(*, image: str, final: bool = False) -> None:
     """Run the terraform tests"""
     num_tests_ran = 0
     working_dir = "/iac/"
@@ -951,7 +975,7 @@ def run_terraform(*, image: str, final: bool = False):
         return
 
 
-def run_ansible(*, image: str):
+def run_ansible(*, image: str) -> None:
     """Run the ansible-playbook tests"""
     num_tests_ran = 0
     working_dir = "/iac/"
@@ -1162,7 +1186,7 @@ def run_ansible(*, image: str):
     LOG.info("%s passed %d end to end ansible-playbook tests", image, num_tests_ran)
 
 
-def run_azure_stage(*, image: str):
+def run_azure(*, image: str) -> None:
     """Run the azure tests"""
     num_tests_ran = 0
 
@@ -1179,7 +1203,7 @@ def run_azure_stage(*, image: str):
     LOG.info("%s passed %d integration tests", image, num_tests_ran)
 
 
-def run_aws_stage(*, image: str):
+def run_aws(*, image: str) -> None:
     """Run the aws tests"""
     num_tests_ran = 0
 
@@ -1196,7 +1220,7 @@ def run_aws_stage(*, image: str):
     LOG.info("%s passed %d integration tests", image, num_tests_ran)
 
 
-def run_cli(*, image: str):
+def run_cli(*, image: str) -> None:
     """Run basic cli tests"""
     num_tests_ran = 0
 
@@ -1213,19 +1237,16 @@ def run_cli(*, image: str):
     LOG.info("%s passed %d integration tests", image, num_tests_ran)
 
 
-def run_security(*, image: str, variant: str):
+def run_security(*, tag: str) -> None:
     """Run the security tests"""
-    artifact_labels = utils.get_artifact_labels(variant=variant)
-    # This assumes that the last element in the list is versioned, if it is a release
-    label = artifact_labels[-1]
-    sbom_file = Path(f"sbom.{label}.json")
+    sbom_file = Path(f"sbom.{tag}.json")
 
     if not sbom_file:
         LOG.error(
-            f"{sbom_file} was not found; security scans require an SBOM. Please run `pipenv run invoke sbom`"
+            f"{sbom_file} was not found; security scans require an SBOM. Please run `pipenv run invoke sbom -h`"
         )
 
-    # Run a vulnerability scan on the provided SBOM (derived from variant)
+    # Run a vulnerability scan on the provided SBOM
     try:
         LOG.info(f"Running a vulnerability scan on {sbom_file}...")
         subprocess.run(
@@ -1235,7 +1256,7 @@ def run_security(*, image: str, variant: str):
                 "--output",
                 "json",
                 "--file",
-                f"vulns.{label}.json",
+                f"vulns.{tag}.json",
             ],
             capture_output=True,
             check=True,
@@ -1246,4 +1267,5 @@ def run_security(*, image: str, variant: str):
         )
         sys.exit(1)
 
-    LOG.info("%s passed the security tests", image)
+    image_and_tag = f"{constants.IMAGE}:{tag}"
+    LOG.info(f"{image_and_tag} passed the security tests")

@@ -4,12 +4,11 @@ from pathlib import Path
 from typing import Any, Optional, Union
 
 import docker
-import git
 import requests
 from jinja2 import Environment, FileSystemLoader
 from yaml import YAMLError, dump, safe_load
 
-from easy_infra import __project_name__, __version__
+from easy_infra import __project_name__
 
 LOG = getLogger(__name__)
 CLIENT = docker.from_env()

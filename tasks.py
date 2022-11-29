@@ -13,7 +13,7 @@ import sys
 from datetime import datetime
 from logging import DEBUG, basicConfig, getLogger
 from pathlib import Path
-from typing import Any, Union
+from typing import Union
 
 import docker
 import requests
@@ -579,51 +579,43 @@ def sbom(_c, tool="all", environment="all", debug=False):
     for tool in tools_to_environments:
         versioned_tags = []
         latest_tags = []
-        image_and_versioned_tags = []
-        image_and_latest_tags = []
-        if not (environments := tools_to_environments[tool]["environments"]):
-            versioned_tags.append(constants.CONTEXT[tool]["versioned_tag"])
-            latest_tags.append(constants.CONTEXT[tool]["latest_tag"])
-            image_and_versioned_tags.append(f"{constants.IMAGE}:{versioned_tag}")
-            image_and_latest_tags.append(f"{constants.IMAGE}:{latest_tag}")
-        else:
-            for environment in environments:
-                versioned_tags.append(
-                    constants.CONTEXT[tool][environment]["versioned_tag"]
-                )
-                latest_tags.append(constants.CONTEXT[tool][environment]["latest_tag"])
 
-            for versioned_tag in versioned_tags:
-                image_and_versioned_tags.append(f"{constants.IMAGE}:{versioned_tag}")
+        # Generate sboms for the tool-only tags only when a single environment isn't provided
+        if environment not in constants.ENVIRONMENTS:
+            versioned_tags = [constants.CONTEXT[tool]["versioned_tag"]]
+            latest_tags = [constants.CONTEXT[tool]["latest_tag"]]
 
-            for latest_tag in latest_tags:
-                image_and_latest_tags.append(f"{constants.IMAGE}:{latest_tag}")
+        if environments := tools_to_environments[tool]["environments"]:
+            for env in environments:
+                versioned_tags.append(constants.CONTEXT[tool][env]["versioned_tag"])
+                latest_tags.append(constants.CONTEXT[tool][env]["latest_tag"])
 
         try:
             # the latest tag must be last; this interleaves the versioned and latest lists. it assumes the image and tag lists are the same length
-            artifact_labels = [
-                item
-                for pair in zip(image_and_versioned_tags, image_and_latest_tags)
-                for item in pair
+            artifact_tags = [
+                item for pair in zip(versioned_tags, latest_tags) for item in pair
             ]
 
-            for iteration, label in enumerate(artifact_labels):
-                if iteration % 2 == 1:  # True when iteration is odd
-                    prior_label = artifact_labels[iteration - 1]
-                    prior_file_name = f"sbom.{prior_label}.json"
-                file_name = f"sbom.{label}.json"
+            for iteration, tag in enumerate(artifact_tags):
+                if (
+                    iteration % 2 == 1
+                ):  # True when iteration is odd (should be the latest tag)
+                    prior_tag = artifact_tags[iteration - 1]
+                    prior_file_name = f"sbom.{prior_tag}.json"
+                file_name = f"sbom.{tag}.json"
 
                 if Path(file_name).is_file() and Path(file_name).stat().st_size > 0:
                     LOG.info(f"Skipping {file_name} because it already exists...")
                     continue
 
-                if iteration > 0:
+                if iteration % 2 == 1:  # Again, latest tag
                     LOG.info(
                         f"Copying {prior_file_name} into {file_name} since they are the same..."
                     )
                     shutil.copy(prior_file_name, file_name)
                     continue
 
+                image_and_tag = f"{constants.IMAGE}:{tag}"
                 LOG.info(f"Generating {file_name} from {image_and_tag}...")
                 subprocess.run(
                     [
@@ -645,71 +637,80 @@ def sbom(_c, tool="all", environment="all", debug=False):
 
 
 @task
-def test(_c, stage="all", debug=False):
+def test(_c, tool="all", environment="all", debug=False):
     """Test easy_infra"""
     if debug:
         getLogger().setLevel("DEBUG")
 
     default_working_dir = "/iac/"
     tests_path = constants.CWD.joinpath("tests")
+    # TODO: Previously used for version_argument; do we need to pass into run_test.run_tests?
     default_volumes = {tests_path: {"bind": default_working_dir, "mode": "ro"}}
 
-    # TODO: Fix
-    variants = process_stages(stage=stage)
+    tools_to_environments = utils.gather_tools_and_environments(
+        tool=tool, environment=environment
+    )
 
-    # TODO: Replace variants with tool, security_tool, and/or environment, refactor downstream
-    for variant in variants:
-        # Only test using the current, versioned tag of each variant
-        versioned_tag = constants.CONTEXT[variant]["buildargs"]["EASY_INFRA_VERSION"]
-        image_and_tag = f"{constants.IMAGE}:{versioned_tag}"
-
-        LOG.info(f"Testing {image_and_tag} for platform {PLATFORM}...")
-        if variant == "minimal":
-            run_test.run_terraform(image=image_and_tag)
-            run_test.run_ansible(image=image_and_tag)
-            run_test.run_security(image=image_and_tag, variant=variant)
-        elif variant == "azure":
-            run_test.run_azure_stage(image=image_and_tag)
-            run_test.run_terraform(image=image_and_tag)
-            run_test.run_ansible(image=image_and_tag)
-            run_test.run_security(image=image_and_tag, variant=variant)
-        elif variant == "aws":
-            run_test.run_aws_stage(image=image_and_tag)
-            run_test.run_terraform(image=image_and_tag)
-            run_test.run_ansible(image=image_and_tag)
-            run_test.run_security(image=image_and_tag, variant=variant)
-        elif variant == "final":
-            run_test.run_path_check(image=image_and_tag)
-            run_test.version_arguments(
-                image=image_and_tag,
-                volumes=default_volumes,
-                working_dir=default_working_dir,
-            )
-            run_test.run_terraform(image=image_and_tag, final=True)
-            run_test.run_ansible(image=image_and_tag)
-            run_test.run_cli(image=image_and_tag)
-            run_test.run_security(image=image_and_tag, variant=variant)
+    # pylint: disable=redefined-argument-from-local
+    for tool in tools_to_environments:
+        versioned_tags = []
+        image_and_versioned_tags = []
+        if not (environments := tools_to_environments[tool]["environments"]):
+            versioned_tags.append(constants.CONTEXT[tool]["versioned_tag"])
+            environment = None
         else:
-            LOG.error(f"Untested stage of {variant}")
+            for environment in environments:
+                versioned_tags.append(
+                    constants.CONTEXT[tool][environment]["versioned_tag"]
+                )
+
+        for versioned_tag in versioned_tags:
+            image_and_versioned_tags.append(f"{constants.IMAGE}:{versioned_tag}")
+
+    # Only test using the versioned tag
+    for image_and_versioned_tag in image_and_versioned_tags:
+        LOG.info(f"Testing {image_and_versioned_tag} for platform {PLATFORM}...")
+        run_test.run_tests(
+            image=image_and_versioned_tag, tool=tool, environment=environment
+        )
 
 
 @task
-def vulnscan(_c, stage="all", debug=False):
+def vulnscan(_c, tool="all", environment="all", debug=False):
     """Scan easy_infra for vulns"""
     if debug:
         getLogger().setLevel("DEBUG")
 
-    # TODO: Fix
-    variants = process_stages(stage=stage)
+    tools_to_environments = utils.gather_tools_and_environments(
+        tool=tool, environment=environment
+    )
 
-    for variant in variants:
-        latest_tag = constants.CONTEXT[variant]["latest_tag"]
-        image_and_tag = f"{constants.IMAGE}:{latest_tag}"
+    artifact_tags = []
 
-        LOG.debug(
-            f"Running run_test.run_security(image={image_and_tag}, variant={variant})..."
-        )
-        run_test.run_security(image=image_and_tag, variant=variant)
+    # pylint: disable=redefined-argument-from-local
+    for tool in tools_to_environments:
+        versioned_tags = []
+        latest_tags = []
+
+        # Run vuln scans for the tool-only tags only when a single environment isn't provided
+        if environment not in constants.ENVIRONMENTS:
+            versioned_tags.append(constants.CONTEXT[tool]["versioned_tag"])
+            latest_tags.append(constants.CONTEXT[tool]["latest_tag"])
+
+        if environments := tools_to_environments[tool]["environments"]:
+            for env in environments:
+                versioned_tags.append(
+                    constants.CONTEXT[tool][env]["versioned_tag"]
+                )
+                latest_tags.append(constants.CONTEXT[tool][env]["latest_tag"])
+
+        # this list comprehension interleaves the versioned and latest lists. it assumes the image and tag lists are the same length
+        artifact_tags += [
+            item for pair in zip(versioned_tags, latest_tags) for item in pair
+        ]
+
+    for tag in artifact_tags:
+        run_test.run_security(tag=tag)
 
 
 @task
@@ -746,7 +747,7 @@ def release(_c, debug=False):
 
 
 @task
-def publish(_c, tag, stage="all", debug=False):
+def publish(_c, tag, tool="all", environment="all", debug=False):
     """Publish easy_infra"""
     if debug:
         getLogger().setLevel("DEBUG")

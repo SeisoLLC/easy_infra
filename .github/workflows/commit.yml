@@ -24,7 +24,7 @@ jobs:
           exclude: (.*tests/(ansible|terraform)/.*|.*Dockerfile\.j2$)
           disable_mypy: true
   generate-matrix:
-    name: Gather Project Tools and Environments
+    name: Gather Tools and Environments
     runs-on: ubuntu-20.04
     outputs:
       tools: ${{ steps.set-outputs.outputs.tools }}
@@ -94,7 +94,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: SBOM - ${{ matrix.tool }} ${{ matrix.environment }}
-          path: sbom.${{ matrix.tool }}.${{ matrix.environment }}.*.json
+          path: sbom.*.json
           if-no-files-found: error
       - name: Generate Vuln scan results
         run: pipenv run invoke vulnscan --tool=${{ matrix.tool }} --environment=${{ matrix.environment }}
@@ -102,7 +102,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: Vulns - ${{ matrix.tool }} ${{ matrix.environment }}
-          path: vulns.${{ matrix.tool }}.${{ matrix.environment }}.*.json
+          path: vulns.*.json
           if-no-files-found: error
       - name: Run tests
         run: |

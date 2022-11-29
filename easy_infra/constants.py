@@ -61,7 +61,6 @@ GITHUB_REPOS_TAGS = {"aws/aws-cli"}
 PYTHON_PACKAGES = {"checkov"}
 HASHICORP_PROJECTS = {"terraform"}
 
-# TODO: Fix typing hinting
 CONTEXT: dict[str, dict[str, Union[str, dict[str, Union[str, bool]]]]] = {}
 CONTEXT["buildargs_base"] = {"COMMIT_HASH": COMMIT_HASH}
 if (
@@ -81,17 +80,18 @@ for tool in TOOLS:
     CONTEXT[tool] = {}
     # Layer the tool-specific buildargs_base on top of the base buildargs_base
     CONTEXT[tool]["buildargs_base"] = copy.deepcopy(CONTEXT["buildargs_base"])
-    CONTEXT[tool]["latest_tag"] = f"latest-{tool}"
 
     # EASY_INFRA_TAG is a versioned tag which gets passed in at build time to populate an OCI annotation
     if RELEASE:
         CONTEXT[tool]["buildargs_base"]["EASY_INFRA_TAG"] = f"{__version__}-{tool}"
         CONTEXT[tool]["versioned_tag"] = f"{__version__}-{tool}"
+        CONTEXT[tool]["latest_tag"] = f"latest-{tool}"
     else:
         CONTEXT[tool]["buildargs_base"][
             "EASY_INFRA_TAG"
         ] = f"{__version__}-{tool}-{COMMIT_HASH_SHORT}"
         CONTEXT[tool]["versioned_tag"] = f"{__version__}-{tool}-{COMMIT_HASH_SHORT}"
+        CONTEXT[tool]["latest_tag"] = f"latest-{tool}-{COMMIT_HASH_SHORT}"
 
     for environment in ENVIRONMENTS:
         CONTEXT[tool][environment] = {}
