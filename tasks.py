@@ -11,7 +11,7 @@ import shutil
 import subprocess
 import sys
 from datetime import datetime
-from logging import basicConfig, getLogger
+from logging import DEBUG, basicConfig, getLogger
 from pathlib import Path
 from typing import Any, Union
 
@@ -70,37 +70,6 @@ def log_build_log(*, build_err: docker.errors.BuildError) -> None:
                 LOG.error("%s", item)
         except StopIteration:
             finished = True
-
-
-def gather_tools_and_environments(
-    *, tool: str = "all", environment: str
-) -> dict[str, dict[str, list[str]]]:
-    """
-    Returns a dict with a key of the tool, and a value of a list of environments
-    """
-    if tool == "all":
-        tools: Union[set[Any], list[str]] = constants.TOOLS
-    elif tool not in constants.TOOLS:
-        LOG.error(f"{tool} is not a supported tool, exiting...")
-        sys.exit(1)
-    else:
-        tools = [tool]
-
-    if environment == "all":
-        environments = constants.ENVIRONMENTS
-    elif environment == "none":
-        environments = []
-    elif environment not in constants.ENVIRONMENTS:
-        LOG.error(f"{environment} is not a supported environment, exiting...")
-        sys.exit(1)
-    else:
-        environments = [environment]
-
-    image_and_tool_and_environment_tags = {}
-    for tool in tools:
-        image_and_tool_and_environment_tags[tool] = {"environments": environments}
-
-    return image_and_tool_and_environment_tags
 
 
 def filter_config(*, config: str, tools: list[str]) -> dict:
@@ -203,6 +172,61 @@ def pull_image(*, image_and_tag: str, platform: str = PLATFORM) -> None:
         )
 
 
+def log_image_build(*, build_kwargs: dict) -> None:
+    """Log image build information"""
+    # If we aren't running at least in debug we can just drop an info log and return
+    if not LOG.isEnabledFor(DEBUG):
+        LOG.info(f"Building {build_kwargs['tag']}...")
+        return
+
+    # Build out a CLI command that we can use when troubleshooting issues with the Python build process
+
+    # Required: buildargs, dockerfile, path, platform (may be None), rm (may be False), tag, target
+    # Optional: cache_from (list), pull (may be False)
+
+    # Defaults for the optional items
+    pull = False
+    cache_from = ""
+    for key in build_kwargs:
+        match key:
+            case "buildargs":
+                buildargs = str()
+                for arg in build_kwargs[key]:
+                    buildargs += f"--build-arg {arg}={build_kwargs[key][arg]} "
+            case "dockerfile":
+                dockerfile = f"--file {build_kwargs['path']}/{build_kwargs[key]}"
+            case "path":
+                path = build_kwargs[key]
+            case "platform":
+                if build_kwargs[key]:
+                    platform = f"--platform {build_kwargs[key]}"
+                else:
+                    platform = ""
+            case "pull":
+                if build_kwargs[key]:
+                    pull = True
+            case "rm":
+                if build_kwargs[key]:
+                    rm = "--rm"
+                else:
+                    rm = ""
+            case "tag":
+                tag = f"--tag {build_kwargs[key]}"
+            case "target":
+                target = f"--target {build_kwargs[key]}"
+            case "cache_from":
+                cache_from = str()
+                for image_and_tag in build_kwargs[key]:
+                    cache_from += f"--cache-from {image_and_tag} "
+
+    if pull:
+        LOG.debug(f"Running the equivalent of `docker pull {build_kwargs['tag']}`")
+
+    LOG.debug(
+        f"Running the equivalent of `docker build {rm} {buildargs} {target} {cache_from} {tag} {platform} {dockerfile} {path}`"
+    )
+
+
 def build_and_tag(
     *, tool: str, environment: str | None = None, trace: bool = False
 ) -> None:
@@ -235,7 +259,7 @@ def build_and_tag(
     buildargs.update(setup_buildargs(tool=tool, environment=environment, trace=trace))
 
     image_and_versioned_tag = f"{constants.IMAGE}:{versioned_tag}"
-    image_and_latest_tag = f"{constants.IMAGE}:{latest_tag}"
+    tool_image_and_latest_tag_no_hash = f"{constants.IMAGE}:latest-{tool}"
     # Default; will be updated later if there are tool-env Dockerfile/frags
     tool_env_exists = False
 
@@ -261,17 +285,18 @@ def build_and_tag(
     )
 
     base_image_and_versioned_tag = f"seiso/easy_infra_base:{versioned_tag}"
-    LOG.info(f"Building {base_image_and_versioned_tag}...")
-    CLIENT.images.build(
-        buildargs=buildargs,
-        dockerfile="Dockerfile.base",
-        path=str(constants.BUILD),
-        platform=PLATFORM,
-        pull=True,
-        rm=True,
-        tag=base_image_and_versioned_tag,
-        target="base",
-    )
+    build_kwargs = {
+        "buildargs": buildargs,
+        "dockerfile": "Dockerfile",
+        "path": str(constants.BUILD),
+        "platform": PLATFORM,
+        "pull": True,
+        "rm": True,
+        "tag": base_image_and_versioned_tag,
+        "target": "final",
+    }
+    log_image_build(build_kwargs=build_kwargs)
+    CLIENT.images.build(**build_kwargs)
 
     # Required Dockerfile/frag combos
     try:
@@ -353,31 +378,34 @@ def build_and_tag(
     if tool_env_exists:
         # Required so it doesn't attempt to look for the image in docker hub
         tool_image_and_versioned_tag = f"seiso/easy_infra:{easy_infra_tag_tool_only}"
-        LOG.info(f"Building {tool_image_and_versioned_tag}...")
-        CLIENT.images.build(
-            buildargs=buildargs,
-            dockerfile=f"Dockerfile.{tool}",
-            path=str(constants.BUILD),
-            platform=PLATFORM,
-            rm=True,
-            tag=tool_image_and_versioned_tag,
-        )
+        build_kwargs = {
+            "buildargs": buildargs,
+            "dockerfile": f"Dockerfile.{tool}",
+            "path": str(constants.BUILD),
+            "platform": PLATFORM,
+            "rm": True,
+            "tag": tool_image_and_versioned_tag,
+            "target": tool,
+        }
+        log_image_build(build_kwargs=build_kwargs)
+        CLIENT.images.build(**build_kwargs)
 
     try:
         # Warm up the cache
-        pull_image(image_and_tag=image_and_latest_tag)
+        pull_image(image_and_tag=tool_image_and_latest_tag_no_hash)
 
-        LOG.info(f"Building {image_and_versioned_tag}...")
-        image_tuple = CLIENT.images.build(
-            buildargs=buildargs,
-            cache_from=[image_and_latest_tag],
-            dockerfile="Dockerfile",
-            path=str(constants.BUILD),
-            platform=PLATFORM,
-            rm=True,
-            tag=image_and_versioned_tag,
-            target="final",
-        )
+        build_kwargs = {
+            "buildargs": buildargs,
+            "cache_from": [tool_image_and_latest_tag_no_hash],
+            "dockerfile": "Dockerfile",
+            "path": str(constants.BUILD),
+            "platform": PLATFORM,
+            "rm": True,
+            "tag": image_and_versioned_tag,
+            "target": "final",
+        }
+        log_image_build(build_kwargs=build_kwargs)
+        image_tuple = CLIENT.images.build(**build_kwargs)
         image = image_tuple[0]
     except docker.errors.BuildError as build_err:
         LOG.exception(
@@ -511,7 +539,7 @@ def build(_c, tool="all", environment="all", trace=False, debug=False):
     if debug:
         getLogger().setLevel("DEBUG")
 
-    tools_to_environments = gather_tools_and_environments(
+    tools_to_environments = utils.gather_tools_and_environments(
         tool=tool, environment=environment
     )
 

@@ -1,7 +1,7 @@
 import sys
 from logging import getLogger
 from pathlib import Path
-from typing import Optional, Union
+from typing import Any, Optional, Union
 
 import docker
 import git
@@ -9,7 +9,7 @@ import requests
 from jinja2 import Environment, FileSystemLoader
 from yaml import YAMLError, dump, safe_load
 
-from easy_infra import __version__, constants
+from easy_infra import __project_name__, __version__
 
 LOG = getLogger(__name__)
 CLIENT = docker.from_env()
@@ -66,17 +66,16 @@ def parse_config(*, config_file: Path) -> dict:
     return config
 
 
-def write_config(*, config: dict):
+def write_config(*, config: dict, config_file: Path):
     """Write the easy_infra config file"""
-    with open(constants.CONFIG_FILE, "w") as file:
+    with open(config_file, "w", encoding="utf-8") as file:
         dump(config, file)
 
 
 def get_latest_release_from_apt(*, package: str) -> str:
     """Get the latest release of a project via apt"""
     # TODO: Reassess this
-    # latest-azure is used because it has the Microsoft repo added
-    image = constants.IMAGE + ":latest-azure"
+    image = "seiso/easy_infra:latest"
     CLIENT.images.pull(repository=image)
     release = CLIENT.containers.run(
         image=image,
@@ -125,7 +124,9 @@ def update_config_file(*, thing: str, version: str):
     if isinstance(version, bytes):
         version = version.decode("utf-8").rstrip()
 
-    config = parse_config(config_file=constants.CONFIG_FILE)
+    config_file = Path(f"{__project_name__}.yml").absolute()
+
+    config = parse_config(config_file=config_file)
     allow_update = config["commands"][thing].get("allow_update", True)
     current_version = config["commands"][thing]["version"]
 
@@ -141,7 +142,7 @@ def update_config_file(*, thing: str, version: str):
 
     config["commands"][thing]["version"] = version
     LOG.info(f"Updating {thing} to version {version}")
-    write_config(config=config)
+    write_config(config=config, config_file=config_file)
 
 
 def opinionated_docker_run(
@@ -217,3 +218,36 @@ def get_artifact_labels(*, variant: str) -> list[str]:
         artifact_labels.append(f"{variant}.v{__version__}")
 
     return artifact_labels
+
+
+def gather_tools_and_environments(
+    *, tool: str = "all", environment: str = "all"
+) -> dict[str, dict[str, list[str]]]:
+    """
+    Returns a dict with a key of the tool, and a value of a list of environments
+    """
+    from easy_infra.constants import ENVIRONMENTS, TOOLS
+
+    if tool == "all":
+        tools: Union[set[Any], list[str]] = TOOLS
+    elif tool not in TOOLS:
+        LOG.error(f"{tool} is not a supported tool, exiting...")
+        sys.exit(1)
+    else:
+        tools = [tool]
+
+    if environment == "all":
+        environments = ENVIRONMENTS
+    elif environment == "none":
+        environments = []
+    elif environment not in ENVIRONMENTS:
+        LOG.error(f"{environment} is not a supported environment, exiting...")
+        sys.exit(1)
+    else:
+        environments = [environment]
+
+    image_and_tool_and_environment_tags = {}
+    for tool in tools:
+        image_and_tool_and_environment_tags[tool] = {"environments": environments}
+
+    return image_and_tool_and_environment_tags

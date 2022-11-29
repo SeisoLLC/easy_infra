@@ -23,12 +23,46 @@ jobs:
         with:
           exclude: (.*tests/(ansible|terraform)/.*|.*Dockerfile\.j2$)
           disable_mypy: true
+  generate-matrix:
+    name: Gather Project Tools and Environments
+    runs-on: ubuntu-20.04
+    outputs:
+      tools: ${{ steps.set-outputs.outputs.tools }}
+      environments: ${{ steps.set-outputs.outputs.environments }}
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.python_version }}
+      - uses: actions/cache@v3
+        with:
+          path: ~/.local/share/virtualenvs
+          key: ${{ runner.os }}-python-${{ env.python_version }}-pipenv-${{ hashFiles('Pipfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-python-${{ env.python_version }}-pipenv-
+            ${{ runner.os }}-python-
+      - name: Install the dependencies
+        run: |
+          python -m pip install --upgrade pipenv
+          pipenv install --python ${{ env.python_version }} --deploy --ignore-pipfile --dev
+      - name: Gather the testing and distribution matrix
+        id: set-outputs
+        run: |
+          pipenv run python -c \
+            'from easy_infra import constants; import json; \
+            print("tools=" + json.dumps(list(constants.TOOLS)))' >> "${GITHUB_OUTPUT}"
+          pipenv run python -c \
+            'from easy_infra import constants; import json; \
+            print("environments=" + json.dumps(list(constants.ENVIRONMENTS)))' >> "${GITHUB_OUTPUT}"
   test:
     name: Test
+    needs: [generate-matrix]
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        stage: ["minimal", "aws", "az", "final"]
+        tool: ${{ fromJSON(needs.generate-matrix.outputs.tools) }}
+        environment: ${{ fromJSON(needs.generate-matrix.outputs.environments) }}
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v3
@@ -53,27 +87,27 @@ jobs:
           chmod +x "${RUNNER_TEMP}/bin/grype"
           echo "${RUNNER_TEMP}/bin" >> "${GITHUB_PATH}"
       - name: Build the image
-        run: pipenv run invoke build --stage=${{ matrix.stage }}
+        run: pipenv run invoke build --tool=${{ matrix.tool }} --environment=${{ matrix.environment }}
       - name: Generate the SBOM
-        run: pipenv run invoke sbom --stage=${{ matrix.stage }}
+        run: pipenv run invoke sbom --tool=${{ matrix.tool }} --environment=${{ matrix.environment }}
       - name: Upload the SBOM
         uses: actions/upload-artifact@v3
         with:
-          name: SBOM - ${{ matrix.stage }}
-          path: sbom.${{ matrix.stage }}.*.json
+          name: SBOM - ${{ matrix.tool }} ${{ matrix.environment }}
+          path: sbom.${{ matrix.tool }}.${{ matrix.environment }}.*.json
           if-no-files-found: error
       - name: Generate Vuln scan results
-        run: pipenv run invoke vulnscan --stage=${{ matrix.stage }}
+        run: pipenv run invoke vulnscan --tool=${{ matrix.tool }} --environment=${{ matrix.environment }}
       - name: Upload Vuln scan result
         uses: actions/upload-artifact@v3
         with:
-          name: Vulns - ${{ matrix.stage }}
-          path: vulns.${{ matrix.stage }}.*.json
+          name: Vulns - ${{ matrix.tool }} ${{ matrix.environment }}
+          path: vulns.${{ matrix.tool }}.${{ matrix.environment }}.*.json
           if-no-files-found: error
       - name: Run tests
         run: |
           find tests -mindepth 1 -type d -exec chmod o+w {} \;
-          pipenv run invoke test --stage=${{ matrix.stage }}
+          pipenv run invoke test --tool=${{ matrix.tool }} --environment=${{ matrix.environment }}
   bump-version:
     name: Bump version
     needs: [lint, test]
@@ -187,10 +221,11 @@ jobs:
           repository: seiso/easy_infra
   distribute:
     name: Distribute
-    needs: [bump-version, cut-release]
+    needs: [generate-matrix, bump-version, cut-release]
     strategy:
       matrix:
-        stage: ["minimal", "aws", "az", "final"]
+        tool: ${{ fromJSON(needs.generate-matrix.outputs.tools) }}
+        environment: ${{ fromJSON(needs.generate-matrix.outputs.environments) }}
     if: github.event_name == 'push'
     environment: "${{ needs.bump-version.outputs.tag }}"
     runs-on: ubuntu-20.04
@@ -215,20 +250,21 @@ jobs:
           python -m pip install --upgrade pipenv
           pipenv install --python ${{ env.python_version }} --deploy --ignore-pipfile --dev
       - name: Build the image
-        run: pipenv run invoke build --stage=${{ matrix.stage }}
+        run: pipenv run invoke build --tool=${{ matrix.tool }} --environment=${{ matrix.environment }
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Publish the image to Docker Hub
-        run: pipenv run invoke publish main --stage=${{ matrix.stage }}
+        run: pipenv run invoke publish main --tool=${{ matrix.tool }} --environment=${{ matrix.environment }
       - name: Install cosign
         uses: sigstore/cosign-installer@main
       - name: Sign the image
         run: |
+          # TODO: Handle Tool and env, including no env
           version_tag=$(pipenv run python -c "from easy_infra import constants; \
-                                              print(constants.CONTEXT['${STAGE}']['buildargs_base']['EASY_INFRA_VERSION'])")
+                                              print(constants.CONTEXT['${TOOL}']['buildargs_base']['EASY_INFRA_VERSION'])")
           IMAGE_AND_DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' \
                   "seiso/easy_infra:${version_tag}" )
           echo -n "${COSIGN_PASSWORD}" |
@@ -238,4 +274,5 @@ jobs:
             "${IMAGE_AND_DIGEST}"
         env:
           COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
-          STAGE: ${{ matrix.stage }}
+          TOOL: ${{ matrix.tool }}
+          ENVIRONMENT: ${{ matrix.environment }}
