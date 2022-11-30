@@ -606,32 +606,17 @@ def sbom(_c, tool="all", environment="all", debug=False):
         tool=tool, environment=environment
     )
 
-    # pylint: disable=redefined-argument-from-local
+    tags = utils.get_tags(
+        tools_to_environments=tools_to_environments, environment=environment
+    )
+
     for tool in tools_to_environments:
-        versioned_tags = []
-        latest_tags = []
-
-        # Generate sboms for the tool-only tags only when a single environment isn't provided
-        if environment not in constants.ENVIRONMENTS:
-            versioned_tags = [constants.CONTEXT[tool]["versioned_tag"]]
-            latest_tags = [constants.CONTEXT[tool]["latest_tag"]]
-
-        if environments := tools_to_environments[tool]["environments"]:
-            for env in environments:
-                versioned_tags.append(constants.CONTEXT[tool][env]["versioned_tag"])
-                latest_tags.append(constants.CONTEXT[tool][env]["latest_tag"])
-
         try:
-            # the latest tag must be last; this interleaves the versioned and latest lists. it assumes the image and tag lists are the same length
-            artifact_tags = [
-                item for pair in zip(versioned_tags, latest_tags) for item in pair
-            ]
-
-            for iteration, tag in enumerate(artifact_tags):
+            for iteration, tag in enumerate(tags):
                 if (
                     iteration % 2 == 1
                 ):  # True when iteration is odd (should be the latest tag)
-                    prior_tag = artifact_tags[iteration - 1]
+                    prior_tag = tags[iteration - 1]
                     prior_file_name = f"sbom.{prior_tag}.json"
                 file_name = f"sbom.{tag}.json"
 
@@ -682,19 +667,16 @@ def test(_c, tool="all", environment="all", debug=False):
         tool=tool, environment=environment
     )
 
-    # pylint: disable=redefined-argument-from-local
-    for tool in tools_to_environments:
-        versioned_tags = []
-        image_and_versioned_tags = []
-        if not (environments := tools_to_environments[tool]["environments"]):
-            versioned_tags.append(constants.CONTEXT[tool]["versioned_tag"])
-            environment = None
-        else:
-            for env in environments:
-                versioned_tags.append(constants.CONTEXT[tool][env]["versioned_tag"])
+    tags = utils.get_tags(
+        tools_to_environments=tools_to_environments, environment=environment
+    )
 
-        for versioned_tag in versioned_tags:
-            image_and_versioned_tags.append(f"{constants.IMAGE}:{versioned_tag}")
+    image_and_versioned_tags = []
+
+    # Every other tag, starting with the 0th, is a versioned tag. Only test those
+    # pylint: disable=redefined-argument-from-local
+    for tag in tags[::2]:
+        image_and_versioned_tags.append(f"{constants.IMAGE}:{tag}")
 
     # Only test using the versioned tag
     for image_and_versioned_tag in image_and_versioned_tags:
@@ -714,29 +696,11 @@ def vulnscan(_c, tool="all", environment="all", debug=False):
         tool=tool, environment=environment
     )
 
-    artifact_tags = []
+    tags = utils.get_tags(
+        tools_to_environments=tools_to_environments, environment=environment
+    )
 
-    # pylint: disable=redefined-argument-from-local
-    for tool in tools_to_environments:
-        versioned_tags = []
-        latest_tags = []
-
-        # Run vuln scans for the tool-only tags only when a single environment isn't provided
-        if environment not in constants.ENVIRONMENTS:
-            versioned_tags.append(constants.CONTEXT[tool]["versioned_tag"])
-            latest_tags.append(constants.CONTEXT[tool]["latest_tag"])
-
-        if environments := tools_to_environments[tool]["environments"]:
-            for env in environments:
-                versioned_tags.append(constants.CONTEXT[tool][env]["versioned_tag"])
-                latest_tags.append(constants.CONTEXT[tool][env]["latest_tag"])
-
-        # this list comprehension interleaves the versioned and latest lists. it assumes the image and tag lists are the same length
-        artifact_tags += [
-            item for pair in zip(versioned_tags, latest_tags) for item in pair
-        ]
-
-    for tag in artifact_tags:
+    for tag in tags:
         run_test.run_security(tag=tag)
 
 
@@ -774,7 +738,7 @@ def release(_c, debug=False):
 
 
 @task
-def publish(_c, tool="all", environment="all", debug=False):
+def publish(_c, tool="all", environment="all", debug=False, dry_run=False):
     """Publish easy_infra"""
     if debug:
         getLogger().setLevel("DEBUG")
@@ -783,31 +747,18 @@ def publish(_c, tool="all", environment="all", debug=False):
         tool=tool, environment=environment
     )
 
-    tags = []
-
-    # pylint: disable=redefined-argument-from-local
-    for tool in tools_to_environments:
-        versioned_tags = []
-        latest_tags = []
-
-        # Publish the tool-only tags only when a single environment isn't provided
-        if environment not in constants.ENVIRONMENTS:
-            versioned_tags.append(constants.CONTEXT[tool]["versioned_tag"])
-            latest_tags.append(constants.CONTEXT[tool]["latest_tag"])
-
-        if environments := tools_to_environments[tool]["environments"]:
-            for env in environments:
-                versioned_tags.append(constants.CONTEXT[tool][env]["versioned_tag"])
-                latest_tags.append(constants.CONTEXT[tool][env]["latest_tag"])
-
-        # this list comprehension interleaves the versioned and latest lists as a caching optimization. it assumes the image and tag lists are the same length
-        tags += [item for pair in zip(versioned_tags, latest_tags) for item in pair]
+    tags = utils.get_tags(
+        tools_to_environments=tools_to_environments, environment=environment
+    )
 
     # pylint: disable=redefined-argument-from-local
     for tag in tags:
         image_and_tag = f"{constants.IMAGE}:{tag}"
-        LOG.info(f"Pushing {image_and_tag} to docker hub...")
-        CLIENT.images.push(repository=image_and_tag)
+        if dry_run:
+            LOG.info(f"Would have run CLIENT.images.push(repository={image_and_tag}")
+        else:
+            LOG.info(f"Pushing {image_and_tag} to docker hub...")
+            CLIENT.images.push(repository=image_and_tag)
 
     LOG.info("Done publishing the easy_infra Docker images")
 

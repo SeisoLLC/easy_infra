@@ -6,9 +6,8 @@ from typing import Any, Optional, Union
 import docker
 import requests
 from jinja2 import Environment, FileSystemLoader
-from yaml import YAMLError, dump, safe_load
 
-from easy_infra import __project_name__
+from easy_infra import constants
 
 LOG = getLogger(__name__)
 CLIENT = docker.from_env()
@@ -162,3 +161,25 @@ def gather_tools_and_environments(
         image_and_tool_and_environment_tags[tool] = {"environments": environments}
 
     return image_and_tool_and_environment_tags
+
+
+def get_tags(*, tools_to_environments: dict, environment: str) -> list[str]:
+    """
+    Return an alternating list of the versioned and latest tags
+    """
+    versioned_tags = []
+    latest_tags = []
+    for tool in tools_to_environments:
+        # Add the tool-only tags only when a single environment isn't provided
+        if environment not in constants.ENVIRONMENTS:
+            versioned_tags.append(constants.CONTEXT[tool]["versioned_tag"])
+            latest_tags.append(constants.CONTEXT[tool]["latest_tag"])
+
+        if environments := tools_to_environments[tool]["environments"]:
+            for env in environments:
+                versioned_tags.append(constants.CONTEXT[tool][env]["versioned_tag"])
+                latest_tags.append(constants.CONTEXT[tool][env]["latest_tag"])
+
+    tags = [item for pair in zip(versioned_tags, latest_tags) for item in pair]
+
+    return tags

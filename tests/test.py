@@ -160,12 +160,18 @@ def run_path_check(*, image: str) -> None:
             sys.exit(1)
 
 
+# def check_paths(*, interactive: bool, tool: str, environment: str | None = None) -> int:
 def check_paths(*, interactive: bool, image: str) -> int:
     """
-    Check all of the commands in easy_infra.yml to ensure they are in the
-    easy_infra user's PATH. Return 0 for any failures, or the number of
-    correctly found files
+    Check the commands in easy_infra.yml to ensure they are in the easy_infra user's PATH.
+    Return 0 for any failures, or the number of correctly found files
     """
+    # TODO: WIP
+    #     tools_to_environments = utils.gather_tools_and_environments(
+    #         tool=tool, environment=environment
+    #     )
+    #
+    #     image_and_tag = f"{constants.IMAGE}:{}"
     container = CLIENT.containers.run(
         image=image,
         detach=True,
