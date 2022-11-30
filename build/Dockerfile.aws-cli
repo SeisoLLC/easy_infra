@@ -8,9 +8,10 @@ ENV AWS_CLI_VERSION="${AWS_CLI_VERSION}"
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 USER root
-RUN apt-get update \
- && apt-get -y install --no-install-recommends unzip
 # hadolint ignore=DL3008
+RUN apt-get update \
+ && apt-get -y install --no-install-recommends unzip \
+ && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/cache/debconf/*-old
 RUN curl -L https://awscli.amazonaws.com/awscli-exe-linux-${AWS_CLI_ARCH}-${AWS_CLI_VERSION}.zip -o /tmp/awscliv2.zip \
  && unzip /tmp/awscliv2.zip -d /tmp/ \
  && apt-get remove -y unzip \

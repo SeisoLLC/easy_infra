@@ -248,9 +248,9 @@ def run_tests(*, image: str, tool: str, environment: str | None) -> None:
         eval(environment_test_function)(  # nosec B307 pylint: disable=eval-used
             image=image
         )
-        tag = constants.CONTEXT["commands"][tool][environment]["versioned_tag"]
+        tag = constants.CONTEXT[tool][environment]["versioned_tag"]
     else:
-        tag = constants.CONTEXT["commands"][tool]["versioned_tag"]
+        tag = constants.CONTEXT[tool]["versioned_tag"]
 
     # Always run the security checks
     run_security(tag=tag)
