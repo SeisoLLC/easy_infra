@@ -274,7 +274,6 @@ def build_and_tag(
         encoding="UTF-8"
     )
 
-    # First, build the easy_infra_base so it doesn't attempt to look for the image in docker hub
     LOG.debug(
         f"Rendering {constants.DOCKERFILE_INPUT_FILE} to build seiso/easy_infra_base for {tool=} and {environment=}"
     )
@@ -290,12 +289,14 @@ def build_and_tag(
         "dockerfile": "Dockerfile",
         "path": str(constants.BUILD),
         "platform": PLATFORM,
-        "pull": True,
         "rm": True,
         "tag": base_image_and_versioned_tag,
         "target": "final",
     }
     log_image_build(build_kwargs=build_kwargs)
+    LOG.debug(
+        f"Building {base_image_and_versioned_tag} because it's probably referenced later as a FROM image"
+    )
     CLIENT.images.build(**build_kwargs)
 
     # Required Dockerfile/frag combos
@@ -376,7 +377,6 @@ def build_and_tag(
     )
 
     if tool_env_exists:
-        # Required so it doesn't attempt to look for the image in docker hub
         tool_image_and_versioned_tag = f"seiso/easy_infra:{easy_infra_tag_tool_only}"
         build_kwargs = {
             "buildargs": buildargs,
@@ -388,6 +388,9 @@ def build_and_tag(
             "target": tool,
         }
         log_image_build(build_kwargs=build_kwargs)
+        LOG.debug(
+            f"Building {tool_image_and_versioned_tag} because it's probably referenced later as a FROM image"
+        )
         CLIENT.images.build(**build_kwargs)
 
     try:
@@ -405,6 +408,7 @@ def build_and_tag(
             "target": "final",
         }
         log_image_build(build_kwargs=build_kwargs)
+        LOG.debug(f"Building the usable image {image_and_versioned_tag}")
         image_tuple = CLIENT.images.build(**build_kwargs)
         image = image_tuple[0]
     except docker.errors.BuildError as build_err:
@@ -416,7 +420,9 @@ def build_and_tag(
 
     # Tag latest
     LOG.info(f"Tagging {constants.IMAGE}:{latest_tag}...")
-    image.tag(constants.IMAGE, tag=latest_tag)
+    # force=True is necessary because sometimes the latest images already exist locally because they were pulled or built as a part of being the FROM
+    # of another image. force=True ensures the versioned and latest tags are pointing to the exact same container ID.
+    image.tag(constants.IMAGE, tag=latest_tag, force=True)
 
 
 # Tasks
@@ -534,7 +540,7 @@ def lint(_c, debug=False):
 
 
 @task
-def build(_c, tool="all", environment="all", trace=False, debug=False):
+def build(_c, tool="all", environment="all", trace=False, debug=False, dry_run=False):
     """Build easy_infra"""
     if debug:
         getLogger().setLevel("DEBUG")
@@ -547,22 +553,31 @@ def build(_c, tool="all", environment="all", trace=False, debug=False):
     for tool in tools_to_environments:
         # Render the functions that the tool cares about
         filtered_config = filter_config(config=constants.CONFIG, tools=[tool])
-        utils.render_jinja2(
-            template_file=constants.FUNCTIONS_INPUT_FILE,
-            config=filtered_config,
-            output_file=constants.FUNCTIONS_OUTPUT_FILE,
-            output_mode=0o755,
-        )
+        if not dry_run:
+            utils.render_jinja2(
+                template_file=constants.FUNCTIONS_INPUT_FILE,
+                config=filtered_config,
+                output_file=constants.FUNCTIONS_OUTPUT_FILE,
+                output_mode=0o755,
+            )
+        else:
+            LOG.info("Would have run utils.render_jinja2...")
 
         # TODO: Figure out how to handle -large, somewhere in this function?
 
         if environment not in constants.ENVIRONMENTS:
             # Build and Tag the tool-only tag
-            build_and_tag(tool=tool, trace=trace)
+            if not dry_run:
+                build_and_tag(tool=tool, trace=trace)
+            else:
+                LOG.info(f"Would have run build_and_tag({tool=}, {trace=})")
 
         # Build and Tag the tool + environment tags
-        for environment in tools_to_environments[tool]["environments"]:
-            build_and_tag(tool=tool, environment=environment, trace=trace)
+        for env in tools_to_environments[tool]["environments"]:
+            if not dry_run:
+                build_and_tag(tool=tool, environment=env, trace=trace)
+            else:
+                LOG.info(f"Would have run build_and_tag({tool=}, {env=}, {trace=})")
 
 
 @task
@@ -659,10 +674,8 @@ def test(_c, tool="all", environment="all", debug=False):
             versioned_tags.append(constants.CONTEXT[tool]["versioned_tag"])
             environment = None
         else:
-            for environment in environments:
-                versioned_tags.append(
-                    constants.CONTEXT[tool][environment]["versioned_tag"]
-                )
+            for env in environments:
+                versioned_tags.append(constants.CONTEXT[tool][env]["versioned_tag"])
 
         for versioned_tag in versioned_tags:
             image_and_versioned_tags.append(f"{constants.IMAGE}:{versioned_tag}")
@@ -699,9 +712,7 @@ def vulnscan(_c, tool="all", environment="all", debug=False):
 
         if environments := tools_to_environments[tool]["environments"]:
             for env in environments:
-                versioned_tags.append(
-                    constants.CONTEXT[tool][env]["versioned_tag"]
-                )
+                versioned_tags.append(constants.CONTEXT[tool][env]["versioned_tag"])
                 latest_tags.append(constants.CONTEXT[tool][env]["latest_tag"])
 
         # this list comprehension interleaves the versioned and latest lists. it assumes the image and tag lists are the same length

@@ -93,7 +93,7 @@ jobs:
       - name: Upload the SBOM
         uses: actions/upload-artifact@v3
         with:
-          name: SBOM - ${{ matrix.tool }} ${{ matrix.environment }}
+          name: SBOM - tool:${{ matrix.tool }} environment:${{ matrix.environment }}
           path: sbom.*.json
           if-no-files-found: error
       - name: Generate Vuln scan results
@@ -101,7 +101,7 @@ jobs:
       - name: Upload Vuln scan result
         uses: actions/upload-artifact@v3
         with:
-          name: Vulns - ${{ matrix.tool }} ${{ matrix.environment }}
+          name: Vulns - tool:${{ matrix.tool }} environment:${{ matrix.environment }}
           path: vulns.*.json
           if-no-files-found: error
       - name: Run tests

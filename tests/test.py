@@ -3,7 +3,6 @@
 Test Functions
 """
 
-import ast
 import copy
 import subprocess
 import sys
@@ -242,12 +241,12 @@ def run_tests(*, image: str, tool: str, environment: str | None) -> None:
     #      working_dir=default_working_dir,
     #  )
     tool_test_function = f"run_{tool}"
-    ast.literal_eval(tool_test_function(image=image))
+    eval(tool_test_function)(image=image)
 
     if environment:
         environment_test_function = f"run_{environment}"
         # TODO: Consider how we may want to test {tool}-{environment} features specially; right now it is environment-only testing
-        ast.literal_eval(environment_test_function(image=image))
+        eval(environment_test_function)(image=image)
 
     # Always run the security checks
     run_security(image=image)
