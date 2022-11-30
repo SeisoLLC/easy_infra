@@ -247,7 +247,7 @@ def run_tests(*, image: str, tool: str, environment: str | None) -> None:
     tool_test_function = f"run_{tool}"
     eval(tool_test_function)(image=image)  # nosec B307 pylint: disable=eval-used
 
-    if environment:
+    if environment and environment != "none":
         environment_test_function = f"run_{environment}"
         # TODO: Consider how we may want to test {tool}-{environment} features specially; right now it is environment-only testing
         eval(environment_test_function)(  # nosec B307 pylint: disable=eval-used
