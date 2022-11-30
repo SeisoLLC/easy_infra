@@ -231,7 +231,6 @@ def exec_tests(
 
 def run_tests(*, image: str, tool: str, environment: str | None) -> None:
     """Fanout function to run the appropriate tests"""
-    # TODO: Fix final=True for run_terraform
     # TODO: When do we do run_path_check, version_arguments, or run_cli?
     #  run_test.run_path_check(image=image_and_tag)
     #  run_test.version_arguments(
@@ -256,13 +255,13 @@ def run_tests(*, image: str, tool: str, environment: str | None) -> None:
     run_security(tag=tag)
 
 
-def run_tfenv(*, image: str, final: bool = False) -> None:
+def run_tfenv(*, image: str) -> None:
     """Run the tfenv tests"""
     # tfenv and terraform are essentially the same image
-    run_terraform(image=image, final=final)
+    run_terraform(image=image)
 
 
-def run_terraform(*, image: str, final: bool = False) -> None:
+def run_terraform(*, image: str) -> None:
     """Run the terraform tests"""
     num_tests_ran = 0
     working_dir = "/iac/"
@@ -979,9 +978,8 @@ def run_terraform(*, image: str, final: bool = False) -> None:
 
     num_tests_ran += num_successful_tests
 
-    if not final:
-        LOG.info("%s passed %d end to end terraform tests", image, num_tests_ran)
-        return
+    LOG.info("%s passed %d end to end terraform tests", image, num_tests_ran)
+    return
 
 
 def run_ansible(*, image: str) -> None:
