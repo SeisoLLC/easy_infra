@@ -40,7 +40,7 @@ getLogger("docker").setLevel(constants.LOG_DEFAULT)
 def process_container(*, container: docker.models.containers.Container) -> None:
     """Process a provided container"""
     response = container.wait(condition="not-running")
-    decoded_response = container.logs().decode("utf-8")
+    decoded_response = container.logs().decode("UTF-8")
     response["logs"] = decoded_response.strip().replace("\n", "  ")
     container.remove()
     if not response["StatusCode"] == 0:
@@ -307,10 +307,32 @@ def build_and_tag(
         config["dockerfrag_tools"] = [
             constants.BUILD.joinpath(f"Dockerfrag.{tool}").read_text(encoding="UTF-8")
         ]
+
+        # populate the security tools for {tool}
+        security_tools = []
+        if "security" in constants.CONFIG["commands"][tool]:
+            for security_tool in constants.CONFIG["commands"][tool]["security"]:
+                security_tools.append(security_tool)
+
+        # Load in the security tool dockerfiles/frags
+        config["dockerfile_security_tools"] = []
+        config["dockerfrag_security_tools"] = []
+        for security_tool in security_tools:
+            LOG.debug(
+                f"Found security tool {security_tool} for {tool}, adding the related dockerfile/frag combo to the config..."
+            )
+            config["dockerfile_security_tools"].append(
+                constants.BUILD.joinpath(f"Dockerfile.{security_tool}").read_text(
+                    encoding="UTF-8"
+                )
+            )
+            config["dockerfrag_security_tools"].append(
+                constants.BUILD.joinpath(f"Dockerfrag.{security_tool}").read_text(
+                    encoding="UTF-8"
+                )
+            )
     except FileNotFoundError:
-        LOG.exception(
-            f"A file required to build a container containing {tool} was not found"
-        )
+        LOG.exception(f"A file required to build a {tool} container was not found")
         sys.exit(1)
 
     # Required Dockerfile/frag combos if the environment is set
@@ -646,7 +668,7 @@ def sbom(_c, tool="all", environment="all", debug=False):
                 )
         except subprocess.CalledProcessError as error:
             LOG.error(
-                f"stdout: {error.stdout.decode('utf-8')}, stderr: {error.stderr.decode('utf-8')}"
+                f"stdout: {error.stdout.decode('UTF-8')}, stderr: {error.stderr.decode('UTF-8')}"
             )
             sys.exit(1)
 

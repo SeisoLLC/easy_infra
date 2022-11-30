@@ -10,14 +10,6 @@ _anchors:
         CHECKOV_EXTERNAL_CHECKS_DIR: --external-checks-dir
         CHECKOV_SKIP_CHECK: --skip-check
       description: directory scan
-    kics:
-      command: kics scan --type Terraform --no-progress --queries-path ${KICS_INCLUDE_QUERIES_PATH}
-        --libraries-path ${KICS_LIBRARY_PATH} --report-formats json --output-path
-        ${KICS_JSON_REPORT_PATH} --output-name kics --path .
-      customizations:
-        KICS_EXCLUDE_SEVERITIES: --exclude-severities
-        KICS_INCLUDE_QUERIES: --include-queries
-      description: directory scan
   validation: &id003
   - command: terraform init -backend=false
     description: initialization

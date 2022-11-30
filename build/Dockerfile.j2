@@ -5,6 +5,10 @@
 {{ dockerfile }}
 {% endfor %}
 
+{% for dockerfile in dockerfile_security_tools %}
+{{ dockerfile }}
+{% endfor %}
+
 {# Skip this if there is no relevant env, such as for the -terraform base tag #}
 {% if dockerfile_envs %}
 {% for dockerfile in dockerfile_envs %}
@@ -22,6 +26,10 @@
 FROM base as final
 
 {% for dockerfrag in dockerfrag_tools %}
+{{ dockerfrag }}
+{% endfor %}
+
+{% for dockerfrag in dockerfrag_security_tools %}
 {{ dockerfrag }}
 {% endfor %}
 
