@@ -20,7 +20,7 @@ import requests
 from bumpversion.cli import main as bumpversion
 from invoke import task
 
-from easy_infra import __project_name__, __version__, constants, utils
+from easy_infra import __project_name__, __version__, config, constants, utils
 from tests import test as run_test
 
 if platform.machine() == "arm64":
@@ -450,23 +450,23 @@ def update(_c, debug=False):
 
     for package in constants.APT_PACKAGES:
         version = utils.get_latest_release_from_apt(package=package)
-        utils.update_config_file(thing=package, version=version)
+        config.update_config_file(thing=package, version=version)
 
     for repo in constants.GITHUB_REPOS_RELEASES:
         version = utils.get_latest_release_from_github(repo=repo)
-        utils.update_config_file(thing=repo, version=version)
+        config.update_config_file(thing=repo, version=version)
 
     for repo in constants.GITHUB_REPOS_TAGS:
         version = utils.get_latest_tag_from_github(repo=repo)
-        utils.update_config_file(thing=repo, version=version)
+        config.update_config_file(thing=repo, version=version)
 
     for project in constants.HASHICORP_PROJECTS:
         version = utils.get_latest_release_from_hashicorp(project=project)
-        utils.update_config_file(thing=project, version=version)
+        config.update_config_file(thing=project, version=version)
 
     for package in constants.PYTHON_PACKAGES:
         version = utils.get_latest_release_from_pypi(package=package)
-        utils.update_config_file(thing=package, version=version)
+        config.update_config_file(thing=package, version=version)
 
     # Update the CI dependencies
     image = "python:3.10"

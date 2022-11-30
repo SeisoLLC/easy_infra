@@ -9,7 +9,7 @@ from typing import Union
 
 import git
 
-from easy_infra import __project_name__, __version__, utils
+from easy_infra import __project_name__, __version__, config
 
 CWD = Path(".").absolute()
 BUILD = CWD.joinpath("build")
@@ -25,7 +25,7 @@ REPO = git.Repo(CWD)
 COMMIT_HASH = REPO.head.object.hexsha
 COMMIT_HASH_SHORT = REPO.git.rev_parse(COMMIT_HASH, short=True)
 CONFIG_FILE = Path(f"{__project_name__}.yml").absolute()
-CONFIG = utils.parse_config(config_file=CONFIG_FILE)
+CONFIG = config.parse_config(config_file=CONFIG_FILE)
 
 # TOOLS is used to create per-tool tags. If there isn't a security configuration, the tag will not be created, because then it wouldn't fit our secure
 # by default design
