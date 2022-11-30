@@ -232,7 +232,6 @@ def exec_tests(
 def run_tests(*, image: str, tool: str, environment: str | None) -> None:
     """Fanout function to run the appropriate tests"""
     # TODO: Fix final=True for run_terraform
-    # TODO: Fix run_security variant=
     # TODO: When do we do run_path_check, version_arguments, or run_cli?
     #  run_test.run_path_check(image=image_and_tag)
     #  run_test.version_arguments(
@@ -241,15 +240,20 @@ def run_tests(*, image: str, tool: str, environment: str | None) -> None:
     #      working_dir=default_working_dir,
     #  )
     tool_test_function = f"run_{tool}"
-    eval(tool_test_function)(image=image)
+    eval(tool_test_function)(image=image)  # nosec B307 pylint: disable=eval-used
 
     if environment:
         environment_test_function = f"run_{environment}"
         # TODO: Consider how we may want to test {tool}-{environment} features specially; right now it is environment-only testing
-        eval(environment_test_function)(image=image)
+        eval(environment_test_function)(  # nosec B307 pylint: disable=eval-used
+            image=image
+        )
+        tag = constants.CONTEXT["commands"][tool][environment]["versioned_tag"]
+    else:
+        tag = constants.CONTEXT["commands"][tool]["versioned_tag"]
 
     # Always run the security checks
-    run_security(image=image)
+    run_security(tag=tag)
 
 
 def run_terraform(*, image: str, final: bool = False) -> None:

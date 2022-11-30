@@ -60,6 +60,7 @@ jobs:
     needs: [generate-matrix]
     runs-on: ubuntu-20.04
     strategy:
+      fail-fast: false
       matrix:
         tool: ${{ fromJSON(needs.generate-matrix.outputs.tools) }}
         environment: ${{ fromJSON(needs.generate-matrix.outputs.environments) }}
@@ -189,7 +190,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: SBOMs
-          path: sbom.*.${{ needs.bump-version.outputs.tag }}.json
+          path: sbom.*.${{ needs.bump-version.outputs.tag }}.json # TODO: Reassess
           if-no-files-found: error
       - name: Generate Vuln scan results
         run: pipenv run invoke vulnscan
@@ -197,7 +198,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: Vulns
-          path: vulns.*.${{ needs.bump-version.outputs.tag }}.json
+          path: vulns.*.${{ needs.bump-version.outputs.tag }}.json # TODO: Reassess
           if-no-files-found: error
       - name: Publish the release to GitHub
         uses: softprops/action-gh-release@v1
@@ -208,7 +209,7 @@ jobs:
           tag_name: ${{ needs.bump-version.outputs.tag }}
           generate_release_notes: true
           files: |
-            vulns.*.${{ needs.bump-version.outputs.tag }}.json
+            vulns.*.${{ needs.bump-version.outputs.tag }}.json # TODO: Reassess this
             sbom.*.${{ needs.bump-version.outputs.tag }}.json
           fail_on_unmatched_files: true
           draft: false
@@ -223,6 +224,7 @@ jobs:
     name: Distribute
     needs: [generate-matrix, bump-version, cut-release]
     strategy:
+      fail-fast: false
       matrix:
         tool: ${{ fromJSON(needs.generate-matrix.outputs.tools) }}
         environment: ${{ fromJSON(needs.generate-matrix.outputs.environments) }}

@@ -284,6 +284,8 @@ def build_and_tag(
     )
 
     base_image_and_versioned_tag = f"seiso/easy_infra_base:{versioned_tag}"
+
+    # Purposefully has no caching
     build_kwargs = {
         "buildargs": buildargs,
         "dockerfile": "Dockerfile",
@@ -399,9 +401,11 @@ def build_and_tag(
     )
 
     if tool_env_exists:
+        pull_image(image_and_tag=tool_image_and_latest_tag_no_hash)
         tool_image_and_versioned_tag = f"seiso/easy_infra:{easy_infra_tag_tool_only}"
         build_kwargs = {
             "buildargs": buildargs,
+            "cache_from": [tool_image_and_latest_tag_no_hash],
             "dockerfile": f"Dockerfile.{tool}",
             "path": str(constants.BUILD),
             "platform": PLATFORM,
@@ -416,9 +420,7 @@ def build_and_tag(
         CLIENT.images.build(**build_kwargs)
 
     try:
-        # Warm up the cache
         pull_image(image_and_tag=tool_image_and_latest_tag_no_hash)
-
         build_kwargs = {
             "buildargs": buildargs,
             "cache_from": [tool_image_and_latest_tag_no_hash],
