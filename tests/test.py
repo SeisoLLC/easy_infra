@@ -12,10 +12,10 @@ from typing import Union
 
 import docker
 
-from easy_infra import constants, utils
+from easy_infra import config, constants, utils
 
 # Globals
-CONFIG = utils.parse_config(config_file=constants.CONFIG_FILE)
+CONFIG = config.parse_config(config_file=constants.CONFIG_FILE)
 CWD = Path(".").absolute()
 TESTS_PATH = CWD.joinpath("tests")
 
