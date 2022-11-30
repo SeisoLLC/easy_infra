@@ -85,6 +85,16 @@ def filter_config(*, config: str, tools: list[str]) -> dict:
     return filtered_config
 
 
+def add_version_to_buildarg(*, buildargs: dict, thing: str) -> None:
+    if "version" in constants.CONFIG["commands"][thing]:
+        # Normalize and add to buildargs
+        arg = thing.upper().replace("-", "_") + "_VERSION"
+        buildargs[arg] = constants.CONFIG["commands"][thing]["version"]
+    else:
+        LOG.error(f"Unable to identify the version of {thing}")
+        sys.exit(1)
+
+
 def setup_buildargs(*, tool: str, environment: str | None = None, trace: bool) -> dict:
     """Setup the buildargs for the provided tool"""
     buildargs = {}
@@ -104,13 +114,7 @@ def setup_buildargs(*, tool: str, environment: str | None = None, trace: bool) -
         buildargs["AWS_CLI_ARCH"] = "x86_64"
 
     # Add the tool version buildarg
-    if "version" in constants.CONFIG["commands"][tool]:
-        # Normalize and add to buildargs
-        arg = tool.upper().replace("-", "_") + "_VERSION"
-        buildargs[arg] = constants.CONFIG["commands"][tool]["version"]
-    else:
-        LOG.error(f"Unable to identify the version of {tool}")
-        sys.exit(1)
+    add_version_to_buildarg(buildargs=buildargs, thing=tool)
 
     # Pull in any other buildargs that the tool cares about
     for command in constants.CONFIG["commands"]:
@@ -125,24 +129,12 @@ def setup_buildargs(*, tool: str, environment: str | None = None, trace: bool) -
                 )
             )
         ):
-            if "version" in constants.CONFIG["commands"][command]:
-                # Normalize and add to buildargs
-                arg = command.upper().replace("-", "_") + "_VERSION"
-                buildargs[arg] = constants.CONFIG["commands"][command]["version"]
-            else:
-                LOG.error(f"Unable to identify the version of {command}")
-                sys.exit(1)
+            add_version_to_buildarg(buildargs=buildargs, thing=command)
 
     # Finally, add in buildargs for the related environment
     if environment:
         for command in constants.CONFIG["environments"][environment]["commands"]:
-            if "version" in constants.CONFIG["commands"][command]:
-                # Normalize and add to buildargs
-                arg = command.upper().replace("-", "_") + "_VERSION"
-                buildargs[arg] = constants.CONFIG["commands"][command]["version"]
-            else:
-                LOG.error(f"Unable to identify the version of {command}")
-                sys.exit(1)
+            add_version_to_buildarg(buildargs=buildargs, thing=command)
 
     return buildargs
 
@@ -817,7 +809,7 @@ def publish(_c, tool="all", environment="all", debug=False):
         LOG.info(f"Pushing {image_and_tag} to docker hub...")
         CLIENT.images.push(repository=image_and_tag)
 
-    LOG.info(f"Done publishing the easy_infra Docker images")
+    LOG.info("Done publishing the easy_infra Docker images")
 
 
 @task
