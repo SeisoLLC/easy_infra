@@ -782,37 +782,42 @@ def release(_c, debug=False):
 
 
 @task
-def publish(_c, tag, tool="all", environment="all", debug=False):
+def publish(_c, tool="all", environment="all", debug=False):
     """Publish easy_infra"""
     if debug:
         getLogger().setLevel("DEBUG")
 
-    if tag not in ["main", "release"]:
-        LOG.error("Please provide a tag of either main or release")
-        sys.exit(1)
-    elif tag == "release":
-        tag = __version__
-
-    # TODO: Fix
-    variants = process_stages(stage=stage)
-
-    for variant in variants:
-        # Always push the versioned tag (should already have a unique ID when appropriate)
-        versioned_tag = constants.CONTEXT[variant]["buildargs"]["EASY_INFRA_VERSION"]
-        image_and_tags = [f"{constants.IMAGE}:{versioned_tag}"]
-
-        # Add the latest tag for merges into main
-        if tag == "main":
-            latest_tag = constants.CONTEXT[variant]["latest_tag"]
-            image_and_tags.append(f"{constants.IMAGE}:{latest_tag}")
-
-        for image_and_tag in image_and_tags:
-            LOG.info(f"Pushing {image_and_tag} to docker hub...")
-            CLIENT.images.push(repository=image_and_tag)
-
-    LOG.info(
-        f"Done publishing all of the {tag} easy_infra Docker images for platform {PLATFORM}"
+    tools_to_environments = utils.gather_tools_and_environments(
+        tool=tool, environment=environment
     )
+
+    tags = []
+
+    # pylint: disable=redefined-argument-from-local
+    for tool in tools_to_environments:
+        versioned_tags = []
+        latest_tags = []
+
+        # Publish the tool-only tags only when a single environment isn't provided
+        if environment not in constants.ENVIRONMENTS:
+            versioned_tags.append(constants.CONTEXT[tool]["versioned_tag"])
+            latest_tags.append(constants.CONTEXT[tool]["latest_tag"])
+
+        if environments := tools_to_environments[tool]["environments"]:
+            for env in environments:
+                versioned_tags.append(constants.CONTEXT[tool][env]["versioned_tag"])
+                latest_tags.append(constants.CONTEXT[tool][env]["latest_tag"])
+
+        # this list comprehension interleaves the versioned and latest lists as a caching optimization. it assumes the image and tag lists are the same length
+        tags += [item for pair in zip(versioned_tags, latest_tags) for item in pair]
+
+    # pylint: disable=redefined-argument-from-local
+    for tag in tags:
+        image_and_tag = f"{constants.IMAGE}:{tag}"
+        LOG.info(f"Pushing {image_and_tag} to docker hub...")
+        CLIENT.images.push(repository=image_and_tag)
+
+    LOG.info(f"Done publishing the easy_infra Docker images")
 
 
 @task

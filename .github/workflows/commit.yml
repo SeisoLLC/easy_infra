@@ -259,7 +259,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Publish the image to Docker Hub
-        run: pipenv run invoke publish main --tool=${{ matrix.tool }} --environment=${{ matrix.environment }}
+        run: pipenv run invoke publish --tool=${{ matrix.tool }} --environment=${{ matrix.environment }}
       - name: Install cosign
         uses: sigstore/cosign-installer@main
       - name: Sign the image
