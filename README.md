@@ -43,11 +43,11 @@ docker run -v $(pwd):/iac seiso/easy_infra terraform apply -auto-approve
 What `easy_infra` does in this case is:
 
 1. Perform `terraform` validation, specifically `terraform init && terraform validate`.
-1. Run `terraform` security tools\* serially, and in alphabetical order (`checkov` and then `kics`).
+1. Run `terraform` security tools\* serially, and in alphabetical order.
 1. Run the provided `terraform` command, assuming the provided configurations were confirmed as valid and did not fail any of the security policy
    validation.
 
-\* In the minimal images, only Checkov and KICS are available
+\* In the `terraform` images, only Checkov is configured by default
 
 ### Learning mode
 
