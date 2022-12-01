@@ -663,12 +663,9 @@ def run_terraform(*, image: str) -> None:
             {"DISABLE_SECURITY": "true"},
             "terraform plan || false",
             1,
-        ),  # Not supported; reproduce "Too many command line
-        #     arguments. Configuration path expected." error locally with
-        #     `docker run -e DISABLE_SECURITY=true -v
-        #     $(pwd)/tests/terraform/tool/checkov:/iac
-        #     seiso/easy_infra:latest terraform plan \|\| false`, prefer
-        #     passing the commands through bash like the following test
+        ),  # Not supported; reproduce "Too many command line arguments. Configuration path expected." error
+        #     locally with `docker run -e DISABLE_SECURITY=true -v $(pwd)/tests/terraform/tool/checkov:/iac seiso/easy_infra:latest terraform plan
+        #     \|\| false`, prefer passing the commands through bash like the following test
         (
             {},
             "DISABLE_SECURITY=true terraform plan",
@@ -910,21 +907,6 @@ def run_ansible(*, image: str) -> None:
             '/usr/bin/env bash -c "ansible-playbook insecure.yml --check || true"',
             0,
         ),
-        (
-            {},
-            '/usr/bin/env bash -c "SKIP_CHECKOV=true ansible-playbook insecure.yml --check || true && false"',
-            1,
-        ),  # checkov is purposefully irrelevant for ansible
-        (
-            {"SKIP_CHECKOV": "true"},
-            '/usr/bin/env bash -c "ansible-playbook insecure.yml --check || false"',
-            1,
-        ),  # checkov is purposefully irrelevant for ansible
-        (
-            {"SKIP_CHECKOV": "FaLsE", "SKIP_KICS": "Unknown"},
-            "ansible-playbook insecure.yml --check",
-            50,
-        ),  # checkov is purposefully irrelevant for ansible
         (
             {},
             '/usr/bin/env bash -c "LEARNING_MODE=true ansible-playbook insecure.yml --check"',
