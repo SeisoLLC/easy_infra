@@ -278,8 +278,6 @@ def run_terraform(*, image: str) -> None:
     invalid_volumes = {invalid_test_dir: {"bind": working_dir, "mode": "rw"}}
     checkov_test_dir = TESTS_PATH.joinpath("terraform/tool/checkov")
     checkov_volumes = {checkov_test_dir: {"bind": working_dir, "mode": "rw"}}
-    kics_config_dir = TESTS_PATH.joinpath("terraform/tool/kics")
-    kics_volumes = {kics_config_dir: {"bind": working_dir, "mode": "rw"}}
     secure_config_dir = TESTS_PATH.joinpath("terraform/general/secure")
     secure_volumes = {secure_config_dir: {"bind": working_dir, "mode": "rw"}}
     general_test_dir = TESTS_PATH.joinpath("terraform/general")
@@ -304,7 +302,6 @@ def run_terraform(*, image: str) -> None:
         hooks_secure_terraform_v_0_14_dir: {"bind": working_dir, "mode": "rw"}
     }
     report_base_dir = Path("/tmp/reports")
-    kics_output_file = report_base_dir.joinpath("kics").joinpath("kics.json")
     checkov_output_file = report_base_dir.joinpath("checkov").joinpath("checkov.json")
 
     # Base tests
@@ -505,8 +502,7 @@ def run_terraform(*, image: str) -> None:
         num_tests_ran += num_successful_tests
 
     # Ensure secure configurations pass
-    # Tests is a list of tuples containing the test environment, command, and
-    # expected exit code
+    # Tests is a list of tuples containing the test environment, command, and expected exit code
     tests: list[tuple[dict, str, int]] = [  # type: ignore
         ({}, "terraform init", 0),
         ({}, "tfenv exec init", 0),
@@ -531,15 +527,8 @@ def run_terraform(*, image: str) -> None:
             1,
         ),
         (
-            {
-                "KICS_INCLUDE_QUERIES": "4728cd65-a20c-49da-8b31-9c08b423e4db,46883ce1-dc3e-4b17-9195-c6a601624c73"
-            },
+            {"CHECKOV_SKIP_CHECK": "CKV_AWS_8"},
             "terraform init",
-            0,
-        ),  # This tests "customizations" features from easy_infra.yml and functions.j2
-        (
-            {"KICS_EXCLUDE_SEVERITIES": "info"},
-            "terraform validate",
             0,
         ),  # This tests "customizations" features from easy_infra.yml and functions.j2
     ]
@@ -548,8 +537,7 @@ def run_terraform(*, image: str) -> None:
     num_tests_ran += exec_tests(tests=tests, volumes=secure_volumes, image=image)
 
     # Ensure the easy_infra hooks work as expected when network access is available
-    # Tests is a list of tuples containing the test environment, command, and
-    # expected exit code
+    # Tests is a list of tuples containing the test environment, command, and expected exit code
     tests: list[tuple[dict, str, int]] = [  # type: ignore
         (
             {
@@ -597,8 +585,7 @@ def run_terraform(*, image: str) -> None:
     )
 
     # Ensure the easy_infra hooks work as expected when network access is NOT available
-    # Tests is a list of tuples containing the test environment, command, and
-    # expected exit code
+    # Tests is a list of tuples containing the test environment, command, and expected exit code
     tests: list[tuple[dict, str, int]] = [  # type: ignore
         (
             {
@@ -654,10 +641,8 @@ def run_terraform(*, image: str) -> None:
         network_mode="none",
     )
 
-    # Ensure insecure configurations still succeed when security checks are
-    # disabled
-    # Tests is a list of tuples containing the test environment, command, and
-    # expected exit code
+    # Ensure insecure configurations still succeed when security checks are disabled
+    # Tests is a list of tuples containing the test environment, command, and expected exit code
     tests: list[tuple[dict, str, int]] = [  # type: ignore
         ({"DISABLE_SECURITY": "true"}, "terraform init", 0),
         ({"DISABLE_SECURITY": "true"}, "tfenv exec init", 0),
@@ -692,15 +677,7 @@ def run_terraform(*, image: str) -> None:
         #     commands are passed through bash
         (
             {
-                "KICS_INCLUDE_QUERIES": "4728cd65-a20c-49da-8b31-9c08b423e4db,46883ce1-dc3e-4b17-9195-c6a601624c73",  # Doesn't apply to kics_volumes
-                "DISABLE_SECURITY": "true",
-            },
-            "terraform init",
-            0,
-        ),  # This tests the "customizations" idea from easy_infra.yml and functions.j2
-        (
-            {
-                "KICS_INCLUDE_QUERIES": "5a2486aa-facf-477d-a5c1-b010789459ce",  # Would normally fail due to kics_volumes
+                "CHECKOV_SKIP_CHECK": "CKV_AWS_8",  # Would normally still fail due to checkov_volumes CKV_AWS_79
                 "DISABLE_SECURITY": "true",
             },
             "terraform init",
@@ -709,121 +686,34 @@ def run_terraform(*, image: str) -> None:
     ]
 
     LOG.debug("Testing terraform with security disabled")
-    num_tests_ran += exec_tests(tests=tests, volumes=kics_volumes, image=image)
+    num_tests_ran += exec_tests(tests=tests, volumes=checkov_volumes, image=image)
 
-    # Ensure insecure configurations fail due to kics
-    # Tests is a list of tuples containing the test environment, command, and
-    # expected exit code
+    # Ensure insecure configurations fail properly due to checkov
+    # Tests is a list of tuples containing the test environment, command, and expected exit code
     tests: list[tuple[dict, str, int]] = [  # type: ignore
-        ({}, "terraform --skip-checkov plan", 50),
-        ({}, "tfenv exec --skip-checkov plan", 50),
+        ({}, "terraform plan", 1),
+        ({}, "tfenv exec plan", 1),
         (
             {},
-            '/usr/bin/env bash -c "SKIP_CHECKOV=true terraform plan"',
-            50,
-        ),
-        (
-            {},
-            '/usr/bin/env bash -c "SKIP_CHECKOV=true terraform plan || true"',
-            0,
-        ),
-        (
-            {},
-            '/usr/bin/env bash -c "SKIP_CHECKOV=true terraform plan || true && false"',
-            1,
-        ),
-        ({"SKIP_CHECKOV": "true"}, "terraform plan --skip-checkov", 50),
-        (
-            {"SKIP_CHECKOV": "true"},
-            "terraform plan",
-            50,
-        ),
-        (
-            {},
-            '/usr/bin/env bash -c "LEARNING_MODE=true SKIP_CHECKOV=true terraform validate"',
-            0,
-        ),  # Test learning mode with skip env vars
-        (
-            {"LEARNING_MODE": "true", "SKIP_CHECKOV": "true"},
-            "terraform validate",
-            0,
-        ),  # Test learning mode with mixed env vars and cli args
-        (
-            {
-                "SKIP_CHECKOV": "true",
-                "KICS_INCLUDE_QUERIES": "4728cd65-a20c-49da-8b31-9c08b423e4db,46883ce1-dc3e-4b17-9195-c6a601624c73",
-            },
-            "terraform validate",
-            0,
-        ),  # Exits with 0 because the provided insecure terraform does not apply to the included kics queries.
-        # This tests the "customizations" idea from easy_infra.yml and functions.j2
-        (
-            {
-                "SKIP_CHECKOV": "true",
-                "KICS_INCLUDE_QUERIES": "5a2486aa-facf-477d-a5c1-b010789459ce",
-            },
-            "terraform validate",
-            50,
-        ),  # This tests the "customizations" idea from easy_infra.yml and functions.j2
-        (
-            {},
-            '/usr/bin/env bash -c "KICS_INCLUDE_QUERIES=5a2486aa-facf-477d-a5c1-b010789459ce terraform --skip-checkov validate"',
-            50,
-        ),  # This tests the "customizations" idea from easy_infra.yml and functions.j2
-        (
-            {
-                "SKIP_CHECKOV": "true",
-                "KICS_EXCLUDE_SEVERITIES": "medium",
-            },
-            "terraform validate",
-            50,
-        ),  # Doesn't exclude high. This tests the "customizations" idea from easy_infra.yml and functions.j2
-        (
-            {
-                "SKIP_CHECKOV": "true",
-                "KICS_EXCLUDE_SEVERITIES": "info,low,medium,high",
-            },
-            "terraform validate",
-            0,
-        ),  # Excludes all the severities. This tests the "customizations" idea from easy_infra.yml and functions.j2
-    ]
-
-    LOG.debug("Testing terraform with security disabled")
-    num_tests_ran += exec_tests(tests=tests, volumes=kics_volumes, image=image)
-
-    # Ensure insecure configurations fail due to checkov
-    # Tests is a list of tuples containing the test environment, command, and
-    # expected exit code
-    tests: list[tuple[dict, str, int]] = [  # type: ignore
-        ({}, "terraform --skip-kics plan", 1),
-        ({}, "tfenv exec --skip-kics plan", 1),
-        (
-            {},
-            '/usr/bin/env bash -c "SKIP_KICS=true terraform plan"',
+            '/usr/bin/env bash -c "terraform plan"',
             1,
         ),
         (
-            {"SKIP_KICS": "true"},
             '/usr/bin/env bash -c "terraform plan || true"',
             0,
         ),
         (
             {},
-            '/usr/bin/env bash -c "SKIP_KICS=true terraform plan || true && false"',
+            '/usr/bin/env bash -c "terraform plan || true && false"',
             1,
         ),
         (
-            {"SKIP_KICS": "true"},
-            "terraform --skip-kics plan",
-            1,
-        ),
-        (
-            {"LEARNING_MODE": "tRuE", "SKIP_KICS": "TRUE"},
+            {"LEARNING_MODE": "tRuE"},
             '/usr/bin/env bash -c "terraform validate"',
             0,
         ),
         (
-            {"LEARNING_MODE": "tRuE", "SKIP_KICS": "true"},
+            {"LEARNING_MODE": "tRuE"},
             "terraform validate",
             0,
         ),
@@ -849,8 +739,7 @@ def run_terraform(*, image: str) -> None:
 
     # An interactive terraform command should not cause the creation of the following files, and should have the same number of logs lines in the
     # fluent bit log regardless of which image is being tested
-    files = ["/tmp/kics_complete"]
-    files.append("/tmp/checkov_complete")
+    files = ["/tmp/checkov_complete"]
     LOG.debug("Testing interactive terraform commands")
     number_of_security_tools = len(CONFIG["commands"]["terraform"]["security"])
     expected_number_of_logs = number_of_security_tools
@@ -889,8 +778,7 @@ def run_terraform(*, image: str) -> None:
 
     # An interactive terraform command should still cause the creation of the following files, and should have the same number of logs lines in the
     # fluent bit log regardless of which image is being tested
-    files = [str(kics_output_file)]
-    files.append(str(checkov_output_file))
+    files = [str(checkov_output_file)]
     LOG.debug("Testing that interactive terraform commands still create json reports")
     number_of_security_tools = len(CONFIG["commands"]["terraform"]["security"])
     expected_number_of_logs = number_of_security_tools
@@ -929,10 +817,8 @@ def run_terraform(*, image: str) -> None:
 
     # A non-interactive terraform command should cause the creation of the following files, and should have the same number of logs lines in the
     # fluent bit log regardless of which image is being tested
-    files = ["/tmp/kics_complete"]
-    files.append("/tmp/checkov_complete")
-    # Piggyback checking the kics/checkov json reports on the kics/checkov complete file checks
-    files.append(str(kics_output_file))
+    files = ["/tmp/checkov_complete"]
+    # Piggyback checking the checkov json reports on the checkov complete file checks
     files.append(str(checkov_output_file))
     LOG.debug("Testing non-interactive terraform commands")
     number_of_security_tools = len(CONFIG["commands"]["terraform"]["security"])
@@ -970,8 +856,7 @@ def run_terraform(*, image: str) -> None:
     test_noninteractive_container.exec_run(
         cmd='/bin/bash -c "terraform version"', tty=False
     )
-    files = ["/tmp/kics_complete"]
-    files.append("/tmp/checkov_complete")
+    files = ["/tmp/checkov_complete"]
     LOG.debug("Testing non-interactive terraform version")
     if (
         num_successful_tests := check_for_files(
