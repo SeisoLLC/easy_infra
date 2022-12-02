@@ -24,10 +24,39 @@ LOG = getLogger(__name__)
 CLIENT = docker.from_env()
 
 
-def version_arguments(*, image: str, volumes: dict, working_dir: str):
-    """Test the version arguments listed in the config"""
+def version_arguments(*, image: str, tool: str, environment: str):
+    """Given a specific image, test the appropriate version arguments from the config"""
+    working_dir = "/iac/"
+    tests_path = constants.CWD.joinpath("tests")
+    volumes = {tests_path: {"bind": working_dir, "mode": "ro"}}
+
     num_tests_ran = 0
+
+    tools_to_environments = utils.gather_tools_and_environments(
+        tool=tool, environment=environment
+    )
+
+    environment_commands = []
+    for env in tools_to_environments[tool]["environments"]:
+        for env_command in CONFIG["environments"][env]["commands"]:
+            environment_commands.append(env_command)
+
     for command in CONFIG["commands"]:
+        if not (
+            # commands that are referenced in the tool's security section
+            command in constants.CONFIG["commands"][tool]["security"]
+            # commands which "help" the provided tool
+            or (
+                "helper" in constants.CONFIG["commands"][command]
+                and set(constants.CONFIG["commands"][command]["helper"]).intersection(
+                    {tool, "all"}
+                )
+            )
+            # commands which apply to the environment
+            or (command in environment_commands)
+        ):
+            continue
+
         if "version_argument" not in CONFIG["commands"][command]:
             continue
 
@@ -237,13 +266,8 @@ def exec_tests(
 
 def run_tests(*, image: str, tool: str, environment: str | None) -> None:
     """Fanout function to run the appropriate tests"""
-    # TODO: When do we do run_path_check, version_arguments, or run_cli?
+    # TODO: When do we do run_path_check or run_cli?
     #  run_test.run_path_check(image=image_and_tag)
-    #  run_test.version_arguments(
-    #      image=image_and_tag,
-    #      volumes=default_volumes,
-    #      working_dir=default_working_dir,
-    #  )
     tool_test_function = f"run_{tool}"
     eval(tool_test_function)(image=image)  # nosec B307 pylint: disable=eval-used
 
@@ -257,7 +281,8 @@ def run_tests(*, image: str, tool: str, environment: str | None) -> None:
     else:
         tag = constants.CONTEXT[tool]["versioned_tag"]
 
-    # Always run the security checks
+    # Always run these tests
+    version_arguments(image=image, tool=tool, environment=environment)
     run_security(tag=tag)
 
 

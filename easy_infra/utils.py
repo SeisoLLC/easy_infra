@@ -163,7 +163,9 @@ def gather_tools_and_environments(
     return image_and_tool_and_environment_tags
 
 
-def get_tags(*, tools_to_environments: dict, environment: str) -> list[str]:
+def get_tags(
+    *, tools_to_environments: dict, environment: str, only_versioned: bool = False
+) -> list[str]:
     """
     Return an alternating list of the versioned and latest tags
     """
@@ -181,5 +183,8 @@ def get_tags(*, tools_to_environments: dict, environment: str) -> list[str]:
                 latest_tags.append(constants.CONTEXT[tool][env]["latest_tag"])
 
     tags = [item for pair in zip(versioned_tags, latest_tags) for item in pair]
+
+    if only_versioned:
+        tags = tags[::2]
 
     return tags

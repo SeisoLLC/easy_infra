@@ -658,24 +658,20 @@ def test(_c, tool="all", environment="all", debug=False):
     if debug:
         getLogger().setLevel("DEBUG")
 
-    default_working_dir = "/iac/"
-    tests_path = constants.CWD.joinpath("tests")
-    # TODO: Previously used for version_argument; do we need to pass into run_test.run_tests?
-    default_volumes = {tests_path: {"bind": default_working_dir, "mode": "ro"}}
-
     tools_to_environments = utils.gather_tools_and_environments(
         tool=tool, environment=environment
     )
 
     tags = utils.get_tags(
-        tools_to_environments=tools_to_environments, environment=environment
+        tools_to_environments=tools_to_environments,
+        environment=environment,
+        only_versioned=True,
     )
 
     image_and_versioned_tags = []
 
-    # Every other tag, starting with the 0th, is a versioned tag. Only test those
     # pylint: disable=redefined-argument-from-local
-    for tag in tags[::2]:
+    for tag in tags:
         image_and_versioned_tags.append(f"{constants.IMAGE}:{tag}")
 
     # Only test using the versioned tag
