@@ -721,6 +721,7 @@ def run_terraform(*, image: str) -> None:
             1,
         ),
         (
+            {},
             '/usr/bin/env bash -c "terraform plan || true"',
             0,
         ),
