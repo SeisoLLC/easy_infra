@@ -136,21 +136,19 @@ def gather_tools_and_environments(
     """
     Returns a dict with a key of the tool, and a value of a list of environments
     """
-    from easy_infra.constants import ENVIRONMENTS, TOOLS
-
     if tool == "all":
-        tools: Union[set[Any], list[str]] = TOOLS
-    elif tool not in TOOLS:
+        tools: Union[set[Any], list[str]] = constants.TOOLS
+    elif tool not in constants.TOOLS:
         LOG.error(f"{tool} is not a supported tool, exiting...")
         sys.exit(1)
     else:
         tools = [tool]
 
     if environment == "all":
-        environments = ENVIRONMENTS
+        environments = constants.ENVIRONMENTS
     elif environment == "none":
         environments = []
-    elif environment not in ENVIRONMENTS:
+    elif environment not in constants.ENVIRONMENTS:
         LOG.error(f"{environment} is not a supported environment, exiting...")
         sys.exit(1)
     else:

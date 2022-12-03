@@ -31,7 +31,10 @@ CONFIG = config.parse_config(config_file=CONFIG_FILE)
 # by default design
 TOOLS = set()
 for command in CONFIG["commands"]:
-    if "security" in CONFIG["commands"][command]:
+    if (
+        "security" in CONFIG["commands"][command]
+        and "helper" not in CONFIG["commands"][command]
+    ):
         TOOLS.add(command)
 
 ENVIRONMENTS = set()

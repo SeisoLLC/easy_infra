@@ -286,12 +286,6 @@ def run_tests(*, image: str, tool: str, environment: str | None) -> None:
     run_security(tag=tag)
 
 
-def run_tfenv(*, image: str) -> None:
-    """Run the tfenv tests"""
-    # tfenv and terraform are essentially the same image
-    run_terraform(image=image)
-
-
 def run_terraform(*, image: str) -> None:
     """Run the terraform tests"""
     num_tests_ran = 0

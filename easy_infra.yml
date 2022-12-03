@@ -62,13 +62,12 @@ commands:
     version_argument: version
   terraform:
     file_extensions: *id001
-    helper: ["tfenv"]
     security: *id002
     validation: *id003
     version: 1.3.4
     version_argument: version
   terratag:
-    helper: ["terraform", "tfenv"]
+    helper: ["terraform"]
     version: v0.1.48
   tfenv:
     allow_filter:

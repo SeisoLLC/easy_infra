@@ -567,8 +567,19 @@ def build(_c, tool="all", environment="all", trace=False, debug=False, dry_run=F
 
     # pylint: disable=redefined-argument-from-local
     for tool in tools_to_environments:
+        tools = [tool]
+        for command in constants.CONFIG["commands"]:
+            if (
+                # It is a helper
+                "helper" in constants.CONFIG["commands"][command]
+                # And it is a helper for the tool we're working on
+                and tool in constants.CONFIG["commands"][command]["helper"]
+                # And it has a security config
+                and "security" in constants.CONFIG["commands"][command]
+            ):
+                tools.append(helper)
         # Render the functions that the tool cares about
-        filtered_config = filter_config(config=constants.CONFIG, tools=[tool])
+        filtered_config = filter_config(config=constants.CONFIG, tools=tools)
         if not dry_run:
             utils.render_jinja2(
                 template_file=constants.FUNCTIONS_INPUT_FILE,
