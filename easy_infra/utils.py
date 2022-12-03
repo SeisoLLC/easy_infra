@@ -112,6 +112,10 @@ def opinionated_docker_run(
         response["logs"] = container.logs().decode("utf-8").strip().replace("\n", "  ")
         container.remove()
         if not is_status_expected(expected=expected_exit, response=response):
+            LOG.error(
+                "Received an unexpected exit when invoking CLIENT.containers.run() with the following arguments: "
+                + f"{auto_remove=}, {command=}, {detach=}, {environment=}, {image=}, {network_mode=}, {tty=}, {volumes=}, {working_dir=}"
+            )
             sys.exit(response["StatusCode"])
 
 
@@ -120,10 +124,10 @@ def is_status_expected(*, expected: int, response: dict) -> bool:
     actual = response["StatusCode"]
 
     if expected != actual:
+        status_code = response["StatusCode"]
+        logs = response["logs"]
         LOG.error(
-            "Received an unexpected status code of %s; additional details: %s",
-            response["StatusCode"],
-            response["logs"],
+            f"Received an unexpected status code of {status_code}; additional details: {logs}",
         )
         return False
 

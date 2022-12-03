@@ -78,7 +78,7 @@ def version_arguments(*, image: str, tool: str, environment: str):
             )
             num_tests_ran += 1
 
-    LOG.info("%s passed %d integration tests", image, num_tests_ran)
+    LOG.info(f"{image} passed {num_tests_ran} integration tests")
 
 
 def check_for_files(
@@ -100,9 +100,9 @@ def check_for_files(
             not expected_to_exist and exit_code == 0
         ):
             if expected_to_exist:
-                LOG.error("Didn't find the file %s when it was expected", file)
+                LOG.error(f"Didn't find the file {file} when it was expected")
             elif not expected_to_exist:
-                LOG.error("Found the file %s when it was not expected", file)
+                LOG.error(f"Found the file {file} when it was not expected")
             return 0
         successful_tests += 1
 
@@ -125,15 +125,12 @@ def is_expected_file_length(
     )
     sanitized_output = int(output.decode("utf-8").strip())
     if exit_code != 0:
-        LOG.error("The provided container exited with an exit code of %s", exit_code)
+        LOG.error(f"The provided container exited with an exit code of {exit_code}")
         return False
 
     if sanitized_output != expected_log_length:
         LOG.error(
-            "The file %s had a length of %s when a length of %s was expected",
-            log_path,
-            sanitized_output,
-            expected_log_length,
+            f"The file {log_path} had a length of {sanitized_output} when a length of {expected_log_length} was expected",
         )
         return False
 
@@ -209,7 +206,7 @@ def check_paths(*, interactive: bool, image: str) -> int:
     )
 
     # All commands should be in the PATH of the easy_infra user
-    LOG.debug("Testing the easy_infra user's PATH when interactive is %s", interactive)
+    LOG.debug(f"Testing the easy_infra user's PATH when interactive is {interactive}")
     num_successful_tests = 0
     for command in CONFIG["commands"]:
         if "aliases" in CONFIG["commands"][command]:

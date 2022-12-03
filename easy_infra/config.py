@@ -15,7 +15,7 @@ def parse_config(*, config_file: Path) -> dict:
     suffix_whitelist = {".yml", ".yaml"}
 
     if config_file.suffix not in suffix_whitelist:
-        LOG.error("Suffix for the config file %s is not allowed", config_file)
+        LOG.error(f"Suffix for the config file {config_file} is not allowed")
         raise RuntimeError
 
     try:
@@ -29,9 +29,7 @@ def parse_config(*, config_file: Path) -> dict:
         OSError,
     ) as err:
         LOG.error(
-            "The config file %s was unable to be loaded due to the following exception: %s",
-            config_file,
-            str(err),
+            f"The config file {config_file} was unable to be loaded due to the following exception: {str(err)}",
         )
         # Raise if info or debug level logging
         if LOG.getEffectiveLevel() <= 20:

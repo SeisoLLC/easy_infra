@@ -43,15 +43,15 @@ def process_container(*, container: docker.models.containers.Container) -> None:
     decoded_response = container.logs().decode("UTF-8")
     response["logs"] = decoded_response.strip().replace("\n", "  ")
     container.remove()
-    if not response["StatusCode"] == 0:
+    status_code = response["StatusCode"]
+    logs = response["logs"]
+    if not status_code == 0:
         LOG.error(
-            "Received a non-zero status code from docker (%s); additional details: %s",
-            response["StatusCode"],
-            response["logs"],
+            f"Received a non-zero status code from docker ({status_code}); additional details: {logs}",
         )
-        sys.exit(response["StatusCode"])
+        sys.exit(status_code)
     else:
-        LOG.info("%s", response["logs"])
+        LOG.info(logs)
 
 
 def log_build_log(*, build_err: docker.errors.BuildError) -> None:
@@ -63,11 +63,13 @@ def log_build_log(*, build_err: docker.errors.BuildError) -> None:
             item = next(iterator)
             if "stream" in item:
                 if item["stream"] != "\n":
-                    LOG.error("%s", item["stream"].strip())
+                    single_line_item = item["stream"].strip()
+                    LOG.error(single_line_item)
             elif "errorDetail" in item:
-                LOG.error("%s", item["errorDetail"])
+                error_detail = item["errorDetail"]
+                LOG.error(error_detail)
             else:
-                LOG.error("%s", item)
+                LOG.error(item)
         except StopIteration:
             finished = True
 
