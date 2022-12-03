@@ -577,7 +577,7 @@ def build(_c, tool="all", environment="all", trace=False, debug=False, dry_run=F
                 # And it has a security config
                 and "security" in constants.CONFIG["commands"][command]
             ):
-                tools.append(helper)
+                tools.append(command)
         # Render the functions that the tool cares about
         filtered_config = filter_config(config=constants.CONFIG, tools=tools)
         if not dry_run:
@@ -588,7 +588,9 @@ def build(_c, tool="all", environment="all", trace=False, debug=False, dry_run=F
                 output_mode=0o755,
             )
         else:
-            LOG.info("Would have run utils.render_jinja2...")
+            LOG.info(
+                f"Would have run utils.render_jinja2 on {constants.FUNCTIONS_INPUT_FILE}..."
+            )
 
         # TODO: Figure out how to handle -large, somewhere in this function?
 
