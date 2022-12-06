@@ -34,8 +34,8 @@ def render_jinja2(
 
 def get_latest_release_from_apt(*, package: str) -> str:
     """Get the latest release of a project via apt"""
-    # TODO: Reassess this
-    image = "seiso/easy_infra:latest"
+    # Needs to be an image with all the apt sources
+    image = "seiso/easy_infra:latest-terraform-azure"
     CLIENT.images.pull(repository=image)
     release = CLIENT.containers.run(
         image=image,
