@@ -23,8 +23,12 @@ from invoke import task
 from easy_infra import __project_name__, __version__, config, constants, utils
 from tests import test as run_test
 
-if platform.machine() == "arm64":
-    PLATFORM: Union[str, None] = "linux/arm64/v8"
+# TODO: Does this work on intel?
+platform_machine = platform.machine()
+if platform_machine == "arm64":
+    PLATFORM: Union[str, None] = "linux/arm64"
+elif platform_machine == "x86_64":
+    PLATFORM: Union[str, None] = "linux/amd64"
 else:
     PLATFORM = None
 
@@ -146,7 +150,6 @@ def pull_image(*, image_and_tag: str, platform: str = PLATFORM) -> None:
     try:
         registry_data = CLIENT.images.get_registry_data(name=f"{image_and_tag}")
 
-        # TODO: Improve PLATFORM so it can handle Intel/amd64 systems
         if registry_data.has_platform(platform):
             LOG.info(f"Pulling {image_and_tag} (platform {platform})...")
         else:

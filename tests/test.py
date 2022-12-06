@@ -3,6 +3,7 @@
 Test Functions
 """
 
+import ast
 import copy
 import subprocess
 import sys
@@ -266,12 +267,12 @@ def run_tests(*, image: str, tool: str, environment: str | None) -> None:
     # TODO: When do we do run_path_check or run_cli?
     #  run_test.run_path_check(image=image_and_tag)
     tool_test_function = f"run_{tool}"
-    eval(tool_test_function)(image=image)  # nosec B307 pylint: disable=eval-used
+    ast.literal_eval(tool_test_function)(image=image)  # nosec B307 pylint: disable=eval-used
 
     if environment and environment != "none":
         environment_test_function = f"run_{environment}"
         # TODO: Consider how we may want to test {tool}-{environment} features specially; right now it is environment-only testing
-        eval(environment_test_function)(  # nosec B307 pylint: disable=eval-used
+        ast.literal_eval(environment_test_function)(  # nosec B307 pylint: disable=eval-used
             image=image
         )
         tag = constants.CONTEXT[tool][environment]["versioned_tag"]
