@@ -23,8 +23,10 @@ LOG = getLogger(__name__)
 CLIENT = docker.from_env()
 
 
-def version_arguments(*, image: str, tool: str, environment: str):
+def version_arguments(*, tool: str, environment: str):
     """Given a specific image, test the appropriate version arguments from the config"""
+    image_and_tag = utils.get_image_and_tag(tool=tool, environment=environment)
+
     working_dir = "/iac/"
     tests_path = constants.CWD.joinpath("tests")
     volumes = {tests_path: {"bind": working_dir, "mode": "ro"}}
@@ -67,7 +69,7 @@ def version_arguments(*, image: str, tool: str, environment: str):
         for alias in aliases:
             docker_command = f'command {alias} {constants.CONFIG["commands"][command]["version_argument"]}'
             utils.opinionated_docker_run(
-                image=image,
+                image=image_and_tag,
                 volumes=volumes,
                 working_dir=working_dir,
                 command=docker_command,
@@ -289,7 +291,6 @@ def exec_tests(
 def run_tests(*, image: str, tool: str, environment: str | None) -> None:
     """Fanout function to run the appropriate tests"""
     run_path_check(tool=tool, environment=environment)
-    # TODO: run_cli()
 
     tool_test_function = f"run_{tool}"
     eval(tool_test_function)(image=image)  # nosec B307 pylint: disable=eval-used
@@ -304,7 +305,7 @@ def run_tests(*, image: str, tool: str, environment: str | None) -> None:
     else:
         tag = constants.CONTEXT[tool]["versioned_tag"]
 
-    version_arguments(image=image, tool=tool, environment=environment)
+    version_arguments(tool=tool, environment=environment)
     run_security(tag=tag)
 
 
@@ -1145,23 +1146,6 @@ def run_aws(*, image: str) -> None:
     # Ensure a basic az help command fails
     command = "az help"
     utils.opinionated_docker_run(image=image, command=command, expected_exit=127)
-    num_tests_ran += 1
-
-    LOG.info("%s passed %d integration tests", image, num_tests_ran)
-
-
-def run_cli(*, image: str) -> None:
-    """Run basic cli tests"""
-    num_tests_ran = 0
-
-    # Ensure a basic aws help command succeeds
-    command = "aws help"
-    utils.opinionated_docker_run(image=image, command=command, expected_exit=0)
-    num_tests_ran += 1
-
-    # Ensure a basic azure help command succeeds
-    command = "az help"
-    utils.opinionated_docker_run(image=image, command=command, expected_exit=0)
     num_tests_ran += 1
 
     LOG.info("%s passed %d integration tests", image, num_tests_ran)
