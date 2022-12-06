@@ -165,6 +165,18 @@ def gather_tools_and_environments(
     return image_and_tool_and_environment_tags
 
 
+def get_image_and_tag(*, tool: str, environment: str | None = None) -> str:
+    """Return the image_and_tag for the given tool and environment"""
+    if environment and environment in constants.ENVIRONMENTS:
+        tag = constants.CONTEXT[tool][environment]["versioned_tag"]
+    else:
+        tag = constants.CONTEXT[tool]["versioned_tag"]
+
+    image_and_tag = f"{constants.IMAGE}:{tag}"
+
+    return image_and_tag
+
+
 def get_tags(
     *, tools_to_environments: dict, environment: str, only_versioned: bool = False
 ) -> list[str]:

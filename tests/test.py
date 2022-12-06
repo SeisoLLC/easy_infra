@@ -173,33 +173,72 @@ def check_container(
     return num_successful_tests
 
 
-def run_path_check(*, image: str) -> None:
+def run_path_check(*, tool: str, environment: str | None = None) -> None:
     """Wrapper to run check_paths"""
+    commands = []
+
+    image_and_tag = utils.get_image_and_tag(tool=tool, environment=environment)
+
+    for command in CONFIG["commands"]:
+        if (
+            # If it's the tool command
+            command == tool
+            # Or if it's a security tool for tool
+            or command in constants.CONFIG["commands"][tool]["security"]
+            # Or if it's a tool helper, or general "all" helper
+            or (
+                "helper" in constants.CONFIG["commands"][command]
+                and set(constants.CONFIG["commands"][command]["helper"]).intersection(
+                    {tool, "all"}
+                )
+            )
+            # Or if it's a tool for the specified environment
+            or (
+                environment
+                and command in constants.CONFIG["environments"][environment]["commands"]
+            )
+        ):
+            if "aliases" in CONFIG["commands"][command]:
+                aliases = CONFIG["commands"][command]["aliases"]
+            else:
+                aliases = [command]
+
+        commands += aliases
+
     for interactive in [True, False]:
-        num_successful_tests = check_paths(interactive=interactive, image=image)
+        num_successful_tests = check_paths(
+            interactive=interactive,
+            tool=tool,
+            environment=environment,
+            commands=commands,
+        )
+
         if num_successful_tests > 0:
             context = "interactive" if interactive else "non-interactive"
-            LOG.info(f"{image} passed all {num_successful_tests} {context} path tests")
+            LOG.info(
+                f"{image_and_tag} passed all {num_successful_tests} {context} path tests"
+            )
         else:
             context = "an interactive" if interactive else "a non-interactive"
-            LOG.error(f"{image} failed {context} path test")
+            LOG.error(f"{image_and_tag} failed {context} path test")
             sys.exit(1)
 
 
-# def check_paths(*, interactive: bool, tool: str, environment: str | None = None) -> int:
-def check_paths(*, interactive: bool, image: str) -> int:
+def check_paths(
+    *, interactive: bool, tool: str, environment: str | None = None, commands: list[str]
+) -> int:
     """
     Check the commands in easy_infra.yml to ensure they are in the easy_infra user's PATH.
     Return 0 for any failures, or the number of correctly found files
     """
-    # TODO: WIP
-    #     tools_to_environments = utils.gather_tools_and_environments(
-    #         tool=tool, environment=environment
-    #     )
-    #
-    #     image_and_tag = f"{constants.IMAGE}:{}"
+    if environment == "none" or environment == "all":
+        LOG.error(f"Unsupported environment of {environment}")
+        return 0
+
+    image_and_tag = utils.get_image_and_tag(tool=tool, environment=environment)
+
     container = CLIENT.containers.run(
-        image=image,
+        image=image_and_tag,
         detach=True,
         auto_remove=False,
         tty=True,
@@ -208,27 +247,21 @@ def check_paths(*, interactive: bool, image: str) -> int:
     # All commands should be in the PATH of the easy_infra user
     LOG.debug(f"Testing the easy_infra user's PATH when interactive is {interactive}")
     num_successful_tests = 0
-    for command in CONFIG["commands"]:
-        if "aliases" in CONFIG["commands"][command]:
-            aliases = CONFIG["commands"][command]["aliases"]
+    for command in commands:
+        if interactive:
+            attempt = container.exec_run(
+                cmd=f'/bin/bash -ic "which {command}"', tty=True
+            )
         else:
-            aliases = [command]
+            attempt = container.exec_run(
+                cmd=f'/bin/bash -c "which {command}"',
+            )
+        if attempt[0] != 0:
+            LOG.error(f"{command} is not in the PATH of {image_and_tag}")
+            container.kill()
+            return 0
 
-        for alias in aliases:
-            if interactive:
-                attempt = container.exec_run(
-                    cmd=f'/bin/bash -ic "which {alias}"', tty=True
-                )
-            else:
-                attempt = container.exec_run(
-                    cmd=f'/bin/bash -c "which {alias}"',
-                )
-            if attempt[0] != 0:
-                LOG.error("%s is not in the easy_infra PATH", alias)
-                container.kill()
-                return 0
-
-            num_successful_tests += 1
+        num_successful_tests += 1
 
     container.kill()
     return num_successful_tests
@@ -263,8 +296,9 @@ def exec_tests(
 
 def run_tests(*, image: str, tool: str, environment: str | None) -> None:
     """Fanout function to run the appropriate tests"""
-    # TODO: When do we do run_path_check or run_cli?
-    #  run_test.run_path_check(image=image_and_tag)
+    run_path_check(tool=tool, environment=environment)
+    # TODO: run_cli()
+
     tool_test_function = f"run_{tool}"
     eval(tool_test_function)(image=image)  # nosec B307 pylint: disable=eval-used
 
@@ -278,7 +312,6 @@ def run_tests(*, image: str, tool: str, environment: str | None) -> None:
     else:
         tag = constants.CONTEXT[tool]["versioned_tag"]
 
-    # Always run these tests
     version_arguments(image=image, tool=tool, environment=environment)
     run_security(tag=tag)
 
