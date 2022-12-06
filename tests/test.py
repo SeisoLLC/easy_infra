@@ -77,7 +77,7 @@ def version_arguments(*, tool: str, environment: str):
             )
             num_tests_ran += 1
 
-    LOG.info(f"{image} passed {num_tests_ran} integration tests")
+    LOG.info(f"{image_and_tag} passed {num_tests_ran} integration tests")
 
 
 def check_for_files(

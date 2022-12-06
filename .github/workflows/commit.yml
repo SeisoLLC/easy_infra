@@ -117,7 +117,7 @@ jobs:
       contents: write
     runs-on: ubuntu-20.04
     outputs:
-      tag: ${{ steps.bump-version.outputs.tag }}
+      git_tag: ${{ steps.bump-version.outputs.git_tag }}
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v3
@@ -144,16 +144,16 @@ jobs:
           git config --global user.name 'Seiso Automation'
           git config --global user.email 'automation@seisollc.com'
           pipenv run invoke release
-          TAG="$(git describe --tags)"
+          GIT_TAG="$(git describe --tags)"
           BRANCH="$(git branch --show-current)"
-          git push --atomic origin "${BRANCH}" "${TAG}"
-          echo "tag=${TAG}" >> "${GITHUB_OUTPUT}"
+          git push --atomic origin "${BRANCH}" "${GIT_TAG}"
+          echo "git_tag=${GIT_TAG}" >> "${GITHUB_OUTPUT}"
   cut-release:
     name: Cut a release
     needs: [bump-version]
-    environment: "${{ needs.bump-version.outputs.tag }}"
+    environment: "${{ needs.bump-version.outputs.git_tag }}"
     concurrency:
-      group: "${{ needs.bump-version.outputs.tag }}"
+      group: "${{ needs.bump-version.outputs.git_tag }}"
       cancel-in-progress: true
     runs-on: ubuntu-20.04
     steps:
@@ -161,7 +161,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-          ref: "${{ needs.bump-version.outputs.tag }}"
+          ref: "${{ needs.bump-version.outputs.git_tag }}"
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ env.python_version }}
@@ -190,7 +190,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: SBOMs
-          path: sbom.*.${{ needs.bump-version.outputs.tag }}.json # TODO: Reassess
+          path: sbom.*.json
           if-no-files-found: error
       - name: Generate Vuln scan results
         run: pipenv run invoke vulnscan
@@ -198,19 +198,19 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: Vulns
-          path: vulns.*.${{ needs.bump-version.outputs.tag }}.json # TODO: Reassess
+          path: vulns.*.json
           if-no-files-found: error
       - name: Publish the release to GitHub
         uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          name: ${{ needs.bump-version.outputs.tag }}
-          tag_name: ${{ needs.bump-version.outputs.tag }}
+          name: ${{ needs.bump-version.outputs.git_tag }}
+          tag_name: ${{ needs.bump-version.outputs.git_tag }}
           generate_release_notes: true
           files: |
-            vulns.*.${{ needs.bump-version.outputs.tag }}.json # TODO: Reassess this
-            sbom.*.${{ needs.bump-version.outputs.tag }}.json
+            vulns.*.json
+            sbom.*.json
           fail_on_unmatched_files: true
           draft: false
           prerelease: false
@@ -229,14 +229,14 @@ jobs:
         tool: ${{ fromJSON(needs.generate-matrix.outputs.tools) }}
         environment: ${{ fromJSON(needs.generate-matrix.outputs.environments) }}
     if: github.event_name == 'push'
-    environment: "${{ needs.bump-version.outputs.tag }}"
+    environment: "${{ needs.bump-version.outputs.git_tag }}"
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-          ref: "${{ needs.bump-version.outputs.tag }}"
+          ref: "${{ needs.bump-version.outputs.git_tag }}"
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ env.python_version }}
@@ -264,16 +264,18 @@ jobs:
         uses: sigstore/cosign-installer@main
       - name: Sign the image
         run: |
-          # TODO: Handle Tool and env, including no env
-          version_tag=$(pipenv run python -c "from easy_infra import constants; \
-                                              print(constants.CONTEXT['${TOOL}']['buildargs_base']['EASY_INFRA_VERSION'])")
-          IMAGE_AND_DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' \
-                  "seiso/easy_infra:${version_tag}" )
+          image_and_versioned_tag=$(pipenv run python -c \
+              "from easy_infra.utils import get_image_and_tag; \
+              print(get_image_and_tag(tool='${TOOL}', environment='${ENVIRONMENT}'))")
+          versioned_tag="${image_and_versioned_tag#*:}"
+          # Requires that the image is available in the local daemon and was pushed to the remote repo
+          image_and_digest=$(docker inspect --format='{{index .RepoDigests 0}}' \
+                  "${image_and_versioned_tag}" )
           echo -n "${COSIGN_PASSWORD}" |
           cosign sign --key cosign.key   \
             -a git_sha="${GITHUB_SHA}"   \
-            -a tag="${version_tag}"      \
-            "${IMAGE_AND_DIGEST}"
+            -a tag="${versioned_tag}"      \
+            "${image_and_digest}"
         env:
           COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
           TOOL: ${{ matrix.tool }}
