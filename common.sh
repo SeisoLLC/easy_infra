@@ -30,7 +30,12 @@ function _log() {
   event_type="\"${2}\"" # event.type
   event_outcome="\"${3}\"" # event.outcome
   event_action="$(jq -R <<< "${4}")" # event.action (JSON-escaped string)
-  label_cwd="\"${5}\""
+  # If $5 is already double quoted, don't double quote it again
+  if [[ "${5}" == \"*\" ]]; then
+    label_cwd="${5}"
+  else
+    label_cwd="\"${5}\""
+  fi
   message_type="${6}"
   if [[ "${message_type}" == "string" ]]; then
     message="$(jq -R <<< "${7}")" # message (JSON-escaped string)
