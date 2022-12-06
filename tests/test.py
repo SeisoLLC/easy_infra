@@ -12,7 +12,7 @@ from typing import Union
 
 import docker
 
-from easy_infra import config, constants, utils
+from easy_infra import constants, utils
 
 # Globals
 CWD = Path(".").absolute()
