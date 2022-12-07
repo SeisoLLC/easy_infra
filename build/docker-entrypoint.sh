@@ -9,13 +9,16 @@ shopt -s dotglob
 source /usr/local/bin/common.sh
 
 function shutdown() {
+  # Watch the fluent-bit process
+  tail --pid="$(pidof fluent-bit)" -f /dev/null &
+
   # Have fluent-bit dequeue and then exit
   kill -SIGTERM "$(pidof fluent-bit)"
 
   # And then wait for it to exit
-  tail --pid="$(pidof fluent-bit)" -f /dev/null
+  wait
 
-  _feedback INFO "Successfully dequeud fluent-bit, shutting down..."
+  _feedback DEBUGGING "Successfully dequeud fluent-bit, shutting down easy_infra..."
 }
 
 trap shutdown EXIT
