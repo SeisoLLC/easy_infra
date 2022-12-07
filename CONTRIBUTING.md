@@ -9,12 +9,42 @@ If you'd like to [run the test suite](#running-tests), you will also need `grype
 
 If you'd like to [generate an SBOM](#generating-an-sbom), you will also need `syft` downloaded and in your `PATH`.
 
-### Building the image
+### Building the images
 
-To build the docker image, run:
+To build all of the docker images, run:
 
 ```bash
 pipenv run invoke build
+```
+
+If you only want to build a specific image, you can pass in a tool and/or an environment. For example:
+
+```bash
+pipenv run invoke build --tool=terraform --environment=none
+```
+
+To see the list of possible tools, run the following command. If you don't specify a tool, `build` will assume that you want to build "all" of the
+tools.
+
+```bash
+pipenv run python3 -c \
+  "from easy_infra import constants; \
+  print(list(constants.TOOLS))"
+```
+
+To see the possible enviornments, run the following command. If you don't specify a environment, `build` will assume that you want to build "all" of
+the supported environments for the specified tool(s).
+
+```bash
+pipenv run python -c \
+  "from easy_infra import constants; \
+  print(list(constants.ENVIRONMENTS) + ['none'])"
+```
+
+If you'd like to see what **would** have been done, and which images would have been built, you can use `--dry-run`, for example:
+
+```bash
+pri build --environment=azure --dry-run
 ```
 
 ### Running tests
