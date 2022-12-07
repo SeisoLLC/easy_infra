@@ -32,7 +32,7 @@ pipenv run python3 -c \
   print(list(constants.TOOLS))"
 ```
 
-To see the possible enviornments, run the following command. If you don't specify a environment, `build` will assume that you want to build "all" of
+To see the possible environments, run the following command. If you don't specify a environment, `build` will assume that you want to build "all" of
 the supported environments for the specified tool(s).
 
 ```bash
