@@ -5,6 +5,7 @@
 
 set -o pipefail
 shopt -s dotglob
+source /usr/local/bin/common.sh
 
 function shutdown() {
   # Have fluent-bit dequeue and then exit
@@ -12,6 +13,8 @@ function shutdown() {
 
   # And then wait for it to exit
   tail --pid="$(pidof fluent-bit)" -f /dev/null
+
+  _feedback INFO "Successfully dequeud fluent-bit, shutting down..."
 }
 
 trap shutdown EXIT
@@ -25,9 +28,7 @@ if [[ -x "$(which strace)" ]]; then
   sleep .2
 
   if ! pidof strace ; then
-    warning='\033[0;33m'
-    default='\033[0m'
-    echo -e "${warning}WARNING: strace failed; consider adding -u 0 --cap-add=SYS_PTRACE to your docker run${default}"
+    _feedback WARNING "strace failed; consider adding -u 0 --cap-add=SYS_PTRACE to your docker run"
   fi
 fi
 
