@@ -12,6 +12,9 @@ function shutdown() {
   # Watch the fluent-bit process
   tail --pid="$(pidof fluent-bit)" -f /dev/null &
 
+  # Sleep for twice the service flush interval from fluent-bit.conf
+  sleep .2s
+
   # Have fluent-bit dequeue and then exit
   kill -SIGTERM "$(pidof fluent-bit)"
 
