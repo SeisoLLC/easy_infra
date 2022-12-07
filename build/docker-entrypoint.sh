@@ -5,6 +5,7 @@
 
 set -o pipefail
 shopt -s dotglob
+# shellcheck disable=SC1091
 source /usr/local/bin/common.sh
 
 function shutdown() {
