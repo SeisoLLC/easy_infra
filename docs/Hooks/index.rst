@@ -34,11 +34,11 @@ Certain information is also available in the hook, such as the calling directory
 
 If you want to add a single hook at runtime, consider::
 
-    docker run -v /path/to/hook/example_hook.sh:/opt/hooks/bin/example_hook.sh seiso/easy_infra terraform validate
+    docker run -v /path/to/hook/example_hook.sh:/opt/hooks/bin/example_hook.sh seiso/easy_infra:latest-terraform terraform validate
 
 If you want to overwrite all of the built-in hooks with your own folder of hooks, consider::
 
-    docker run -v /path/to/hooks:/opt/hooks/bin/ seiso/easy_infra terraform validate
+    docker run -v /path/to/hooks:/opt/hooks/bin/ seiso/easy_infra:latest-terraform terraform validate
 
 Configuring Hooks
 -----------------
