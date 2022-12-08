@@ -42,7 +42,7 @@ commands:
     version: 2.42.0-1~focal
     version_argument: version
   checkov:
-    version: 2.2.72
+    version: 2.2.125
     version_argument: --version
   consul-template:
     helper: ["all"]
