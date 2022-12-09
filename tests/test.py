@@ -917,8 +917,7 @@ def run_terraform(*, image: str) -> None:
 
     num_tests_ran += num_successful_tests
 
-    LOG.info("%s passed %d end to end terraform tests", image, num_tests_ran)
-    return
+    LOG.info(f"{image} passed {num_tests_ran} end to end terraform tests")
 
 
 def run_ansible(*, image: str) -> None:
@@ -1114,7 +1113,7 @@ def run_ansible(*, image: str) -> None:
 
     num_tests_ran += num_successful_tests
 
-    LOG.info("%s passed %d end to end ansible-playbook tests", image, num_tests_ran)
+    LOG.info(f"{image} passed {num_tests_ran} end to end ansible-playbook tests")
 
 
 def run_azure(*, image: str) -> None:
@@ -1126,7 +1125,7 @@ def run_azure(*, image: str) -> None:
     utils.opinionated_docker_run(image=image, command=command, expected_exit=0)
     num_tests_ran += 1
 
-    LOG.info("%s passed %d integration tests", image, num_tests_ran)
+    LOG.info(f"{image} passed {num_tests_ran} integration tests")
 
 
 def run_aws(*, image: str) -> None:
@@ -1138,7 +1137,7 @@ def run_aws(*, image: str) -> None:
     utils.opinionated_docker_run(image=image, command=command, expected_exit=0)
     num_tests_ran += 1
 
-    LOG.info("%s passed %d integration tests", image, num_tests_ran)
+    LOG.info(f"{image} passed {num_tests_ran} integration tests")
 
 
 def run_security(*, tag: str) -> None:

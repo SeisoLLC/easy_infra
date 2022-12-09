@@ -7,7 +7,7 @@ easy_infra.yml
 
 ``easy_infra`` is a project which makes heavy use of generated code and composable container images. ``easy_infra.yml`` is the centralized
 configuration to instruct those generation and composition processes. It describes which version of software to use, where, how to generate the very
-important ``/functions`` script (more on that in `/functions and functions.j2`_), which is what provides all of the hooking and capabilities.
+important ``/functions`` script (more on that in `functions and functions.j2`_), which is what provides all of the hooking and capabilities.
 
 Here is a ficticious ``easy_infra.yml`` that concisely demonstrates the various features that are possible::
 
@@ -84,9 +84,9 @@ example, we have::
       - match: exec
         position: 0
 
-This ensures that, in the generated ``tfenv`` function in ``/functions``, it will check for ``exec`` in the ``0``th position (0-indexed, starting
-after the command, and after any easy_infra specific arguments have been removed (i.e. ``--skip-checkov``)), and only if there's a match will it
-continue to perform security scans as described in the ``security`` object under the respective ``package`` (i.e. ``tfenv``).
+This ensures that, in the generated ``tfenv`` function in ``/functions``, it will check for ``exec`` in the ``0`` position (0-indexed, starting after
+the command, and after any easy_infra specific arguments have been removed (i.e. ``--skip-checkov``)), and only if there's a match will it continue to
+perform security scans as described in the ``security`` object under the respective ``package`` (i.e. ``tfenv``).
 
 Allow update
 ^^^^^^^^^^^^
@@ -178,19 +178,19 @@ security scans (and validation, if any is specified) when the version of a tool 
 build/
 ======
 
-``Dockerfile``s must all be able to be built independently, as long as their pre-requisites are met. Typically this means you pass in the appropriate
-``*_VERSION`` build arguments, and you pass in an ``EASY_INFRA_TAG`` build argument that maps to a seiso/easy_infra_base tag locally. For example,
-a command like the following should work when run from the ``build`` directory if seiso/easy_infra_base:2022.11.06-terraform-943a052 is available
-locally::
+All ``build/Dockerfile*`` files must all be able to be built independently, as long as their pre-requisites are met. Typically this means you pass in
+the appropriate ``*_VERSION`` build arguments, and you pass in an ``EASY_INFRA_TAG`` build argument that maps to a seiso/easy_infra_base tag locally.
+For example, a command like the following should work when run from the ``build`` directory if seiso/easy_infra_base:2022.11.06-terraform-943a052 is
+available locally::
 
     docker build -t ansible-test --build-arg ANSIBLE_VERSION=2.9.6+dfsg-1 --build-arg EASY_INFRA_TAG=2022.11.06-terraform-943a052 . -f
     Dockerfile.ansible
 
-``Dockerfrag``s cannot be built individually and are only fragments of an image specification. They are meant to be layered on top of their respective
-``Dockerfile``.
+All ``build/Dockerfrag*`` files cannot be built individually and are only fragments of an image specification. They are meant to be layered on top of
+their respective ``Dockerfile``.
 
-/functions and functions.j2
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+functions and functions.j2
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ``functions.j2`` is a Jinja2 template, which is rendered into a ``functions`` script, and then copied into each ``easy_infra`` image at build time.
 This all works based on the combination of this ``/functions`` file existing inside of the container, commands being run from within a shell (whether
@@ -233,16 +233,16 @@ tools, based on the tool that the image focuses on.
 
 There are two general types of files in ``build/``; ``Dockerfile``s and ``Dockerfrag``s.
 
-``Dockerfile``s should be able to be built and tested independently, and are effectively the "install" step of building the ``easy_infra`` images. It
-is possible that an ``easy_infra`` ``Dockerfile`` may only contain a ``FROM`` statement, if we are using a container built and distributed by the
-upstream project. ``Dockerfile`` suffixes MUST also be the same as a given ``package`` as outlined in the ``easy_infra.yml`` (aliases are not
+All ``Dockerfile*`` files should be able to be built and tested independently, and are effectively the "install" step of building the ``easy_infra``
+images. It is possible that an ``easy_infra`` ``Dockerfile`` may only contain a ``FROM`` statement, if we are using a container built and distributed
+by the upstream project. ``Dockerfile`` suffixes MUST also be the same as a given ``package`` as outlined in the ``easy_infra.yml`` (aliases are not
 supported), with the single exception of ``Dockerfile.base`` (for example, the ``terraform`` package's ``Dockerfile`` must be
 ``Dockerfile.terraform``).
 
-``Dockerfrag``s should not be built and tested independently, as they are solely fragments which depend on the related ``Dockerfile``. For instance,
-``Dockerfrag.terraform`` is meant to build on top of ``Dockerfile.terraform``. The contents of a ``Dockerfrag`` often hinge around ``COPY``ing files
-from the ``Dockerfile``. This model allows us to create extremely minimal final images with limited bloat and consideration of extraneous packages or
-dependencies which are only needed at build time.
+All ``Dockerfrag*`` files should not be built and tested independently, as they are solely fragments which depend on the related ``Dockerfile``. For
+instance, ``Dockerfrag.terraform`` is meant to build on top of ``Dockerfile.terraform``. The contents of a ``Dockerfrag`` often hinge around
+``COPY``ing files from the ``Dockerfile``. This model allows us to create extremely minimal final images with limited bloat and consideration of
+extraneous packages or dependencies which are only needed at build time.
 
 In order for a ``Dockerfile`` and a ``Dockerfrag`` to be "linked" together, they must share the same suffix. For example,``Dockerfrag.abc`` should
 build on top of ``Dockerfile.abc``, and it is both expected that in ``Dockerfrag.abc`` it copies files using ``COPY --from=abc ...``, and that in
@@ -257,7 +257,27 @@ Adding a tool
 ^^^^^^^^^^^^^
 
 - Add the package to ``easy-infra.yml`` under ``packages`` and include a valid ``security``, ``file_extensions``, ``version``, and
-  ``version_argument`` section. Consider other optional configurations as they apply (see [the docs]() for more details).
+  ``version_argument`` section. Consider other optional configurations as they apply (see `easy_infra.yml`_ for more details).
+- Modify ``docker-entrypoint.sh`` to print the tool version if the correct binary exists inside of the container.
+- Create a ``Dockerfile.{tool}`` and ``Dockerfrag.{tool}`` in the ``build/`` directory.
+- You may need to add the tool name or any aliases in ``.github/etc/dictionary.txt`` if it is not a standard english word, assuming it is used in
+  documentation.
+- Create a new folder in ``docs/`` and add documentation regarding the tool. Reference the new docs in the ``toctree`` of ``docs/index.rst`` in line
+  with the other ``toctree`` entries.
+- Consider developing any specialized hooks, using the `hooks framework <../Hooks/index.html>`_.
+- Write tests in ``tests/test.py`` by creating a new function named ``run_{tool}`` and following the pattern that other ``run_*`` functions follow by
+  creating a list of 3-tuple tests, and then using the ``exec_tests`` function to perform the tests and return the number of tests that were
+  successfully run, logging the amount and type of tests performed at the end of the function.
+- Add a folder under ``tests/`` aligned to the tool name, and create
+  a variety of different configuration files that will be referenced by the tests in ``tests/test.py``. Ensure that there are:
+  - ``invalid`` and ``secure`` folders containing aligned configuration files, typically under ``tests/{tool}/general/``.
+  - At least one ``security_tool/{security_tool}``  folder under ``tests/{tool}`` containing insecure code.
+  - If you developed hooks which register to the tool, create a ``tests/{tool}/hooks/`` directory, containing a variety of folders that exercise those
+    built-in hooks.
+- Identify how the latest released version of the tool (the "package") can be retrieved. Ensure that the ``update`` function in ``tasks.py`` will
+  retrieve the latest version appropriately. You may be able to use some of the existing mechanisms (such as using ``apt``, github repo releases,
+  github repo tags, python package versions, etc.) which are maintained in ``easy_infra/constants.py`` and whose update functions exist in
+  ``easy_infra/utils.py`` (see the ``get_latest_release_from_*`` functions).
 
 Adding an environment
 ^^^^^^^^^^^^^^^^^^^^^
@@ -266,4 +286,4 @@ Adding an environment
 
 .. note::
     If you need any special configuration at build time specific to the combination of a tool and an environment, you can create a
-    ``Dockerfile.tool-environment`` and ``Dockerfrag.tool-environment``. These are entirely optional.
+    ``Dockerfile.{tool}-{environment}`` and ``Dockerfrag.{tool}-{environment}``. These are entirely optional.

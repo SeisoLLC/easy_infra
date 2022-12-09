@@ -13,9 +13,9 @@ To get started with contributing to this project, you first want to ensure that 
 First, ensure you have `docker`, `git`, `pipenv`, and `python3` installed locally, and the `docker` daemon is running. Then run `pipenv install
 --deploy --ignore-pipfile --dev` to install the dependencies onto your local system.
 
-If you'd like to [run the test suite](#running-tests), you will also need `grype` downloaded and in your `PATH`.
+If you'd like to [run the test suite](#running-the-tests), you will also need `grype` downloaded and in your `PATH`.
 
-If you'd like to [generate an SBOM](#generating-an-sbom), you will also need `syft` downloaded and in your `PATH`.
+If you'd like to [generate an SBOM](#generating-the-sboms), you will also need `syft` downloaded and in your `PATH`.
 
 ### Building the images
 
