@@ -5,3 +5,5 @@ kics
 mindepth
 sbom
 syft
+vulns
+vulnscan
