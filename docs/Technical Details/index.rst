@@ -190,7 +190,7 @@ All ``build/Dockerfrag*`` files cannot be built individually and are only fragme
 their respective ``Dockerfile``.
 
 functions and functions.j2
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+--------------------------
 
 ``functions.j2`` is a Jinja2 template, which is rendered into a ``functions`` script, and then copied into each ``easy_infra`` image at build time.
 This all works based on the combination of this ``/functions`` file existing inside of the container, commands being run from within a shell (whether
@@ -231,7 +231,7 @@ or ``ansible``), and an associated set of "security tools" (i.e. ``checkov`` or 
 inside of a container. There are also sometimes optional "environment" (i.e. ``aws`` or ``azure``) images which add environment-specific helpers or
 tools, based on the tool that the image focuses on.
 
-There are two general types of files in ``build/``; ``Dockerfile``s and ``Dockerfrag``s.
+There are two general types of files in ``build/``; ``Dockerfile*`` and ``Dockerfra*g``.
 
 All ``Dockerfile*`` files should be able to be built and tested independently, and are effectively the "install" step of building the ``easy_infra``
 images. It is possible that an ``easy_infra`` ``Dockerfile`` may only contain a ``FROM`` statement, if we are using a container built and distributed
@@ -240,11 +240,11 @@ supported), with the single exception of ``Dockerfile.base`` (for example, the `
 ``Dockerfile.terraform``).
 
 All ``Dockerfrag*`` files should not be built and tested independently, as they are solely fragments which depend on the related ``Dockerfile``. For
-instance, ``Dockerfrag.terraform`` is meant to build on top of ``Dockerfile.terraform``. The contents of a ``Dockerfrag`` often hinge around
-``COPY``ing files from the ``Dockerfile``. This model allows us to create extremely minimal final images with limited bloat and consideration of
-extraneous packages or dependencies which are only needed at build time.
+instance, ``Dockerfrag.terraform`` is meant to build on top of ``Dockerfile.terraform``. The contents of a ``Dockerfrag`` often hinge around running
+``COPY`` commands to pull files from the ``Dockerfile``. This model allows us to create extremely minimal final images with limited bloat and
+consideration of extraneous packages or dependencies which are only needed at build time.
 
-In order for a ``Dockerfile`` and a ``Dockerfrag`` to be "linked" together, they must share the same suffix. For example,``Dockerfrag.abc`` should
+In order for a ``Dockerfile`` and a ``Dockerfrag`` to be "linked" together, they must share the same suffix. For example, ``Dockerfrag.abc`` should
 build on top of ``Dockerfile.abc``, and it is both expected that in ``Dockerfrag.abc`` it copies files using ``COPY --from=abc ...``, and that in
 ``Dockerfile.abc`` the ``FROM`` statement ends with ``... as abc``.
 
@@ -268,10 +268,10 @@ Adding a tool
   successfully run, logging the amount and type of tests performed at the end of the function.
 - Add a folder under ``tests/`` aligned to the tool name, and create
   a variety of different configuration files that will be referenced by the tests in ``tests/test.py``. Ensure that there are:
-  - ``invalid`` and ``secure`` folders containing aligned configuration files, typically under ``tests/{tool}/general/``.
-  - At least one ``security_tool/{security_tool}``  folder under ``tests/{tool}`` containing insecure code.
-  - If you developed hooks which register to the tool, create a ``tests/{tool}/hooks/`` directory, containing a variety of folders that exercise those
-    built-in hooks.
+    - ``invalid`` and ``secure`` folders containing aligned configuration files, typically under ``tests/{tool}/general/``.
+    - At least one ``security_tool/{security_tool}``  folder under ``tests/{tool}`` containing insecure code.
+    - If you developed hooks which register to the tool, create a ``tests/{tool}/hooks/`` directory, containing a variety of folders that exercise
+      those built-in hooks.
 - Identify how the latest released version of the tool (the "package") can be retrieved. Ensure that the ``update`` function in ``tasks.py`` will
   retrieve the latest version appropriately. You may be able to use some of the existing mechanisms (such as using ``apt``, github repo releases,
   github repo tags, python package versions, etc.) which are maintained in ``easy_infra/constants.py`` and whose update functions exist in
