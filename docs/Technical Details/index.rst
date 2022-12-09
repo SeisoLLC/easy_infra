@@ -251,8 +251,6 @@ build on top of ``Dockerfile.abc``, and it is both expected that in ``Dockerfrag
 Adding to the project
 =====================
 
-Below is a brief checklist to follow when adding a new tool or environment to ``easy_infra``.
-
 Adding a tool
 ^^^^^^^^^^^^^
 
@@ -278,11 +276,6 @@ Adding a tool
   retrieve the latest version appropriately. You may be able to use some of the existing mechanisms (such as using ``apt``, github repo releases,
   github repo tags, python package versions, etc.) which are maintained in ``easy_infra/constants.py`` and whose update functions exist in
   ``easy_infra/utils.py`` (see the ``get_latest_release_from_*`` functions).
-
-Adding an environment
-^^^^^^^^^^^^^^^^^^^^^
-
--
 
 .. note::
     If you need any special configuration at build time specific to the combination of a tool and an environment, you can create a
