@@ -86,8 +86,7 @@ If you're working with the same terraform code across multiple runs, you can lev
 Disabling Security
 ^^^^^^^^^^^^^^^^^^
 
-The injected security tooling can be disabled entirely or individually, using
-``easy_infra``-specific command line arguments or environment variables.
+The injected security tooling can be disabled entirely or individually, using ``easy_infra``-specific command line arguments or environment variables.
 
 +----------------------+-----------+---------------------------------------------------------------------------------+
 | Environment variable | Default   | Result                                                                          |

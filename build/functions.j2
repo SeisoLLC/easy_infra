@@ -326,11 +326,11 @@ function {{ function }}() {
 }
 {% endmacro %}
 
-{# Loop through each provided command (or aliases, if they are set) to be wrapped and make a single wrapper function for it -#}
-{% for command in commands if commands[command]["security"] -%}
-{% for alias in commands[command]["aliases"] -%}
-{{ function(alias, commands[command]["file_extensions"], commands[command]["security"], commands[command]["allow_filter"], commands[command]["version_argument"], commands[command]["validation"]) }}
+{# Loop through each of the provided packages (or aliases, if they are set) to be wrapped and generate a function for each -#}
+{% for package in packages if packages[package]["security"] -%}
+{% for alias in packages[package]["aliases"] -%}
+{{ function(alias, packages[package]["file_extensions"], packages[package]["security"], packages[package]["allow_filter"], packages[package]["version_argument"], packages[package]["validation"]) }}
 {% else %}
-{{ function(command, commands[command]["file_extensions"],commands[command]["security"], commands[command]["allow_filter"], commands[command]["version_argument"], commands[command]["validation"]) }}
+{{ function(package, packages[package]["file_extensions"], packages[package]["security"], packages[package]["allow_filter"], packages[package]["version_argument"], packages[package]["validation"]) }}
 {% endfor %}
 {%- endfor -%}

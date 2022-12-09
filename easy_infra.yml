@@ -15,7 +15,7 @@ _anchors:
     description: initialization
   - command: terraform validate
     description: validation
-commands:
+packages:
   ansible:
     aliases:
     - ansible
@@ -47,11 +47,11 @@ commands:
   consul-template:
     helper: ["all"]
     version: v0.29.5
-    version_command: consul-template --version
+    version_argument: --version
   envconsul:
     helper: ["all"]
     version: v0.13.1
-    version_command: envconsul --version
+    version_argument: --version
   fluent-bit:
     helper: ["all"]
     version: v2.0.5
@@ -81,6 +81,6 @@ commands:
     version_argument: --version
 environments:
   aws:
-    commands: [aws-cli]
+    packages: [aws-cli]
   azure:
-    commands: [azure-cli]
+    packages: [azure-cli]

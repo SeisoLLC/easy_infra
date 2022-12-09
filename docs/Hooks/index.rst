@@ -15,7 +15,7 @@ like to hook::
     # register_hook: terraform
 
 .. note::
-    Only commands (or their related aliases, where specified) listed in ``easy_infra.yml`` at build time are supported. This means that, if a command has multiple aliases it will need to be registered against each of those aliases.
+    Only packages (or their related aliases, where specified) listed in ``easy_infra.yml`` at build time are supported. This means that, if a package has multiple aliases it will need to be registered against each of those aliases.
 
 Example
 ^^^^^^^

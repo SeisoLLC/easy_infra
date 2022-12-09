@@ -55,8 +55,8 @@ def update_config_file(*, thing: str, version: str):
     config_file = Path(f"{__project_name__}.yml").absolute()
 
     config = parse_config(config_file=config_file)
-    allow_update = config["commands"][thing].get("allow_update", True)
-    current_version = config["commands"][thing]["version"]
+    allow_update = config["packages"][thing].get("allow_update", True)
+    current_version = config["packages"][thing]["version"]
 
     if version == current_version:
         LOG.debug(f"No new versions have been detected for {thing}")
@@ -68,6 +68,6 @@ def update_config_file(*, thing: str, version: str):
         )
         return
 
-    config["commands"][thing]["version"] = version
+    config["packages"][thing]["version"] = version
     LOG.info(f"Updating {thing} to version {version}")
     write_config(config=config, config_file=config_file)

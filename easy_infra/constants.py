@@ -30,16 +30,16 @@ CONFIG = config.parse_config(config_file=CONFIG_FILE)
 # TOOLS is used to create per-tool tags. If there isn't a security configuration, the tag will not be created, because then it wouldn't fit our secure
 # by default design
 TOOLS = set()
-for command in CONFIG["commands"]:
+for package in CONFIG["packages"]:
     if (
-        "security" in CONFIG["commands"][command]
-        and "helper" not in CONFIG["commands"][command]
+        "security" in CONFIG["packages"][package]
+        and "helper" not in CONFIG["packages"][package]
     ):
-        TOOLS.add(command)
+        TOOLS.add(package)
 
 ENVIRONMENTS = set()
 for environment in CONFIG["environments"]:
-    if "commands" in CONFIG["environments"][environment]:
+    if "packages" in CONFIG["environments"][environment]:
         ENVIRONMENTS.add(environment)
 
 LOG_FORMAT = json.dumps(

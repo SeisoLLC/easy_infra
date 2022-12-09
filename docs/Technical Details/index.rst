@@ -6,7 +6,7 @@ easy_infra.yml
 ==============
 
 ``easy_infra`` is a project which makes heavy use of generated code and composable container images. ``easy_infra.yml`` is the centralized
-configuration to instruct those generation and composition processes. It describes which version of software to use where, how to generate the very
+configuration to instruct those generation and composition processes. It describes which version of software to use, where, how to generate the very
 important ``/functions`` script (more on that in `/functions and functions.j2`_), which is what provides all of the hooking and capabilities.
 
 Here is a ficticious ``easy_infra.yml`` that concisely demonstrates the various features that are possible::
@@ -26,7 +26,7 @@ Here is a ficticious ``easy_infra.yml`` that concisely demonstrates the various 
         description: initialization
       - command: terraform validate
         description: validation
-    commands:
+    packages:
       fluent-bit:
         helper: ["all"]
         version: v2.0.5
@@ -49,60 +49,58 @@ Here is a ficticious ``easy_infra.yml`` that concisely demonstrates the various 
         version_argument: --version
 
 .. note::
-    Not all of these features are used in the default ``easy_infra`` images
+    Not all of these features are always in use in ``easy_infra.yml``
 
-YML Anchors and Aliases
------------------------
+YAML Anchors and Aliases
+------------------------
 
-Anchors and Aliases are a yml concept, and are fully supported in ``easy_infra.yml`` to support reusable components. See ``&id001`` and ``*id001`` above to see
-an example. Learn more `here <https://yaml.org/spec/1.2.2/#3222-anchors-and-aliases>`_ and `here
+Anchors and Aliases are a yaml concept, and are fully supported in ``easy_infra.yml`` to support reusable components. See ``&id001`` and ``*id001``
+above to see an example. Learn more `here <https://yaml.org/spec/1.2.2/#3222-anchors-and-aliases>`_ and `here
 <https://support.atlassian.com/bitbucket-cloud/docs/yaml-anchors/>`_.
 
-Commands
+Packages
 --------
 
-All of the terms under ``commands`` are the names of packages or tools, and the details of how and when they are installed are described in that
-object of the ``easy_infra.yml``. In order to register a runtime hook against a command (Learn more about hooks `here <../Hooks/index.html>`_), or define
-what security scans occur prior to executing, it must be defined under ``commands``.
-
-The term ``commands`` was chosen in alignment with the `bash builtin <https://linux.die.net/man/1/bash>`_ command (see the "Command Execution"
-section).
+All of the terms under ``packages`` are the names of packages, and the details of how and when they are installed are described in that object of the
+``easy_infra.yml``. In order to register a runtime hook against a package (Learn more about hooks `here <../Hooks/index.html>`_), or define what
+security scans occur prior to executing, it must be defined under ``packages``.
 
 Alias
 ^^^^^
 
-Certain tools have multiple ways to run them, such as by running ``kubectl`` or simply ``k``. These are (often) pointing to the exact same binary, and
-if you'd like to support multiple aliases for a tool, provide a list of those aliases under ``alias`` in ``easy_infra.yml``, which will result in
+Certain tools have multiple ways to run them, such as by running ``kubectl`` or simply ``k``. These aliases often point to the exact same binary, and
+if you'd like to support multiple aliases for a tool, provide a list of those aliases under ``aliases`` in ``easy_infra.yml``, which will result in
 ``/functions`` containing an appropriate function hook for each of the aliases.
 
 
 Allow filter
 ^^^^^^^^^^^^
 
-The ``allow_filter`` allows you to perform security scans only for a very specific sub-command of a given command. For instance, in the above example,
-we have::
+The ``allow_filter`` allows you to perform security scans only for a very specific sub-command of a given package or alias. For instance, in the above
+example, we have::
 
     tfenv:
       allow_filter:
       - match: exec
         position: 0
 
-This ensures that, in the generated ``tfenv`` function in ``/functions``, it will check for ``exec`` in the ``0`` position, and only if there's a
-match will it continue to perform security scans as described in ``security``.
+This ensures that, in the generated ``tfenv`` function in ``/functions``, it will check for ``exec`` in the ``0``th position (0-indexed, starting
+after the command, and after any easy_infra specific arguments have been removed (i.e. ``--skip-checkov``)), and only if there's a match will it
+continue to perform security scans as described in the ``security`` object under the respective ``package`` (i.e. ``tfenv``).
 
 Allow update
 ^^^^^^^^^^^^
 
-When projects are added to ``easy_infra`` they are automatically onboarded to our automated maintenance scripts (see ``def update`` under ``tasks.py`` for how
-that works). All projects that are properly configured will be automatically updated when ``invoke update`` is run, and ``allow_update`` is a boolean field
-under that command in ``easy_infra.yml`` which allows the onboarding but exemption of updates to a given project. This is sometimes done when a given project
-changes how it performs releases or makes a breaking changes that we have yet to accomodate.
+When projects are added to ``easy_infra`` they are automatically onboarded to our automated maintenance scripts (see ``def update`` in ``tasks.py``
+for how that works). All projects that are properly configured will be automatically updated when ``invoke update`` is run, and ``allow_update`` is a
+boolean field under that package in ``easy_infra.yml`` which allows the onboarding of a package, while exempting it from automatic updates. This is
+typically temporary, and only done when a given project changes how it performs releases or makes a breaking changes that we have yet to accomodate.
 
 File extensions
 ^^^^^^^^^^^^^^^
 
-``file_extensions`` were instituted to support the ``AUTODETECT`` function. If a command doesn't have file extensions defined, the project's
-autodetect logic is unable to detect where files that relate to the command being run exist.
+``file_extensions`` exist to support the ``AUTODETECT`` function. If a ``package`` doesn't have file extensions defined, the project's autodetect
+logic is unable to detect where files that relate to the command being run exist.
 
 Security
 ^^^^^^^^
@@ -110,7 +108,7 @@ Security
 The backbone of this project is the ``security`` section. All of the terms underneath security define the series of security tools which will be run
 every time the related command is run. An alternative ``easy_infra.yml`` would look something like this::
 
-    commands:
+    packages:
       checkov:
         version: 2.2.8
         version_argument: --version
@@ -146,7 +144,7 @@ every time the related command is run. An alternative ``easy_infra.yml`` would l
         version_argument: --version
 
 After building ``easy_infra`` with this configuration, you should be able to expect that when you run ``tfenv exec init`` inside of an ``easy_infra`` container,
-then it would run both the ``kics`` and ``checkov`` commands as described under ``kics: command: ...`` and ``checkov: command: ...``, with additional
+then it would run both the ``kics`` and ``checkov`` security tools as described under ``kics: command: ...`` and ``checkov: command: ...``, with additional
 customizations as defined under ``kics: customizations: ...`` and ``checkov: customizations: ...`` when the associated environment variables are set.
 
 As an example, if you ran ``tfenv exec init`` and also had the ``CHECKOV_BASELINE`` environment variable set to ``/iac/.checkov.baseline`` then the
@@ -203,6 +201,69 @@ Because ``BASH_ENV`` will ensure that ``/functions`` is loaded into the shell at
 name of tools which we are protecting, we can use those functions to perform security scans, arbitrary hooks, and logging prior to executing the
 original command.
 
-Ultimately, this means that when you run ``terraform`` (or some other properly defined command in `easy_infra.yml`_) inside of ``easy_infra``, it will
+Ultimately, this means that when you run ``terraform`` (or some other properly defined package in `easy_infra.yml`_) inside of ``easy_infra``, it will
 actually run the function "terraform", which will run the security scans, hooks, and logging, and only after evaluating the precursor logic will it
 run ``command terraform`` which runs the ``terraform`` binary from the ``PATH``.
+
+Internal naming
+===============
+
+- Tool: An executable file in the easy_infra user's ``PATH`` which perform IaC actions and has an associated security tool, as described in the
+  easy_infra.yml used when building the image.
+- Security tool: An executable file in the easy_infra user's ``PATH`` which is configured to perform a security scan for an associated "tool" (see
+  above), as configured in the ``easy_infra.yml`` file used to build the image.
+- Package: The name of a package that can be installed to perform a necessary function. It could be a tool, a security tool, or a generic helper such
+  as ``fluent-bit`` or ``envconsul``.
+- Command: A runtime command, following the use of the term by bash (see the "Command Execution" of this documentation). This could be an alias, a
+  package, or some other executable on the user's ``PATH``.
+- Alias: An executable file in the easy_infra user's ``PATH`` which executes the installed by a package. While ``aws-cli`` would be a package, ``aws``
+  would be the associated alias.
+- Environment: A supported destination that a tool (see above) may deploy into, such as a cloud provider. An environment constitutes a bundle of
+  packages.
+
+
+High-Level Design of the image build process
+============================================
+
+When building the ``easy_infra`` images, the high level design is that files in the ``build/`` directory are composed together using ``tasks.py`` to
+create multiple final container images for various use cases. Those use cases are primarily based around the use of an IaC "tool" (i.e. ``terraform``
+or ``ansible``), and an associated set of "security tools" (i.e. ``checkov`` or ``kics``) which will run transparently when the IaC tool is used
+inside of a container. There are also sometimes optional "environment" (i.e. ``aws`` or ``azure``) images which add environment-specific helpers or
+tools, based on the tool that the image focuses on.
+
+There are two general types of files in ``build/``; ``Dockerfile``s and ``Dockerfrag``s.
+
+``Dockerfile``s should be able to be built and tested independently, and are effectively the "install" step of building the ``easy_infra`` images. It
+is possible that an ``easy_infra`` ``Dockerfile`` may only contain a ``FROM`` statement, if we are using a container built and distributed by the
+upstream project. ``Dockerfile`` suffixes MUST also be the same as a given ``package`` as outlined in the ``easy_infra.yml`` (aliases are not
+supported), with the single exception of ``Dockerfile.base`` (for example, the ``terraform`` package's ``Dockerfile`` must be
+``Dockerfile.terraform``).
+
+``Dockerfrag``s should not be built and tested independently, as they are solely fragments which depend on the related ``Dockerfile``. For instance,
+``Dockerfrag.terraform`` is meant to build on top of ``Dockerfile.terraform``. The contents of a ``Dockerfrag`` often hinge around ``COPY``ing files
+from the ``Dockerfile``. This model allows us to create extremely minimal final images with limited bloat and consideration of extraneous packages or
+dependencies which are only needed at build time.
+
+In order for a ``Dockerfile`` and a ``Dockerfrag`` to be "linked" together, they must share the same suffix. For example,``Dockerfrag.abc`` should
+build on top of ``Dockerfile.abc``, and it is both expected that in ``Dockerfrag.abc`` it copies files using ``COPY --from=abc ...``, and that in
+``Dockerfile.abc`` the ``FROM`` statement ends with ``... as abc``.
+
+Adding to the project
+=====================
+
+Below is a brief checklist to follow when adding a new tool or environment to ``easy_infra``.
+
+Adding a tool
+^^^^^^^^^^^^^
+
+- Add the package to ``easy-infra.yml`` under ``packages`` and include a valid ``security``, ``file_extensions``, ``version``, and
+  ``version_argument`` section. Consider other optional configurations as they apply (see [the docs]() for more details).
+
+Adding an environment
+^^^^^^^^^^^^^^^^^^^^^
+
+-
+
+.. note::
+    If you need any special configuration at build time specific to the combination of a tool and an environment, you can create a
+    ``Dockerfile.tool-environment`` and ``Dockerfrag.tool-environment``. These are entirely optional.

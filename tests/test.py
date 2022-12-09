@@ -37,37 +37,37 @@ def version_arguments(*, tool: str, environment: str):
         tool=tool, environment=environment
     )
 
-    environment_commands = []
+    environment_packages = []
     for env in tools_to_environments[tool]["environments"]:
-        for env_command in constants.CONFIG["environments"][env]["commands"]:
-            environment_commands.append(env_command)
+        for env_package in constants.CONFIG["environments"][env]["packages"]:
+            environment_packages.append(env_package)
 
-    for command in constants.CONFIG["commands"]:
+    for package in constants.CONFIG["packages"]:
         if not (
-            # commands that are referenced in the tool's security section
-            command in constants.CONFIG["commands"][tool]["security"]
-            # commands which "help" the provided tool
+            # packages that are referenced in the tool's security section
+            package in constants.CONFIG["packages"][tool]["security"]
+            # packages which "help" the provided tool
             or (
-                "helper" in constants.CONFIG["commands"][command]
-                and set(constants.CONFIG["commands"][command]["helper"]).intersection(
+                "helper" in constants.CONFIG["packages"][package]
+                and set(constants.CONFIG["packages"][package]["helper"]).intersection(
                     {tool, "all"}
                 )
             )
-            # commands which apply to the environment
-            or (command in environment_commands)
+            # packages which apply to the environment
+            or (package in environment_packages)
         ):
             continue
 
-        if "version_argument" not in constants.CONFIG["commands"][command]:
+        if "version_argument" not in constants.CONFIG["packages"][package]:
             continue
 
-        if "aliases" in constants.CONFIG["commands"][command]:
-            aliases = constants.CONFIG["commands"][command]["aliases"]
+        if "aliases" in constants.CONFIG["packages"][package]:
+            aliases = constants.CONFIG["packages"][package]["aliases"]
         else:
-            aliases = [command]
+            aliases = [package]
 
         for alias in aliases:
-            docker_command = f'command {alias} {constants.CONFIG["commands"][command]["version_argument"]}'
+            docker_command = f'command {alias} {constants.CONFIG["packages"][package]["version_argument"]}'
             utils.opinionated_docker_run(
                 image=image_and_tag,
                 volumes=volumes,
@@ -178,16 +178,16 @@ def run_path_check(*, tool: str, environment: str | None = None) -> None:
 
     image_and_tag = utils.get_image_and_tag(tool=tool, environment=environment)
 
-    for command in constants.CONFIG["commands"]:
+    for package in constants.CONFIG["packages"]:
         if (
-            # If it's the tool command
-            command == tool
+            # If it's the tool package
+            package == tool
             # Or if it's a security tool for tool
-            or command in constants.CONFIG["commands"][tool]["security"]
+            or package in constants.CONFIG["packages"][tool]["security"]
             # Or if it's an applicable helper
             or (
-                "helper" in constants.CONFIG["commands"][command]
-                and set(constants.CONFIG["commands"][command]["helper"]).intersection(
+                "helper" in constants.CONFIG["packages"][package]
+                and set(constants.CONFIG["packages"][package]["helper"]).intersection(
                     {tool, "all"}
                 )
             )
@@ -195,13 +195,13 @@ def run_path_check(*, tool: str, environment: str | None = None) -> None:
             or (
                 environment
                 and environment in constants.ENVIRONMENTS
-                and command in constants.CONFIG["environments"][environment]["commands"]
+                and package in constants.CONFIG["environments"][environment]["packages"]
             )
         ):
-            if "aliases" in constants.CONFIG["commands"][command]:
-                commands += constants.CONFIG["commands"][command]["aliases"]
+            if "aliases" in constants.CONFIG["packages"][package]:
+                commands += constants.CONFIG["packages"][package]["aliases"]
             else:
-                commands.append(command)
+                commands.append(package)
 
     for interactive in [True, False]:
         num_successful_tests = check_paths(
@@ -390,7 +390,7 @@ def run_terraform(*, image: str) -> None:
     # There is always one log for each security tool, regardless of if that tool is installed in the image being used.  If a tool is not in the PATH
     # and executable, a log message indicating that is generated.
     number_of_security_tools = len(
-        constants.CONFIG["commands"]["terraform"]["security"]
+        constants.CONFIG["packages"]["terraform"]["security"]
     )
     # This list needs to be sorted because it uses pathlib's rglob, which (currently) uses os.scandir, which is documented to yield entries in
     # arbitrary order https://docs.python.org/3/library/os.html#os.scandir
@@ -784,7 +784,7 @@ def run_terraform(*, image: str) -> None:
     files = ["/tmp/checkov_complete"]
     LOG.debug("Testing interactive terraform commands")
     number_of_security_tools = len(
-        constants.CONFIG["commands"]["terraform"]["security"]
+        constants.CONFIG["packages"]["terraform"]["security"]
     )
     expected_number_of_logs = number_of_security_tools
 
@@ -825,7 +825,7 @@ def run_terraform(*, image: str) -> None:
     files = [str(checkov_output_file)]
     LOG.debug("Testing that interactive terraform commands still create json reports")
     number_of_security_tools = len(
-        constants.CONFIG["commands"]["terraform"]["security"]
+        constants.CONFIG["packages"]["terraform"]["security"]
     )
     expected_number_of_logs = number_of_security_tools
 
@@ -868,7 +868,7 @@ def run_terraform(*, image: str) -> None:
     files.append(str(checkov_output_file))
     LOG.debug("Testing non-interactive terraform commands")
     number_of_security_tools = len(
-        constants.CONFIG["commands"]["terraform"]["security"]
+        constants.CONFIG["packages"]["terraform"]["security"]
     )
     expected_number_of_logs = number_of_security_tools
 
@@ -1026,7 +1026,7 @@ def run_ansible(*, image: str) -> None:
         "/tmp/kics_complete",
     ]
     LOG.debug("Testing interactive ansible-playbook commands")
-    number_of_security_tools = len(constants.CONFIG["commands"]["ansible"]["security"])
+    number_of_security_tools = len(constants.CONFIG["packages"]["ansible"]["security"])
     expected_number_of_logs = number_of_security_tools
 
     # Check the container
@@ -1065,7 +1065,7 @@ def run_ansible(*, image: str) -> None:
         "/tmp/kics_complete",
     ]
     LOG.debug("Testing non-interactive ansible-playbook commands")
-    number_of_security_tools = len(constants.CONFIG["commands"]["ansible"]["security"])
+    number_of_security_tools = len(constants.CONFIG["packages"]["ansible"]["security"])
     expected_number_of_logs = number_of_security_tools
 
     # Check the container
@@ -1126,11 +1126,6 @@ def run_azure(*, image: str) -> None:
     utils.opinionated_docker_run(image=image, command=command, expected_exit=0)
     num_tests_ran += 1
 
-    # Ensure a basic aws help command fails
-    command = "aws help"
-    utils.opinionated_docker_run(image=image, command=command, expected_exit=127)
-    num_tests_ran += 1
-
     LOG.info("%s passed %d integration tests", image, num_tests_ran)
 
 
@@ -1141,11 +1136,6 @@ def run_aws(*, image: str) -> None:
     # Ensure a basic aws help command succeeds
     command = "aws help"
     utils.opinionated_docker_run(image=image, command=command, expected_exit=0)
-    num_tests_ran += 1
-
-    # Ensure a basic az help command fails
-    command = "az help"
-    utils.opinionated_docker_run(image=image, command=command, expected_exit=127)
     num_tests_ran += 1
 
     LOG.info("%s passed %d integration tests", image, num_tests_ran)

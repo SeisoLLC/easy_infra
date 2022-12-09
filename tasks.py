@@ -81,10 +81,10 @@ def log_build_log(*, build_err: docker.errors.BuildError) -> None:
 def filter_config(*, config: str, tools: list[str]) -> dict:
     """Take in a configuration, filter it based on the provided tool, and return the result"""
     filtered_config = {}
-    filtered_config["commands"] = {}
+    filtered_config["packages"] = {}
 
     for tool in tools:
-        filtered_config["commands"][tool] = copy.deepcopy(config["commands"][tool])
+        filtered_config["packages"][tool] = copy.deepcopy(config["packages"][tool])
 
     LOG.debug(f"Returning a filtered config of {filtered_config}")
 
@@ -92,10 +92,10 @@ def filter_config(*, config: str, tools: list[str]) -> dict:
 
 
 def add_version_to_buildarg(*, buildargs: dict, thing: str) -> None:
-    if "version" in constants.CONFIG["commands"][thing]:
+    if "version" in constants.CONFIG["packages"][thing]:
         # Normalize and add to buildargs
         arg = thing.upper().replace("-", "_") + "_VERSION"
-        buildargs[arg] = constants.CONFIG["commands"][thing]["version"]
+        buildargs[arg] = constants.CONFIG["packages"][thing]["version"]
     else:
         LOG.error(f"Unable to identify the version of {thing}")
         sys.exit(1)
@@ -123,24 +123,24 @@ def setup_buildargs(*, tool: str, environment: str | None = None, trace: bool) -
     add_version_to_buildarg(buildargs=buildargs, thing=tool)
 
     # Pull in any other buildargs that the tool cares about
-    for command in constants.CONFIG["commands"]:
+    for package in constants.CONFIG["packages"]:
         if (
-            # Include all commands that are referenced in the tool's security section
-            command in constants.CONFIG["commands"][tool]["security"]
-            # Include the versions of commands which "help" other tools
+            # Include all packages that are referenced in the tool's security section
+            package in constants.CONFIG["packages"][tool]["security"]
+            # Include the versions of packages which "help" other tools
             or (
-                "helper" in constants.CONFIG["commands"][command]
-                and set(constants.CONFIG["commands"][command]["helper"]).intersection(
+                "helper" in constants.CONFIG["packages"][package]
+                and set(constants.CONFIG["packages"][package]["helper"]).intersection(
                     {tool, "all"}
                 )
             )
         ):
-            add_version_to_buildarg(buildargs=buildargs, thing=command)
+            add_version_to_buildarg(buildargs=buildargs, thing=package)
 
     # Finally, add in buildargs for the related environment
     if environment:
-        for command in constants.CONFIG["environments"][environment]["commands"]:
-            add_version_to_buildarg(buildargs=buildargs, thing=command)
+        for package in constants.CONFIG["environments"][environment]["packages"]:
+            add_version_to_buildarg(buildargs=buildargs, thing=package)
 
     return buildargs
 
@@ -309,8 +309,8 @@ def build_and_tag(
 
         # populate the security tools for {tool}
         security_tools = []
-        if "security" in constants.CONFIG["commands"][tool]:
-            for security_tool in constants.CONFIG["commands"][tool]["security"]:
+        if "security" in constants.CONFIG["packages"][tool]:
+            for security_tool in constants.CONFIG["packages"][tool]["security"]:
                 security_tools.append(security_tool)
 
         # Load in the security tool dockerfiles/frags
@@ -342,21 +342,21 @@ def build_and_tag(
         config["dockerfile_tool_envs"] = []
         config["dockerfrag_tool_envs"] = []
 
-        for command in constants.CONFIG["environments"][environment]["commands"]:
+        for package in constants.CONFIG["environments"][environment]["packages"]:
             try:
                 config["dockerfile_envs"].append(
-                    constants.BUILD.joinpath(f"Dockerfile.{command}").read_text(
+                    constants.BUILD.joinpath(f"Dockerfile.{package}").read_text(
                         encoding="UTF-8"
                     )
                 )
                 config["dockerfrag_envs"].append(
-                    constants.BUILD.joinpath(f"Dockerfrag.{command}").read_text(
+                    constants.BUILD.joinpath(f"Dockerfrag.{package}").read_text(
                         encoding="UTF-8"
                     )
                 )
             except FileNotFoundError:
                 LOG.exception(
-                    f"An environment of {environment} was specified, but at least one of the required files for {command} was not found"
+                    f"An environment of {environment} was specified, but at least one of the required files for {package} was not found"
                 )
                 sys.exit(1)
 
@@ -573,16 +573,16 @@ def build(_c, tool="all", environment="all", trace=False, debug=False, dry_run=F
     # pylint: disable=redefined-argument-from-local
     for tool in tools_to_environments:
         tools = [tool]
-        for command in constants.CONFIG["commands"]:
+        for package in constants.CONFIG["packages"]:
             if (
                 # It is a helper
-                "helper" in constants.CONFIG["commands"][command]
+                "helper" in constants.CONFIG["packages"][package]
                 # And it is a helper for the tool we're working on
-                and tool in constants.CONFIG["commands"][command]["helper"]
+                and tool in constants.CONFIG["packages"][package]["helper"]
                 # And it has a security config
-                and "security" in constants.CONFIG["commands"][command]
+                and "security" in constants.CONFIG["packages"][package]
             ):
-                tools.append(command)
+                tools.append(package)
         # Render the functions that the tool cares about
         filtered_config = filter_config(config=constants.CONFIG, tools=tools)
         if not dry_run:
