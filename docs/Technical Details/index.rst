@@ -231,7 +231,7 @@ or ``ansible``), and an associated set of "security tools" (i.e. ``checkov`` or 
 inside of a container. There are also sometimes optional "environment" (i.e. ``aws`` or ``azure``) images which add environment-specific helpers or
 tools, based on the tool that the image focuses on.
 
-There are two general types of files in ``build/``; ``Dockerfile*`` and ``Dockerfra*g``.
+There are two general types of files in ``build/``; ``Dockerfile*`` and ``Dockerfrag*``.
 
 All ``Dockerfile*`` files should be able to be built and tested independently, and are effectively the "install" step of building the ``easy_infra``
 images. It is possible that an ``easy_infra`` ``Dockerfile`` may only contain a ``FROM`` statement, if we are using a container built and distributed
