@@ -252,7 +252,7 @@ Adding to the project
 =====================
 
 Adding a tool
-^^^^^^^^^^^^^
+-------------
 
 - Add the package to ``easy-infra.yml`` under ``packages`` and include a valid ``security``, ``file_extensions``, ``version``, and
   ``version_argument`` section. Consider other optional configurations as they apply (see `easy_infra.yml`_ for more details).
