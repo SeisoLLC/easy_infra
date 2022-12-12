@@ -1,0 +1,8 @@
+ARG AZURE_CLI_VERSION
+ENV AZURE_CLI_VERSION="${AZURE_CLI_VERSION}"
+
+COPY --from=azure-cli --chown=easy_infra:easy_infra /opt/az /opt/az
+COPY --from=azure-cli --chown=easy_infra:easy_infra /usr/bin/az /usr/bin/az
+# We copy these files over so the azure images can be used in utils.py get_latest_release_from_apt(); reconsider in the future
+COPY --from=azure-cli --chown=easy_infra:easy_infra /etc/apt/trusted.gpg.d/microsoft.gpg /etc/apt/trusted.gpg.d/microsoft.gpg
+COPY --from=azure-cli --chown=easy_infra:easy_infra /etc/apt/sources.list.d/azure-cli.list /etc/apt/sources.list.d/azure-cli.list

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # This is a script to test various details of the docker image
 
-set -u # nounset
-set -e # errexit
+set -o nounset
+set -o errexit
 set -E # errtrap
 set -o pipefail
 

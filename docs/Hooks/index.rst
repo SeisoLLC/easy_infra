@@ -15,7 +15,7 @@ like to hook::
     # register_hook: terraform
 
 .. note::
-    Only commands (or their related aliases, where specified) listed in ``easy_infra.yml`` at build time are supported. This means that, if a command has multiple aliases it will need to be registered against each of those aliases.
+    Only packages (or their related aliases, where specified) listed in ``easy_infra.yml`` at build time are supported. This means that, if a package has multiple aliases it will need to be registered against each of those aliases.
 
 Example
 ^^^^^^^
@@ -34,11 +34,11 @@ Certain information is also available in the hook, such as the calling directory
 
 If you want to add a single hook at runtime, consider::
 
-    docker run -v /path/to/hook/example_hook.sh:/opt/hooks/bin/example_hook.sh seiso/easy_infra terraform validate
+    docker run -v /path/to/hook/example_hook.sh:/opt/hooks/bin/example_hook.sh seiso/easy_infra:latest-terraform terraform validate
 
 If you want to overwrite all of the built-in hooks with your own folder of hooks, consider::
 
-    docker run -v /path/to/hooks:/opt/hooks/bin/ seiso/easy_infra terraform validate
+    docker run -v /path/to/hooks:/opt/hooks/bin/ seiso/easy_infra:latest-terraform terraform validate
 
 Configuring Hooks
 -----------------

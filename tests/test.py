@@ -15,7 +15,6 @@ import docker
 from easy_infra import constants, utils
 
 # Globals
-CONFIG = utils.parse_config(config_file=constants.CONFIG_FILE)
 CWD = Path(".").absolute()
 TESTS_PATH = CWD.joinpath("tests")
 
@@ -24,24 +23,53 @@ LOG = getLogger(__name__)
 CLIENT = docker.from_env()
 
 
-def version_arguments(*, image: str, volumes: dict, working_dir: str):
-    """Test the version arguments listed in the config"""
+def version_arguments(*, tool: str, environment: str):
+    """Given a specific image, test the appropriate version arguments from the config"""
+    image_and_tag = utils.get_image_and_tag(tool=tool, environment=environment)
+
+    working_dir = "/iac/"
+    tests_path = constants.CWD.joinpath("tests")
+    volumes = {tests_path: {"bind": working_dir, "mode": "ro"}}
+
     num_tests_ran = 0
-    for command in CONFIG["commands"]:
-        if "version_argument" not in CONFIG["commands"][command]:
+
+    tools_to_environments = utils.gather_tools_and_environments(
+        tool=tool, environment=environment
+    )
+
+    environment_packages = []
+    for env in tools_to_environments[tool]["environments"]:
+        for env_package in constants.CONFIG["environments"][env]["packages"]:
+            environment_packages.append(env_package)
+
+    for package in constants.CONFIG["packages"]:
+        if not (
+            # packages that are referenced in the tool's security section
+            package in constants.CONFIG["packages"][tool]["security"]
+            # packages which "help" the provided tool
+            or (
+                "helper" in constants.CONFIG["packages"][package]
+                and set(constants.CONFIG["packages"][package]["helper"]).intersection(
+                    {tool, "all"}
+                )
+            )
+            # packages which apply to the environment
+            or (package in environment_packages)
+        ):
             continue
 
-        if "aliases" in CONFIG["commands"][command]:
-            aliases = CONFIG["commands"][command]["aliases"]
+        if "version_argument" not in constants.CONFIG["packages"][package]:
+            continue
+
+        if "aliases" in constants.CONFIG["packages"][package]:
+            aliases = constants.CONFIG["packages"][package]["aliases"]
         else:
-            aliases = [command]
+            aliases = [package]
 
         for alias in aliases:
-            docker_command = (
-                f'command {alias} {CONFIG["commands"][command]["version_argument"]}'
-            )
+            docker_command = f'command {alias} {constants.CONFIG["packages"][package]["version_argument"]}'
             utils.opinionated_docker_run(
-                image=image,
+                image=image_and_tag,
                 volumes=volumes,
                 working_dir=working_dir,
                 command=docker_command,
@@ -49,7 +77,7 @@ def version_arguments(*, image: str, volumes: dict, working_dir: str):
             )
             num_tests_ran += 1
 
-    LOG.info("%s passed %d integration tests", image, num_tests_ran)
+    LOG.info(f"{image_and_tag} passed {num_tests_ran} integration tests")
 
 
 def check_for_files(
@@ -71,9 +99,9 @@ def check_for_files(
             not expected_to_exist and exit_code == 0
         ):
             if expected_to_exist:
-                LOG.error("Didn't find the file %s when it was expected", file)
+                LOG.error(f"Didn't find the file {file} when it was expected")
             elif not expected_to_exist:
-                LOG.error("Found the file %s when it was not expected", file)
+                LOG.error(f"Found the file {file} when it was not expected")
             return 0
         successful_tests += 1
 
@@ -96,15 +124,12 @@ def is_expected_file_length(
     )
     sanitized_output = int(output.decode("utf-8").strip())
     if exit_code != 0:
-        LOG.error("The provided container exited with an exit code of %s", exit_code)
+        LOG.error(f"The provided container exited with an exit code of {exit_code}")
         return False
 
     if sanitized_output != expected_log_length:
         LOG.error(
-            "The file %s had a length of %s when a length of %s was expected",
-            log_path,
-            sanitized_output,
-            expected_log_length,
+            f"The file {log_path} had a length of {sanitized_output} when a length of {expected_log_length} was expected",
         )
         return False
 
@@ -147,56 +172,90 @@ def check_container(
     return num_successful_tests
 
 
-def run_path_check(*, image: str) -> None:
+def run_path_check(*, tool: str, environment: str | None = None) -> None:
     """Wrapper to run check_paths"""
+    commands = []
+
+    image_and_tag = utils.get_image_and_tag(tool=tool, environment=environment)
+
+    for package in constants.CONFIG["packages"]:
+        if (
+            # If it's the tool package
+            package == tool
+            # Or if it's a security tool for tool
+            or package in constants.CONFIG["packages"][tool]["security"]
+            # Or if it's an applicable helper
+            or (
+                "helper" in constants.CONFIG["packages"][package]
+                and set(constants.CONFIG["packages"][package]["helper"]).intersection(
+                    {tool, "all"}
+                )
+            )
+            # Or if it's a tool for the specified environment
+            or (
+                environment
+                and environment in constants.ENVIRONMENTS
+                and package in constants.CONFIG["environments"][environment]["packages"]
+            )
+        ):
+            if "aliases" in constants.CONFIG["packages"][package]:
+                commands += constants.CONFIG["packages"][package]["aliases"]
+            else:
+                commands.append(package)
+
     for interactive in [True, False]:
-        num_successful_tests = check_paths(interactive=interactive, image=image)
+        num_successful_tests = check_paths(
+            interactive=interactive,
+            tool=tool,
+            environment=environment,
+            commands=commands,
+        )
+
         if num_successful_tests > 0:
             context = "interactive" if interactive else "non-interactive"
-            LOG.info(f"{image} passed all {num_successful_tests} {context} path tests")
+            LOG.info(
+                f"{image_and_tag} passed all {num_successful_tests} {context} path tests"
+            )
         else:
             context = "an interactive" if interactive else "a non-interactive"
-            LOG.error(f"{image} failed {context} path test")
+            LOG.error(f"{image_and_tag} failed {context} path test")
             sys.exit(1)
 
 
-def check_paths(*, interactive: bool, image: str) -> int:
+def check_paths(
+    *, interactive: bool, tool: str, environment: str | None = None, commands: list[str]
+) -> int:
     """
-    Check all of the commands in easy_infra.yml to ensure they are in the
-    easy_infra user's PATH. Return 0 for any failures, or the number of
-    correctly found files
+    Check the commands in easy_infra.yml to ensure they are in the easy_infra user's PATH.
+    Return 0 for any failures, or the number of correctly found files
     """
+    image_and_tag = utils.get_image_and_tag(tool=tool, environment=environment)
+
     container = CLIENT.containers.run(
-        image=image,
+        image=image_and_tag,
         detach=True,
         auto_remove=False,
         tty=True,
     )
 
     # All commands should be in the PATH of the easy_infra user
-    LOG.debug("Testing the easy_infra user's PATH when interactive is %s", interactive)
+    LOG.debug(f"Testing the easy_infra user's PATH when interactive is {interactive}")
     num_successful_tests = 0
-    for command in CONFIG["commands"]:
-        if "aliases" in CONFIG["commands"][command]:
-            aliases = CONFIG["commands"][command]["aliases"]
+    for command in commands:
+        if interactive:
+            attempt = container.exec_run(
+                cmd=f'/bin/bash -ic "which {command}"', tty=True
+            )
         else:
-            aliases = [command]
+            attempt = container.exec_run(
+                cmd=f'/bin/bash -c "which {command}"',
+            )
+        if attempt[0] != 0:
+            LOG.error(f"{command} is not in the PATH of {image_and_tag}")
+            container.kill()
+            return 0
 
-        for alias in aliases:
-            if interactive:
-                attempt = container.exec_run(
-                    cmd=f'/bin/bash -ic "which {alias}"', tty=True
-                )
-            else:
-                attempt = container.exec_run(
-                    cmd=f'/bin/bash -c "which {alias}"',
-                )
-            if attempt[0] != 0:
-                LOG.error("%s is not in the easy_infra PATH", alias)
-                container.kill()
-                return 0
-
-            num_successful_tests += 1
+        num_successful_tests += 1
 
     container.kill()
     return num_successful_tests
@@ -229,7 +288,28 @@ def exec_tests(
     return num_tests_ran
 
 
-def run_terraform(*, image: str, final: bool = False):
+def run_tests(*, image: str, tool: str, environment: str | None) -> None:
+    """Fanout function to run the appropriate tests"""
+    run_path_check(tool=tool, environment=environment)
+
+    tool_test_function = f"run_{tool}"
+    eval(tool_test_function)(image=image)  # nosec B307 pylint: disable=eval-used
+
+    if environment and environment != "none":
+        environment_test_function = f"run_{environment}"
+        # TODO: Consider how we may want to test {tool}-{environment} features specially; right now it is environment-only testing
+        eval(environment_test_function)(  # nosec B307 pylint: disable=eval-used
+            image=image
+        )
+        tag = constants.CONTEXT[tool][environment]["versioned_tag"]
+    else:
+        tag = constants.CONTEXT[tool]["versioned_tag"]
+
+    version_arguments(tool=tool, environment=environment)
+    run_security(tag=tag)
+
+
+def run_terraform(*, image: str) -> None:
     """Run the terraform tests"""
     num_tests_ran = 0
     working_dir = "/iac/"
@@ -240,8 +320,6 @@ def run_terraform(*, image: str, final: bool = False):
     invalid_volumes = {invalid_test_dir: {"bind": working_dir, "mode": "rw"}}
     checkov_test_dir = TESTS_PATH.joinpath("terraform/tool/checkov")
     checkov_volumes = {checkov_test_dir: {"bind": working_dir, "mode": "rw"}}
-    kics_config_dir = TESTS_PATH.joinpath("terraform/tool/kics")
-    kics_volumes = {kics_config_dir: {"bind": working_dir, "mode": "rw"}}
     secure_config_dir = TESTS_PATH.joinpath("terraform/general/secure")
     secure_volumes = {secure_config_dir: {"bind": working_dir, "mode": "rw"}}
     general_test_dir = TESTS_PATH.joinpath("terraform/general")
@@ -266,7 +344,6 @@ def run_terraform(*, image: str, final: bool = False):
         hooks_secure_terraform_v_0_14_dir: {"bind": working_dir, "mode": "rw"}
     }
     report_base_dir = Path("/tmp/reports")
-    kics_output_file = report_base_dir.joinpath("kics").joinpath("kics.json")
     checkov_output_file = report_base_dir.joinpath("checkov").joinpath("checkov.json")
 
     # Base tests
@@ -312,7 +389,9 @@ def run_terraform(*, image: str, final: bool = False):
     # which are purposefully insecure, which otherwise would exit non-zero early, resulting in a limited set of logs.
     # There is always one log for each security tool, regardless of if that tool is installed in the image being used.  If a tool is not in the PATH
     # and executable, a log message indicating that is generated.
-    number_of_security_tools = len(CONFIG["commands"]["terraform"]["security"])
+    number_of_security_tools = len(
+        constants.CONFIG["packages"]["terraform"]["security"]
+    )
     # This list needs to be sorted because it uses pathlib's rglob, which (currently) uses os.scandir, which is documented to yield entries in
     # arbitrary order https://docs.python.org/3/library/os.html#os.scandir
     general_test_dirs = [dir for dir in general_test_dir.rglob("*") if dir.is_dir()]
@@ -467,8 +546,7 @@ def run_terraform(*, image: str, final: bool = False):
         num_tests_ran += num_successful_tests
 
     # Ensure secure configurations pass
-    # Tests is a list of tuples containing the test environment, command, and
-    # expected exit code
+    # Tests is a list of tuples containing the test environment, command, and expected exit code
     tests: list[tuple[dict, str, int]] = [  # type: ignore
         ({}, "terraform init", 0),
         ({}, "tfenv exec init", 0),
@@ -493,15 +571,8 @@ def run_terraform(*, image: str, final: bool = False):
             1,
         ),
         (
-            {
-                "KICS_INCLUDE_QUERIES": "4728cd65-a20c-49da-8b31-9c08b423e4db,46883ce1-dc3e-4b17-9195-c6a601624c73"
-            },
+            {"CHECKOV_SKIP_CHECK": "CKV_AWS_8"},
             "terraform init",
-            0,
-        ),  # This tests "customizations" features from easy_infra.yml and functions.j2
-        (
-            {"KICS_EXCLUDE_SEVERITIES": "info"},
-            "terraform validate",
             0,
         ),  # This tests "customizations" features from easy_infra.yml and functions.j2
     ]
@@ -510,8 +581,7 @@ def run_terraform(*, image: str, final: bool = False):
     num_tests_ran += exec_tests(tests=tests, volumes=secure_volumes, image=image)
 
     # Ensure the easy_infra hooks work as expected when network access is available
-    # Tests is a list of tuples containing the test environment, command, and
-    # expected exit code
+    # Tests is a list of tuples containing the test environment, command, and expected exit code
     tests: list[tuple[dict, str, int]] = [  # type: ignore
         (
             {
@@ -559,8 +629,7 @@ def run_terraform(*, image: str, final: bool = False):
     )
 
     # Ensure the easy_infra hooks work as expected when network access is NOT available
-    # Tests is a list of tuples containing the test environment, command, and
-    # expected exit code
+    # Tests is a list of tuples containing the test environment, command, and expected exit code
     tests: list[tuple[dict, str, int]] = [  # type: ignore
         (
             {
@@ -616,10 +685,8 @@ def run_terraform(*, image: str, final: bool = False):
         network_mode="none",
     )
 
-    # Ensure insecure configurations still succeed when security checks are
-    # disabled
-    # Tests is a list of tuples containing the test environment, command, and
-    # expected exit code
+    # Ensure insecure configurations still succeed when security checks are disabled
+    # Tests is a list of tuples containing the test environment, command, and expected exit code
     tests: list[tuple[dict, str, int]] = [  # type: ignore
         ({"DISABLE_SECURITY": "true"}, "terraform init", 0),
         ({"DISABLE_SECURITY": "true"}, "tfenv exec init", 0),
@@ -640,12 +707,9 @@ def run_terraform(*, image: str, final: bool = False):
             {"DISABLE_SECURITY": "true"},
             "terraform plan || false",
             1,
-        ),  # Not supported; reproduce "Too many command line
-        #     arguments. Configuration path expected." error locally with
-        #     `docker run -e DISABLE_SECURITY=true -v
-        #     $(pwd)/tests/terraform/tool/checkov:/iac
-        #     seiso/easy_infra:latest terraform plan \|\| false`, prefer
-        #     passing the commands through bash like the following test
+        ),  # Not supported; reproduce "Too many command line arguments. Configuration path expected." error
+        #     locally with `docker run -e DISABLE_SECURITY=true -v $(pwd)/tests/terraform/tool/checkov:/iac seiso/easy_infra:latest terraform plan
+        #     \|\| false`, prefer passing the commands through bash like the following test
         (
             {},
             "DISABLE_SECURITY=true terraform plan",
@@ -654,15 +718,7 @@ def run_terraform(*, image: str, final: bool = False):
         #     commands are passed through bash
         (
             {
-                "KICS_INCLUDE_QUERIES": "4728cd65-a20c-49da-8b31-9c08b423e4db,46883ce1-dc3e-4b17-9195-c6a601624c73",  # Doesn't apply to kics_volumes
-                "DISABLE_SECURITY": "true",
-            },
-            "terraform init",
-            0,
-        ),  # This tests the "customizations" idea from easy_infra.yml and functions.j2
-        (
-            {
-                "KICS_INCLUDE_QUERIES": "5a2486aa-facf-477d-a5c1-b010789459ce",  # Would normally fail due to kics_volumes
+                "CHECKOV_SKIP_CHECK": "CKV_AWS_8",  # Would normally still fail due to checkov_volumes CKV_AWS_79
                 "DISABLE_SECURITY": "true",
             },
             "terraform init",
@@ -671,121 +727,35 @@ def run_terraform(*, image: str, final: bool = False):
     ]
 
     LOG.debug("Testing terraform with security disabled")
-    num_tests_ran += exec_tests(tests=tests, volumes=kics_volumes, image=image)
+    num_tests_ran += exec_tests(tests=tests, volumes=checkov_volumes, image=image)
 
-    # Ensure insecure configurations fail due to kics
-    # Tests is a list of tuples containing the test environment, command, and
-    # expected exit code
+    # Ensure insecure configurations fail properly due to checkov
+    # Tests is a list of tuples containing the test environment, command, and expected exit code
     tests: list[tuple[dict, str, int]] = [  # type: ignore
-        ({}, "terraform --skip-checkov plan", 50),
-        ({}, "tfenv exec --skip-checkov plan", 50),
+        ({}, "terraform plan", 1),
+        ({}, "tfenv exec plan", 1),
         (
             {},
-            '/usr/bin/env bash -c "SKIP_CHECKOV=true terraform plan"',
-            50,
-        ),
-        (
-            {},
-            '/usr/bin/env bash -c "SKIP_CHECKOV=true terraform plan || true"',
-            0,
-        ),
-        (
-            {},
-            '/usr/bin/env bash -c "SKIP_CHECKOV=true terraform plan || true && false"',
-            1,
-        ),
-        ({"SKIP_CHECKOV": "true"}, "terraform plan --skip-checkov", 50),
-        (
-            {"SKIP_CHECKOV": "true"},
-            "terraform plan",
-            50,
-        ),
-        (
-            {},
-            '/usr/bin/env bash -c "LEARNING_MODE=true SKIP_CHECKOV=true terraform validate"',
-            0,
-        ),  # Test learning mode with skip env vars
-        (
-            {"LEARNING_MODE": "true", "SKIP_CHECKOV": "true"},
-            "terraform validate",
-            0,
-        ),  # Test learning mode with mixed env vars and cli args
-        (
-            {
-                "SKIP_CHECKOV": "true",
-                "KICS_INCLUDE_QUERIES": "4728cd65-a20c-49da-8b31-9c08b423e4db,46883ce1-dc3e-4b17-9195-c6a601624c73",
-            },
-            "terraform validate",
-            0,
-        ),  # Exits with 0 because the provided insecure terraform does not apply to the included kics queries.
-        # This tests the "customizations" idea from easy_infra.yml and functions.j2
-        (
-            {
-                "SKIP_CHECKOV": "true",
-                "KICS_INCLUDE_QUERIES": "5a2486aa-facf-477d-a5c1-b010789459ce",
-            },
-            "terraform validate",
-            50,
-        ),  # This tests the "customizations" idea from easy_infra.yml and functions.j2
-        (
-            {},
-            '/usr/bin/env bash -c "KICS_INCLUDE_QUERIES=5a2486aa-facf-477d-a5c1-b010789459ce terraform --skip-checkov validate"',
-            50,
-        ),  # This tests the "customizations" idea from easy_infra.yml and functions.j2
-        (
-            {
-                "SKIP_CHECKOV": "true",
-                "KICS_EXCLUDE_SEVERITIES": "medium",
-            },
-            "terraform validate",
-            50,
-        ),  # Doesn't exclude high. This tests the "customizations" idea from easy_infra.yml and functions.j2
-        (
-            {
-                "SKIP_CHECKOV": "true",
-                "KICS_EXCLUDE_SEVERITIES": "info,low,medium,high",
-            },
-            "terraform validate",
-            0,
-        ),  # Excludes all the severities. This tests the "customizations" idea from easy_infra.yml and functions.j2
-    ]
-
-    LOG.debug("Testing terraform with security disabled")
-    num_tests_ran += exec_tests(tests=tests, volumes=kics_volumes, image=image)
-
-    # Ensure insecure configurations fail due to checkov
-    # Tests is a list of tuples containing the test environment, command, and
-    # expected exit code
-    tests: list[tuple[dict, str, int]] = [  # type: ignore
-        ({}, "terraform --skip-kics plan", 1),
-        ({}, "tfenv exec --skip-kics plan", 1),
-        (
-            {},
-            '/usr/bin/env bash -c "SKIP_KICS=true terraform plan"',
+            '/usr/bin/env bash -c "terraform plan"',
             1,
         ),
         (
-            {"SKIP_KICS": "true"},
+            {},
             '/usr/bin/env bash -c "terraform plan || true"',
             0,
         ),
         (
             {},
-            '/usr/bin/env bash -c "SKIP_KICS=true terraform plan || true && false"',
+            '/usr/bin/env bash -c "terraform plan || true && false"',
             1,
         ),
         (
-            {"SKIP_KICS": "true"},
-            "terraform --skip-kics plan",
-            1,
-        ),
-        (
-            {"LEARNING_MODE": "tRuE", "SKIP_KICS": "TRUE"},
+            {"LEARNING_MODE": "tRuE"},
             '/usr/bin/env bash -c "terraform validate"',
             0,
         ),
         (
-            {"LEARNING_MODE": "tRuE", "SKIP_KICS": "true"},
+            {"LEARNING_MODE": "tRuE"},
             "terraform validate",
             0,
         ),
@@ -811,10 +781,11 @@ def run_terraform(*, image: str, final: bool = False):
 
     # An interactive terraform command should not cause the creation of the following files, and should have the same number of logs lines in the
     # fluent bit log regardless of which image is being tested
-    files = ["/tmp/kics_complete"]
-    files.append("/tmp/checkov_complete")
+    files = ["/tmp/checkov_complete"]
     LOG.debug("Testing interactive terraform commands")
-    number_of_security_tools = len(CONFIG["commands"]["terraform"]["security"])
+    number_of_security_tools = len(
+        constants.CONFIG["packages"]["terraform"]["security"]
+    )
     expected_number_of_logs = number_of_security_tools
 
     # Check the container
@@ -851,10 +822,11 @@ def run_terraform(*, image: str, final: bool = False):
 
     # An interactive terraform command should still cause the creation of the following files, and should have the same number of logs lines in the
     # fluent bit log regardless of which image is being tested
-    files = [str(kics_output_file)]
-    files.append(str(checkov_output_file))
+    files = [str(checkov_output_file)]
     LOG.debug("Testing that interactive terraform commands still create json reports")
-    number_of_security_tools = len(CONFIG["commands"]["terraform"]["security"])
+    number_of_security_tools = len(
+        constants.CONFIG["packages"]["terraform"]["security"]
+    )
     expected_number_of_logs = number_of_security_tools
 
     # Check the container
@@ -891,13 +863,13 @@ def run_terraform(*, image: str, final: bool = False):
 
     # A non-interactive terraform command should cause the creation of the following files, and should have the same number of logs lines in the
     # fluent bit log regardless of which image is being tested
-    files = ["/tmp/kics_complete"]
-    files.append("/tmp/checkov_complete")
-    # Piggyback checking the kics/checkov json reports on the kics/checkov complete file checks
-    files.append(str(kics_output_file))
+    files = ["/tmp/checkov_complete"]
+    # Piggyback checking the checkov json reports on the checkov complete file checks
     files.append(str(checkov_output_file))
     LOG.debug("Testing non-interactive terraform commands")
-    number_of_security_tools = len(CONFIG["commands"]["terraform"]["security"])
+    number_of_security_tools = len(
+        constants.CONFIG["packages"]["terraform"]["security"]
+    )
     expected_number_of_logs = number_of_security_tools
 
     # Check the container
@@ -932,8 +904,7 @@ def run_terraform(*, image: str, final: bool = False):
     test_noninteractive_container.exec_run(
         cmd='/bin/bash -c "terraform version"', tty=False
     )
-    files = ["/tmp/kics_complete"]
-    files.append("/tmp/checkov_complete")
+    files = ["/tmp/checkov_complete"]
     LOG.debug("Testing non-interactive terraform version")
     if (
         num_successful_tests := check_for_files(
@@ -946,12 +917,10 @@ def run_terraform(*, image: str, final: bool = False):
 
     num_tests_ran += num_successful_tests
 
-    if not final:
-        LOG.info("%s passed %d end to end terraform tests", image, num_tests_ran)
-        return
+    LOG.info(f"{image} passed {num_tests_ran} end to end terraform tests")
 
 
-def run_ansible(*, image: str):
+def run_ansible(*, image: str) -> None:
     """Run the ansible-playbook tests"""
     num_tests_ran = 0
     working_dir = "/iac/"
@@ -988,21 +957,6 @@ def run_ansible(*, image: str):
             '/usr/bin/env bash -c "ansible-playbook insecure.yml --check || true"',
             0,
         ),
-        (
-            {},
-            '/usr/bin/env bash -c "SKIP_CHECKOV=true ansible-playbook insecure.yml --check || true && false"',
-            1,
-        ),  # checkov is purposefully irrelevant for ansible
-        (
-            {"SKIP_CHECKOV": "true"},
-            '/usr/bin/env bash -c "ansible-playbook insecure.yml --check || false"',
-            1,
-        ),  # checkov is purposefully irrelevant for ansible
-        (
-            {"SKIP_CHECKOV": "FaLsE", "SKIP_KICS": "Unknown"},
-            "ansible-playbook insecure.yml --check",
-            50,
-        ),  # checkov is purposefully irrelevant for ansible
         (
             {},
             '/usr/bin/env bash -c "LEARNING_MODE=true ansible-playbook insecure.yml --check"',
@@ -1071,7 +1025,7 @@ def run_ansible(*, image: str):
         "/tmp/kics_complete",
     ]
     LOG.debug("Testing interactive ansible-playbook commands")
-    number_of_security_tools = len(CONFIG["commands"]["ansible"]["security"])
+    number_of_security_tools = len(constants.CONFIG["packages"]["ansible"]["security"])
     expected_number_of_logs = number_of_security_tools
 
     # Check the container
@@ -1110,7 +1064,7 @@ def run_ansible(*, image: str):
         "/tmp/kics_complete",
     ]
     LOG.debug("Testing non-interactive ansible-playbook commands")
-    number_of_security_tools = len(CONFIG["commands"]["ansible"]["security"])
+    number_of_security_tools = len(constants.CONFIG["packages"]["ansible"]["security"])
     expected_number_of_logs = number_of_security_tools
 
     # Check the container
@@ -1159,11 +1113,11 @@ def run_ansible(*, image: str):
 
     num_tests_ran += num_successful_tests
 
-    LOG.info("%s passed %d end to end ansible-playbook tests", image, num_tests_ran)
+    LOG.info(f"{image} passed {num_tests_ran} end to end ansible-playbook tests")
 
 
-def run_az_stage(*, image: str):
-    """Run the az tests"""
+def run_azure(*, image: str) -> None:
+    """Run the azure tests"""
     num_tests_ran = 0
 
     # Ensure a basic azure help command succeeds
@@ -1171,15 +1125,10 @@ def run_az_stage(*, image: str):
     utils.opinionated_docker_run(image=image, command=command, expected_exit=0)
     num_tests_ran += 1
 
-    # Ensure a basic aws help command fails
-    command = "aws help"
-    utils.opinionated_docker_run(image=image, command=command, expected_exit=127)
-    num_tests_ran += 1
-
-    LOG.info("%s passed %d integration tests", image, num_tests_ran)
+    LOG.info(f"{image} passed {num_tests_ran} integration tests")
 
 
-def run_aws_stage(*, image: str):
+def run_aws(*, image: str) -> None:
     """Run the aws tests"""
     num_tests_ran = 0
 
@@ -1188,44 +1137,19 @@ def run_aws_stage(*, image: str):
     utils.opinionated_docker_run(image=image, command=command, expected_exit=0)
     num_tests_ran += 1
 
-    # Ensure a basic az help command fails
-    command = "az help"
-    utils.opinionated_docker_run(image=image, command=command, expected_exit=127)
-    num_tests_ran += 1
-
-    LOG.info("%s passed %d integration tests", image, num_tests_ran)
+    LOG.info(f"{image} passed {num_tests_ran} integration tests")
 
 
-def run_cli(*, image: str):
-    """Run basic cli tests"""
-    num_tests_ran = 0
-
-    # Ensure a basic aws help command succeeds
-    command = "aws help"
-    utils.opinionated_docker_run(image=image, command=command, expected_exit=0)
-    num_tests_ran += 1
-
-    # Ensure a basic azure help command succeeds
-    command = "az help"
-    utils.opinionated_docker_run(image=image, command=command, expected_exit=0)
-    num_tests_ran += 1
-
-    LOG.info("%s passed %d integration tests", image, num_tests_ran)
-
-
-def run_security(*, image: str, variant: str):
+def run_security(*, tag: str) -> None:
     """Run the security tests"""
-    artifact_labels = utils.get_artifact_labels(variant=variant)
-    # This assumes that the last element in the list is versioned, if it is a release
-    label = artifact_labels[-1]
-    sbom_file = Path(f"sbom.{label}.json")
+    sbom_file = Path(f"sbom.{tag}.json")
 
     if not sbom_file:
         LOG.error(
-            f"{sbom_file} was not found; security scans require an SBOM. Please run `pipenv run invoke sbom`"
+            f"{sbom_file} was not found; security scans require an SBOM. Please run `pipenv run invoke sbom -h`"
         )
 
-    # Run a vulnerability scan on the provided SBOM (derived from variant)
+    # Run a vulnerability scan on the provided SBOM
     try:
         LOG.info(f"Running a vulnerability scan on {sbom_file}...")
         subprocess.run(
@@ -1235,7 +1159,7 @@ def run_security(*, image: str, variant: str):
                 "--output",
                 "json",
                 "--file",
-                f"vulns.{label}.json",
+                f"vulns.{tag}.json",
             ],
             capture_output=True,
             check=True,
@@ -1246,4 +1170,5 @@ def run_security(*, image: str, variant: str):
         )
         sys.exit(1)
 
-    LOG.info("%s passed the security tests", image)
+    image_and_tag = f"{constants.IMAGE}:{tag}"
+    LOG.info(f"{image_and_tag} passed the security tests")

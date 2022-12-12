@@ -1,6 +1,9 @@
 checkov
+dockerfrag
 grype
 kics
 mindepth
 sbom
 syft
+vulns
+vulnscan

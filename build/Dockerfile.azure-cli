@@ -1,0 +1,30 @@
+ARG EASY_INFRA_TAG
+
+FROM seiso/easy_infra_base:"${EASY_INFRA_TAG}" AS azure-cli
+
+ARG AZURE_CLI_VERSION
+ENV AZURE_CLI_VERSION="${AZURE_CLI_VERSION}"
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+USER root
+# hadolint ignore=DL3008
+RUN apt-get update \
+ #####
+ # Per Microsoft recommendation at https://docs.microsoft.com/en-us/cli/azure/install-azure-cli-linux?pivots=apt
+ && apt-get remove azure-cli -y \
+ && apt-get autoremove -y \
+ #####
+ && apt-get -y install --no-install-recommends ca-certificates \
+                                               curl \
+                                               apt-transport-https \
+                                               lsb-release \
+                                               gnupg \
+ && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/cache/debconf/*-old \
+ && curl -sL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor | tee /etc/apt/trusted.gpg.d/microsoft.gpg > /dev/null \
+ && AZ_REPO=$(lsb_release -cs) \
+ # As of 2022-10-07 "The azure-cli deb package does not support ARM64 architecture"
+ && echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ $AZ_REPO main" | tee /etc/apt/sources.list.d/azure-cli.list
+RUN apt-get update \
+ && apt-get -y install --no-install-recommends azure-cli=${AZURE_CLI_VERSION} \
+ && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/cache/debconf/*-old
+USER easy_infra

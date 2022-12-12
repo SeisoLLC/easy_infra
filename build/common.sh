@@ -5,7 +5,7 @@
 ERROR='\033[0;31m'
 WARNING='\033[0;33m'
 DEBUGGING='\033[0;36m'
-INFORMATIONAL='\033[0m'
+INFO='\033[0m'
 DEFAULT='\033[0m'
 
 
@@ -13,8 +13,8 @@ function _log() {
   # Log fields, pulled from ECS
   # (https://www.elastic.co/guide/en/ecs/1.11/ecs-field-reference.html)
   timestamp="\"$(date --iso-8601=seconds --utc)\"" # @timestamp
-  container_image_name='"easy_infra"' # container.image.name
-  container_image_tag="[\"${EASY_INFRA_VERSION}\"]" # container.image.tag
+  container_image_name='"seiso/easy_infra"' # container.image.name
+  container_image_tag="[\"${EASY_INFRA_TAG}\"]" # container.image.tag
   ecs_version='"1.11"' # ecs.version
   event_kind='"state"' # event.kind
   event_category='"configuration"' # event.category

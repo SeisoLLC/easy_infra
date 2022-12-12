@@ -7,11 +7,8 @@ Ansible
 The ``easy_infra`` project includes and secures Ansible as a component due to its popularity and versitility in provisioning and managing systems as
 Infrastructure as Code (IaC).
 
-``easy_infra``'s Ansible security uses tools such as `KICS <https://kics.io/>`_ to semi-transparently assess the provided IaC against the defined
-security policy.
-
-.. note::
-    The same level of Ansible security is included in all of the ``easy_infra`` tags, including minimal, aws, az, and latest.
+``easy_infra`` uses security tools such as `KICS <https://kics.io/>`_ to semi-transparently assess the provided IaC against the defined security
+policy.
 
 
 Use Cases
@@ -20,7 +17,7 @@ Use Cases
 If you use Software Version Control (such as ``git``) to manage your Ansible IaC, consider executing ``ansible-playbook EXAMPLE.yml --check`` with
 easy_infra as a pipeline action on commit or pull request::
 
-    docker run -v $(pwd):/iac seiso/easy_infra:latest-minimal ansible-playbook EXAMPLE.yml --check
+    docker run -v $(pwd):/iac seiso/easy_infra:latest-ansible ansible-playbook EXAMPLE.yml --check
 
 Customizing KICS
 ^^^^^^^^^^^^^^^^
@@ -37,7 +34,7 @@ Customizing KICS
 
     KICS_INCLUDE_QUERIES=c3b9f7b0-f5a0-49ec-9cbc-f1e346b7274d,7dfb316c-a6c2-454d-b8a2-97f147b0c0ff
     KICS_EXCLUDE_SEVERITIES=info,low
-    docker run --env-file <(env | grep ^KICS_) -v $(pwd):/iac easy_infra:latest-minimal ansible-playbook EXAMPLE.yml --check
+    docker run --env-file <(env | grep ^KICS_) -v $(pwd):/iac easy_infra:latest-ansible ansible-playbook EXAMPLE.yml --check
 
 Disabling Security
 ^^^^^^^^^^^^^^^^^^
@@ -61,8 +58,7 @@ The injected security tooling can be disabled entirely or individually, using ``
 +------------------------+------------------------------+-------------------------------------------------------------+
 
 .. note::
-    All command-line arguments in the above table are processed by easy_infra
-    and removed prior to passing parameters to Ansible commands.
+    All command-line arguments in the above table are processed by easy_infra and removed prior to passing parameters to Ansible commands.
 
 
 Resources

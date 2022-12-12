@@ -5,13 +5,23 @@
 
 set -o pipefail
 shopt -s dotglob
+# shellcheck disable=SC1091
+source /usr/local/bin/common.sh
 
 function shutdown() {
+  # Watch the fluent-bit process
+  tail --pid="$(pidof fluent-bit)" -f /dev/null &
+
+  # Sleep for twice the service flush interval from fluent-bit.conf
+  sleep .2s
+
   # Have fluent-bit dequeue and then exit
   kill -SIGTERM "$(pidof fluent-bit)"
 
   # And then wait for it to exit
-  tail --pid="$(pidof fluent-bit)" -f /dev/null
+  wait
+
+  _feedback DEBUGGING "Successfully dequeud fluent-bit, shutting down easy_infra..."
 }
 
 trap shutdown EXIT
@@ -25,9 +35,7 @@ if [[ -x "$(which strace)" ]]; then
   sleep .2
 
   if ! pidof strace ; then
-    warning='\033[0;33m'
-    default='\033[0m'
-    echo -e "${warning}WARNING: strace failed; consider adding -u 0 --cap-add=SYS_PTRACE to your docker run${default}"
+    _feedback WARNING "strace failed; consider adding -u 0 --cap-add=SYS_PTRACE to your docker run"
   fi
 fi
 
@@ -42,8 +50,8 @@ if [ "$#" -eq 0 ]; then
   if [ -x "$(which ansible)" ]; then
     echo -e "ansible\t\t ${ANSIBLE_VERSION}"
   fi
-  current_version=$(cat /home/easy_infra/.tfenv/version)
   if [ -x "$(which terraform)" ]; then
+    current_version=$(cat /home/easy_infra/.tfenv/version)
     if [[ "${TERRAFORM_VERSION}" != "${current_version}" ]]; then
       echo -e "terraform\t ${TERRAFORM_VERSION} (customized)"
     else
