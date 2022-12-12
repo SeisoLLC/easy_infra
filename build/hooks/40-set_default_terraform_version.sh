@@ -9,7 +9,11 @@ source /usr/local/bin/common.sh
 current_version=$(cat /home/easy_infra/.tfenv/version)
 output_log="/var/log/$(basename "${BASH_SOURCE[0]%%.sh}.log")"
 
-if [[ "${TERRAFORM_VERSION}" == "${current_version}" ]]; then
+if [[ -z "${TERRAFORM_VERSION}" ]]; then
+  # TERRAFORM_VERSION is either empty or not set
+  exit 0
+elif [[ "${TERRAFORM_VERSION}" == "${current_version}" ]]; then
+  # The TERRAFORM_VERSION is already in use
   exit 0
 fi
 
@@ -25,6 +29,6 @@ if [[ "${return}" != 0 ]]; then
   exit 0
 fi
 
-_feedback INFORMATIONAL "Switching Terraform version to ${TERRAFORM_VERSION} due to the provided TERRAFORM_VERSION environment variable..." | tee -a "${output_log}"
+_feedback INFO "Switching Terraform version to ${TERRAFORM_VERSION} due to the provided TERRAFORM_VERSION environment variable..." | tee -a "${output_log}"
 tfenv use "${TERRAFORM_VERSION}" &>>"${output_log}"
 exit $?

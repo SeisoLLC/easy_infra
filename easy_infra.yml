@@ -10,20 +10,12 @@ _anchors:
         CHECKOV_EXTERNAL_CHECKS_DIR: --external-checks-dir
         CHECKOV_SKIP_CHECK: --skip-check
       description: directory scan
-    kics:
-      command: kics scan --type Terraform --no-progress --queries-path ${KICS_INCLUDE_QUERIES_PATH}
-        --libraries-path ${KICS_LIBRARY_PATH} --report-formats json --output-path
-        ${KICS_JSON_REPORT_PATH} --output-name kics --path .
-      customizations:
-        KICS_EXCLUDE_SEVERITIES: --exclude-severities
-        KICS_INCLUDE_QUERIES: --include-queries
-      description: directory scan
   validation: &id003
   - command: terraform init -backend=false
     description: initialization
   - command: terraform validate
     description: validation
-commands:
+packages:
   ansible:
     aliases:
     - ansible
@@ -50,15 +42,18 @@ commands:
     version: 2.42.0-1~focal
     version_argument: version
   checkov:
-    version: 2.2.72
+    version: 2.2.125
     version_argument: --version
   consul-template:
+    helper: ["all"]
     version: v0.29.5
-    version_command: consul-template --version
+    version_argument: --version
   envconsul:
+    helper: ["all"]
     version: v0.13.1
-    version_command: envconsul --version
+    version_argument: --version
   fluent-bit:
+    helper: ["all"]
     version: v2.0.5
     version_argument: --version
   kics:
@@ -72,13 +67,20 @@ commands:
     version: 1.3.4
     version_argument: version
   terratag:
+    helper: ["terraform"]
     version: v0.1.48
   tfenv:
     allow_filter:
     - match: exec
       position: 0
     file_extensions: *id001
+    helper: ["terraform"]
     security: *id002
     validation: *id003
     version: v3.0.0
     version_argument: --version
+environments:
+  aws:
+    packages: [aws-cli]
+  azure:
+    packages: [azure-cli]

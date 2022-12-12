@@ -1,74 +1,41 @@
 import sys
 from logging import getLogger
 from pathlib import Path
-from typing import Union
+from typing import Any, Optional, Union
 
 import docker
-import git
 import requests
 from jinja2 import Environment, FileSystemLoader
-from yaml import YAMLError, dump, safe_load
 
-from easy_infra import __version__, constants
+from easy_infra import constants
 
 LOG = getLogger(__name__)
 CLIENT = docker.from_env()
 
 
 # Helper functions
-def render_jinja2(*, template_file: Path, config: dict, output_file: Path) -> None:
+def render_jinja2(
+    *,
+    template_file: Path,
+    config: dict,
+    output_file: Path,
+    output_mode: Optional[int] = None,
+) -> None:
     """Render the functions file"""
     folder = str(template_file.parent)
     file = str(template_file.name)
-    LOG.info("Rendering %s...", file)
+    LOG.info(f"Rendering {file}...")
     template = Environment(loader=FileSystemLoader(folder)).get_template(file)
     out = template.render(config)
     output_file.write_text(out)
-    output_file.chmod(0o755)
-
-
-def parse_config(*, config_file: Path) -> dict:
-    """Parse the easy_infra config file"""
-    # Filter
-    suffix_whitelist = {".yml", ".yaml"}
-
-    if config_file.suffix not in suffix_whitelist:
-        LOG.error("Suffix for the config file %s is not allowed", config_file)
-        raise RuntimeError
-
-    try:
-        with open(config_file) as yaml_data:
-            config = safe_load(yaml_data)
-    except (
-        YAMLError,
-        FileNotFoundError,
-        PermissionError,
-        IsADirectoryError,
-        OSError,
-    ) as err:
-        LOG.error(
-            "The config file %s was unable to be loaded due to the following exception: %s",
-            config_file,
-            str(err),
-        )
-        # Raise if info or debug level logging
-        if LOG.getEffectiveLevel() <= 20:
-            raise err
-        sys.exit(1)
-
-    return config
-
-
-def write_config(*, config: dict):
-    """Write the easy_infra config file"""
-    with open(constants.CONFIG_FILE, "w") as file:
-        dump(config, file)
+    if output_mode is not None:
+        output_file.chmod(output_mode)
 
 
 def get_latest_release_from_apt(*, package: str) -> str:
     """Get the latest release of a project via apt"""
-    # latest-az is used because it has the Microsoft repo added
-    image = constants.IMAGE + ":latest-az"
+    # Needs to be an image with all the apt sources
+    image = "seiso/easy_infra:latest-terraform-azure"
     CLIENT.images.pull(repository=image)
     release = CLIENT.containers.run(
         image=image,
@@ -110,32 +77,6 @@ def get_latest_release_from_hashicorp(*, project: str) -> str:
     return response["current_version"]
 
 
-def update_config_file(*, thing: str, version: str):
-    """Update the easy_infra config file"""
-    # Normalize
-    thing = thing.split("/")[-1].lower()
-    if isinstance(version, bytes):
-        version = version.decode("utf-8").rstrip()
-
-    config = parse_config(config_file=constants.CONFIG_FILE)
-    allow_update = config["commands"][thing].get("allow_update", True)
-    current_version = config["commands"][thing]["version"]
-
-    if version == current_version:
-        LOG.debug(f"No new versions have been detected for {thing}")
-        return
-
-    if not allow_update:
-        LOG.warning(
-            f"Not updating {thing} to version {version} because allow_update is set to false"
-        )
-        return
-
-    config["commands"][thing]["version"] = version
-    LOG.info(f"Updating {thing} to version {version}")
-    write_config(config=config)
-
-
 def opinionated_docker_run(
     *,
     command: str,
@@ -171,6 +112,10 @@ def opinionated_docker_run(
         response["logs"] = container.logs().decode("utf-8").strip().replace("\n", "  ")
         container.remove()
         if not is_status_expected(expected=expected_exit, response=response):
+            LOG.error(
+                "Received an unexpected exit when invoking CLIENT.containers.run() with the following arguments: "
+                + f"{auto_remove=}, {command=}, {detach=}, {environment=}, {image=}, {network_mode=}, {tty=}, {volumes=}, {working_dir=}"
+            )
             sys.exit(response["StatusCode"])
 
 
@@ -179,33 +124,81 @@ def is_status_expected(*, expected: int, response: dict) -> bool:
     actual = response["StatusCode"]
 
     if expected != actual:
+        status_code = response["StatusCode"]
+        logs = response["logs"]
         LOG.error(
-            "Received an unexpected status code of %s; additional details: %s",
-            response["StatusCode"],
-            response["logs"],
+            f"Received an unexpected status code of {status_code}; additional details: {logs}",
         )
         return False
 
     return True
 
 
-def get_artifact_labels(*, variant: str) -> list[str]:
+def gather_tools_and_environments(
+    *, tool: str = "all", environment: str = "all"
+) -> dict[str, dict[str, list[str]]]:
     """
-    For the provided variant of easy_infra, return a list of labels to use in the related artifacts
-    The last element in the returned list MUST be the versioned label, if a release is detected
+    Returns a dict with a key of the tool, and a value of a list of environments
     """
-    cwd = Path(".").absolute()
-    repo = git.Repo(cwd)
-    commit_hash = repo.head.object.hexsha
-    commit_hash_short = repo.git.rev_parse(commit_hash, short=True)
+    if tool == "all":
+        tools: Union[set[Any], list[str]] = constants.TOOLS
+    elif tool not in constants.TOOLS:
+        LOG.error(f"{tool} is not a supported tool, exiting...")
+        sys.exit(1)
+    else:
+        tools = [tool]
 
-    artifact_labels = [f"{variant}.{commit_hash_short}"]
+    if environment == "all":
+        environments = constants.ENVIRONMENTS
+    elif environment == "none":
+        environments = []
+    elif environment not in constants.ENVIRONMENTS:
+        LOG.error(f"{environment} is not a supported environment, exiting...")
+        sys.exit(1)
+    else:
+        environments = [environment]
 
-    if (
-        f"v{__version__}" in repo.tags
-        and repo.tags[f"v{__version__}"].commit.hexsha == commit_hash
-    ):
-        # Release detected; appending a versioned artifact label
-        artifact_labels.append(f"{variant}.v{__version__}")
+    image_and_tool_and_environment_tags = {}
+    for tool in tools:
+        image_and_tool_and_environment_tags[tool] = {"environments": environments}
 
-    return artifact_labels
+    return image_and_tool_and_environment_tags
+
+
+def get_image_and_tag(*, tool: str, environment: str | None = None) -> str:
+    """Return the image_and_tag for the given tool and environment"""
+    if environment and environment in constants.ENVIRONMENTS:
+        tag = constants.CONTEXT[tool][environment]["versioned_tag"]
+    else:
+        tag = constants.CONTEXT[tool]["versioned_tag"]
+
+    image_and_tag = f"{constants.IMAGE}:{tag}"
+
+    return image_and_tag
+
+
+def get_tags(
+    *, tools_to_environments: dict, environment: str, only_versioned: bool = False
+) -> list[str]:
+    """
+    Return an alternating list of the versioned and latest tags
+    """
+    versioned_tags = []
+    latest_tags = []
+    for tool in tools_to_environments:
+        # Add the tool-only tags only when a single environment isn't provided
+        if environment not in constants.ENVIRONMENTS:
+            versioned_tags.append(constants.CONTEXT[tool]["versioned_tag"])
+            latest_tags.append(constants.CONTEXT[tool]["latest_tag"])
+
+        if environments := tools_to_environments[tool]["environments"]:
+            for env in environments:
+                versioned_tags.append(constants.CONTEXT[tool][env]["versioned_tag"])
+                latest_tags.append(constants.CONTEXT[tool][env]["latest_tag"])
+
+    tags = [item for pair in zip(versioned_tags, latest_tags) for item in pair]
+
+    if only_versioned:
+        tags = tags[::2]
+
+    return tags

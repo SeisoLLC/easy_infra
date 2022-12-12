@@ -1,0 +1,1 @@
+COPY --from=ansible-aws --chown=easy_infra:easy_infra /home/easy_infra/.ansible/collections/ansible_collections/amazon /home/easy_infra/.ansible/collections/ansible_collections/amazon

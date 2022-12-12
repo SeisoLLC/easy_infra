@@ -1,0 +1,22 @@
+ARG EASY_INFRA_TAG
+
+FROM seiso/easy_infra_base:"${EASY_INFRA_TAG}" AS aws-cli
+
+ARG AWS_CLI_ARCH
+ARG AWS_CLI_VERSION
+ENV AWS_CLI_VERSION="${AWS_CLI_VERSION}"
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+USER root
+# hadolint ignore=DL3008
+RUN apt-get update \
+ && apt-get -y install --no-install-recommends unzip \
+ && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/cache/debconf/*-old
+RUN curl -L https://awscli.amazonaws.com/awscli-exe-linux-${AWS_CLI_ARCH}-${AWS_CLI_VERSION}.zip -o /tmp/awscliv2.zip \
+ && unzip /tmp/awscliv2.zip -d /tmp/ \
+ && apt-get remove -y unzip \
+ && /tmp/aws/install --bin-dir /aws-cli-bin/ \
+ && ln -sf /aws-cli-bin/* /usr/local/bin/ \
+ && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/cache/debconf/*-old \
+ && echo 'complete -C /usr/local/bin/aws_completer aws' >> /home/easy_infra/.bashrc
+USER easy_infra

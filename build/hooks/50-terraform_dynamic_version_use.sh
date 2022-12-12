@@ -28,13 +28,13 @@ if [[ ! "${terraform_min_required}" ]]; then
 fi
 
 if [[ "${TERRAFORM_VERSION}" == "${terraform_min_required}" && "${TERRAFORM_VERSION}" == "${current_version}" ]]; then
-  _feedback INFORMATIONAL "The detected minimum Terraform version of ${terraform_min_required} is already installed and in use" | tee -a "${output_log}"
+  _feedback INFO "The detected minimum Terraform version of ${terraform_min_required} is already installed and in use" | tee -a "${output_log}"
   exit 0
 fi
 
 ## Check if the detected required version of terraform is already installed, and if so, use it
 if [[ "${TERRAFORM_VERSION}" == "${terraform_min_required}" ]]; then
-  _feedback INFORMATIONAL "The detected minimum Terraform version of ${terraform_min_required} is already installed; ensuring it's in use..." | tee -a "${output_log}"
+  _feedback INFO "The detected minimum Terraform version of ${terraform_min_required} is already installed; ensuring it's in use..." | tee -a "${output_log}"
   tfenv use "${TERRAFORM_VERSION}" &>>"${output_log}"
   exit $?
 fi
@@ -51,6 +51,6 @@ if [[ "${return}" != 0 ]]; then
   exit $?
 fi
 
-_feedback INFORMATIONAL "Switching Terraform version to ${terraform_min_required}..." | tee -a "${output_log}"
+_feedback INFO "Switching Terraform version to ${terraform_min_required}..." | tee -a "${output_log}"
 tfenv use "${terraform_min_required}" &>>"${output_log}"
 exit $?
