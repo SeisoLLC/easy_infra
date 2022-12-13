@@ -268,6 +268,7 @@ def build_and_tag(
     config["dockerfile_base"] = constants.BUILD.joinpath("Dockerfile.base").read_text(
         encoding="UTF-8"
     )
+    config["arguments"] = []
 
     LOG.debug(
         f"Rendering {constants.DOCKERFILE_INPUT_FILE} to build seiso/easy_infra_base for {tool=} and {environment=}"
@@ -328,6 +329,9 @@ def build_and_tag(
                     encoding="UTF-8"
                 )
             )
+            argument = f"{security_tool.upper()}_VERSION"
+            LOG.debug(f"Adding a header argument of {argument}...")
+            config["arguments"].append(argument)
     except FileNotFoundError:
         LOG.exception(f"A file required to build a {tool} container was not found")
         sys.exit(1)

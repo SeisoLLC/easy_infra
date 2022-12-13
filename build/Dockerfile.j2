@@ -1,3 +1,9 @@
+{# These ARGs are needed because they go out of scope at the end of the build stage where it was defined #}
+{# https://docs.docker.com/engine/reference/builder/#scope #}
+{% for argument in arguments %}
+ARG {{ argument }}
+{% endfor %}
+
 {# The dockerfile base must start with FROM ... AS base #}
 {{ dockerfile_base }}
 
