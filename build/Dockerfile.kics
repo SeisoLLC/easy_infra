@@ -10,6 +10,4 @@ ENV KICS_LIBRARY_PATH="/home/easy_infra/.kics/assets/libraries"
 ENV KICS_JSON_REPORT_PATH="/tmp/reports/kics"
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-RUN git clone https://github.com/checkmarx/kics.git "${HOME}/.kics" --depth 1 --branch ${KICS_VERSION} \
- && rm -rf "${HOME}/.kics/.git" \
- && mkdir -p "${KICS_JSON_REPORT_PATH}"
+RUN mkdir -p "${KICS_JSON_REPORT_PATH}"
