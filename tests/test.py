@@ -988,7 +988,7 @@ def run_ansible(*, image: str) -> None:
         # This tests the "customizations" idea from easy_infra.yml and functions.j2
         (
             {
-                "KICS_EXCLUDE_SEVERITIES": "high,medium",
+                "KICS_EXCLUDE_SEVERITIES": "high,medium,low",
             },
             "ansible-playbook insecure.yml --check",
             4,
