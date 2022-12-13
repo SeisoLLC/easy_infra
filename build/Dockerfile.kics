@@ -1,8 +1,7 @@
-ARG EASY_INFRA_TAG
+ARG KICS_VERSION
 
-FROM seiso/easy_infra_base:"${EASY_INFRA_TAG}" AS kics
+FROM checkmarx/kics:"${KICS_VERSION}-debian" AS kics
 
-ARG KICS_ARCH
 ARG KICS_VERSION
 ENV KICS_VERSION="${KICS_VERSION}"
 ENV SKIP_KICS="false"
@@ -11,13 +10,6 @@ ENV KICS_LIBRARY_PATH="/home/easy_infra/.kics/assets/libraries"
 ENV KICS_JSON_REPORT_PATH="/tmp/reports/kics"
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-USER root
-RUN curl -L "https://github.com/checkmarx/kics/releases/download/${KICS_VERSION}/kics_${KICS_VERSION#v}_linux_${KICS_ARCH}.tar.gz" -o /usr/local/bin/kics.tar.gz \
- && tar -xvf /usr/local/bin/kics.tar.gz -C /usr/local/bin/ kics \
- && rm -f /usr/local/bin/kics.tar.gz \
- && chmod 0755 /usr/local/bin/kics \
- && chown root: /usr/local/bin/kics \
- && su easy_infra -c "git clone https://github.com/checkmarx/kics.git /home/easy_infra/.kics --depth 1 --branch ${KICS_VERSION}" \
- && rm -rf /home/easy_infra/.kics/.git \
+RUN git clone https://github.com/checkmarx/kics.git "${HOME}/.kics" --depth 1 --branch ${KICS_VERSION} \
+ && rm -rf "${HOME}/.kics/.git" \
  && mkdir -p "${KICS_JSON_REPORT_PATH}"
-USER easy_infra

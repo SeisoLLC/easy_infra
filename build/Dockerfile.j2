@@ -25,6 +25,8 @@
 
 FROM base as final
 
+USER easy_infra
+
 {% for dockerfrag in dockerfrag_tools %}
 {{ dockerfrag }}
 {% endfor %}
