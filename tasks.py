@@ -112,11 +112,9 @@ def setup_buildargs(*, tool: str, environment: str | None = None, trace: bool) -
     # Add the platform-based build args (imperfect)
     if platform.machine().lower() == "arm64":
         buildargs["BUILDARCH"] = "arm64"
-        buildargs["KICS_ARCH"] = "arm64"
         buildargs["AWS_CLI_ARCH"] = "aarch64"
     else:
         buildargs["BUILDARCH"] = "amd64"
-        buildargs["KICS_ARCH"] = "x64"
         buildargs["AWS_CLI_ARCH"] = "x86_64"
 
     # Add the tool version buildarg
