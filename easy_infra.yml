@@ -57,7 +57,6 @@ packages:
     version: v2.0.5
     version_argument: --version
   kics:
-    allow_update: false
     version: v1.5.1
     version_argument: version
   terraform:
