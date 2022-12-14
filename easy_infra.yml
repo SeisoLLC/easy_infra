@@ -15,6 +15,13 @@ _anchors:
     description: initialization
   - command: terraform validate
     description: validation
+environments:
+  aws:
+    packages:
+    - aws-cli
+  azure:
+    packages:
+    - azure-cli
 packages:
   ansible:
     aliases:
@@ -45,20 +52,22 @@ packages:
     version: 2.2.125
     version_argument: --version
   consul-template:
-    helper: ["all"]
+    helper:
+    - all
     version: v0.29.5
     version_argument: --version
   envconsul:
-    helper: ["all"]
+    helper:
+    - all
     version: v0.13.1
     version_argument: --version
   fluent-bit:
-    helper: ["all"]
+    helper:
+    - all
     version: v2.0.5
     version_argument: --version
   kics:
-    allow_update: false
-    version: v1.5.1
+    version: v1.6.6
     version_argument: version
   terraform:
     file_extensions: *id001
@@ -67,20 +76,17 @@ packages:
     version: 1.3.4
     version_argument: version
   terratag:
-    helper: ["terraform"]
+    helper:
+    - terraform
     version: v0.1.48
   tfenv:
     allow_filter:
     - match: exec
       position: 0
     file_extensions: *id001
-    helper: ["terraform"]
+    helper:
+    - terraform
     security: *id002
     validation: *id003
     version: v3.0.0
     version_argument: --version
-environments:
-  aws:
-    packages: [aws-cli]
-  azure:
-    packages: [azure-cli]
