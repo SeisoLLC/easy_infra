@@ -7,7 +7,15 @@
 source /usr/local/bin/common.sh
 
 
-function run_command(function_name, function_arguments) {
+function run_command() {
+  if [[ "$#" -ne 2 ]]; then
+    echo "Improper use of the easy_infra run_command function"
+    return 230
+  fi
+
+  function_name="${1}"
+  function_arguments="${2}"
+
   if [[ "${function_name}" =~ ^scan_.* ]]; then
     # Special case to handle our "scan_" functions
     return
@@ -342,7 +350,6 @@ function {{ "scan_" ~ function if scan else function }}() {
   fi
 }
 {% endmacro %}
-
 
 {# Loop through each of the provided packages (or aliases, if they are set) to be wrapped and generate a function for each -#}
 {% for package in packages if packages[package]["security"] -%}
