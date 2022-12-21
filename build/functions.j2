@@ -85,7 +85,7 @@ function {{ "scan_" ~ function if scan else function }}() {
 
     if [[ "${hit:-false}" == "false" ]]; then
       # Run the command and return
-      run_command "${FUNCNAME[0]}" "${arguments[@]}"
+      run_command "${FUNCNAME[0]}" "${arguments}"
       return $?
     fi
   done
@@ -123,10 +123,11 @@ function {{ "scan_" ~ function if scan else function }}() {
     dirs+=($(pwd -P))
   fi
 
+  # TODO: Handle for scan_
   if [[ "${1}" == "{{ version_argument }}" ]]; then
     _feedback INFO "Detected version check, skipping security checks for {{ function }}"
     # Allow piping of the version command into other commands
-    run_command "${FUNCNAME[0]}" "${arguments[@]}"
+    run_command "${FUNCNAME[0]}" "${arguments}"
     return $?
   fi
 
@@ -164,7 +165,7 @@ function {{ "scan_" ~ function if scan else function }}() {
       _feedback WARNING "Skipping all security checks for {{ function }} due to the --disable-security argument"
       _log "easy_infra.stdouterr" info unknown "{{ function }}" "${dir}" string "All security checks for {{ function }} were skipped due to the --disable-security argument"
       unset 'security_skipped'
-      run_command "${FUNCNAME[0]}" "${arguments[@]}"
+      run_command "${FUNCNAME[0]}" "${arguments}"
       return=$?
       popd > /dev/null
       if [[ "${return:-1}" != 0 ]]; then
@@ -180,7 +181,7 @@ function {{ "scan_" ~ function if scan else function }}() {
     elif [[ "${DISABLE_SECURITY,,}" == "true" ]]; then
       _feedback WARNING "Skipping all security checks for {{ function }} due to the DISABLE_SECURITY environment variable value"
       _log "easy_infra.stdouterr" info unknown "{{ function }}" "${dir}" string "All security checks for {{ function }} were skipped due to the DISABLE_SECURITY environment variable value"
-      run_command "${FUNCNAME[0]}" "${arguments[@]}"
+      run_command "${FUNCNAME[0]}" "${arguments"
       return=$?
       popd > /dev/null
       if [[ "${return:-1}" != 0 ]]; then
@@ -312,7 +313,7 @@ function {{ "scan_" ~ function if scan else function }}() {
     {%- endfor %}
 
     # Run the command per a PATH lookup, after any easy_infra specific arguments are removed
-    run_command "${FUNCNAME[0]}" "${arguments[@]}"
+    run_command "${FUNCNAME[0]}" "${arguments}"
     return=$?
     if [[ "${return:-1}" != 0 ]]; then
       popd > /dev/null
