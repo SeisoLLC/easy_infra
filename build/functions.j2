@@ -75,6 +75,24 @@ function {{ "scan_" ~ function if scan else function }}() {
     done
   done
 
+{% if scan %}
+  if [[ "${1}" == "version" ]]; then
+    _feedback INFO "Detected version check, skipping security checks for scan_{{ function }}"
+    echo "{{ function }} is using the following security tools:"
+    for security_tool in "${easy_infra_{{ function | replace("-", "_") }}_security_tools[@]}"; do
+      security_tool_version_variable="${security_tool^^}_VERSION"
+      echo "${security_tool} version ${!security_tool_version_variable}"
+    done
+    return
+{%- else %}
+  if [[ "${1}" == "{{ version_argument }}" ]]; then
+    _feedback INFO "Detected version check, skipping security checks for {{ function }}"
+    # Allow piping of the version command into other commands
+    run_command "${FUNCNAME[0]}" "${arguments[@]}"
+    return $?
+{%- endif %}
+  fi
+
 {% if allow_filter is defined %}
   # Apply the allow filters after easy_infra specific arguments have been removed
   for i in "${!arguments[@]}"; do
@@ -122,24 +140,6 @@ function {{ "scan_" ~ function if scan else function }}() {
 {%- endif %}
   else
     dirs+=($(pwd -P))
-  fi
-
-{% if scan %}
-  if [[ "${1}" == "version" ]]; then
-    _feedback INFO "Detected version check, skipping security checks for scan_{{ function }}"
-    echo "{{ function }} is using the following security tools:"
-    for security_tool in "${easy_infra_{{ function | replace("-", "_") }}_security_tools[@]}"; do
-      security_tool_version_variable="${security_tool^^}_VERSION"
-      echo "${security_tool} version ${!security_tool_version_variable}"
-    done
-    return
-{% else %}
-  if [[ "${1}" == "{{ version_argument }}" ]]; then
-    _feedback INFO "Detected version check, skipping security checks for {{ function }}"
-    # Allow piping of the version command into other commands
-    run_command "${FUNCNAME[0]}" "${arguments[@]}"
-    return $?
-{%- endif %}
   fi
 
   declare -A dir_exit_codes
