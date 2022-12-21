@@ -9,7 +9,7 @@ source /usr/local/bin/common.sh
 
 function run_command() {
   if [[ "$#" -ne 2 ]]; then
-    echo "Improper use of the easy_infra run_command function"
+    echo "Improper use of the easy_infra run_command function; $# arguments provided when 2 were expected"
     return 230
   fi
 
