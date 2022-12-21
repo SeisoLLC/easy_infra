@@ -947,12 +947,8 @@ def run_ansible(*, image: str) -> None:
         ({}, "ansible-playbook insecure.yml --check", 50),
         ({}, "scan_ansible", 50),
         ({}, "scan_ansible-playbook", 50),
-        ({"DISABLE_SECURITY": "true"}, "scan_ansible-playbook", 4),
-        (
-            {},
-            "scan_ansible --skip-kics",
-            4,
-        ),  # Exits 4 because insecure.yml is not a valid Play
+        ({"DISABLE_SECURITY": "true"}, "scan_ansible-playbook", 0),
+        ({}, "scan_ansible --skip-kics", 0),
         (
             {},
             "ansible-playbook --skip-kics insecure.yml --check",
