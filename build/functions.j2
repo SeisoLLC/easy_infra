@@ -132,6 +132,7 @@ function {{ "scan_" ~ function if scan else function }}() {
       security_tool_version_variable="${security_tool^^}_VERSION"
       echo "${security_tool} version ${!security_tool_version_variable}"
     done
+    return
 {% else %}
   if [[ "${1}" == "{{ version_argument }}" ]]; then
     _feedback INFO "Detected version check, skipping security checks for {{ function }}"
