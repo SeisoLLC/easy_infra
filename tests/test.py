@@ -615,7 +615,7 @@ def run_terraform(*, image: str) -> None:
                 "DISABLE_SECURITY": "true",
                 "TERRAFORM_VERSION": "1.1.8",
             },
-            '/bin/bash -c "run_terraform && terraform init -backend=false && terraform validate"',
+            '/bin/bash -c "scan_terraform && terraform init -backend=false && terraform validate"',
             1,
         ),  # This tests the bring-your-own TERRAFORM_VERSION hook (40-), regardless of the built-in security tools (DISABLE_SECURITY=true)
         # It fails because it ignores the 50- terraform due to AUTODETECT=false, and the v_0_14_dir files fail given the version of
@@ -692,7 +692,7 @@ def run_terraform(*, image: str) -> None:
     tests: list[tuple[dict, str, int]] = [  # type: ignore
         ({"DISABLE_SECURITY": "true"}, "terraform init", 0),
         ({"DISABLE_SECURITY": "true"}, "tfenv exec init", 0),
-        ({"DISABLE_SECURITY": "true"}, "run_terraform", 0),
+        ({"DISABLE_SECURITY": "true"}, "scan_terraform", 0),
         ({}, '/usr/bin/env bash -c "DISABLE_SECURITY=true terraform init"', 0),
         (
             {},
@@ -737,7 +737,7 @@ def run_terraform(*, image: str) -> None:
     tests: list[tuple[dict, str, int]] = [  # type: ignore
         ({}, "terraform plan", 1),
         ({}, "tfenv exec plan", 1),
-        ({}, "run_terraform", 1),
+        ({}, "scan_terraform", 1),
         (
             {},
             '/usr/bin/env bash -c "terraform plan"',
