@@ -7,6 +7,25 @@
 source /usr/local/bin/common.sh
 
 
+function run_command() {
+  if [[ "$#" -lt 1 ]]; then
+    echo "Improper use of the easy_infra run_command function; $# arguments provided when at least 1 was expected"
+    return 230
+  fi
+
+  function_name="${1}"
+  shift
+  function_arguments=("${@}")
+
+  if [[ "${function_name}" =~ ^scan_.* ]]; then
+    # Special case to handle our "scan_" functions
+    return
+  fi
+
+  command "${function_name}" "${function_arguments[@]}"
+}
+
+
 function process_command_exit_status() {
   # Store the provided exit status to return it at the end
   exit_status="${1}"
@@ -29,8 +48,15 @@ function process_command_exit_status() {
 }
 
 {# Macro to be used by the loops below #}
-{% macro function(function, file_extensions, security_tools, allow_filter, version_argument, validations) %}
-function {{ function }}() {
+{%- macro function(function, package=function, scan=false) %}
+
+{%- set file_extensions = packages[package]["file_extensions"] -%}
+{%- set security_tools = packages[package]["security"] -%}
+{%- set allow_filter = packages[package]["allow_filter"] -%}
+{%- set version_argument = packages[package]["version_argument"] -%}
+{%- set validations = packages[package]["validation"] -%}
+
+function {{ "scan_" ~ function if scan else function }}() {
   arguments=("${@}")
   easy_infra_{{ function | replace("-", "_") }}_security_tools=({% for security_tool in security_tools %}{{ security_tool | replace("-", "_") }}{% if not loop.last %} {% endif %}{% endfor %})
 
@@ -49,6 +75,24 @@ function {{ function }}() {
     done
   done
 
+{% if scan %}
+  if [[ "${1}" == "version" ]]; then
+    _feedback INFO "Detected version check, skipping security checks for scan_{{ function }}"
+    echo "{{ function }} is using the following security tools:"
+    for security_tool in "${easy_infra_{{ function | replace("-", "_") }}_security_tools[@]}"; do
+      security_tool_version_variable="${security_tool^^}_VERSION"
+      echo "${security_tool} version ${!security_tool_version_variable}"
+    done
+    return
+{%- else %}
+  if [[ "${1}" == "{{ version_argument }}" ]]; then
+    _feedback INFO "Detected version check, skipping security checks for {{ function }}"
+    # Allow piping of the version command into other commands
+    run_command "${FUNCNAME[0]}" "${arguments[@]}"
+    return $?
+{%- endif %}
+  fi
+
 {% if allow_filter is defined %}
   # Apply the allow filters after easy_infra specific arguments have been removed
   for i in "${!arguments[@]}"; do
@@ -60,7 +104,7 @@ function {{ function }}() {
 
     if [[ "${hit:-false}" == "false" ]]; then
       # Run the command and return
-      command "${FUNCNAME[0]}" "${arguments[@]}"
+      run_command "${FUNCNAME[0]}" "${arguments[@]}"
       return $?
     fi
   done
@@ -98,13 +142,6 @@ function {{ function }}() {
     dirs+=($(pwd -P))
   fi
 
-  if [[ "${1}" == "{{ version_argument }}" ]]; then
-    _feedback INFO "Detected version check, skipping security checks for {{ function }}"
-    # Allow piping of the version command into other commands
-    command "${FUNCNAME[0]}" "${arguments[@]}"
-    return $?
-  fi
-
   declare -A dir_exit_codes
 
   for dir in "${dirs[@]}"; do
@@ -139,7 +176,7 @@ function {{ function }}() {
       _feedback WARNING "Skipping all security checks for {{ function }} due to the --disable-security argument"
       _log "easy_infra.stdouterr" info unknown "{{ function }}" "${dir}" string "All security checks for {{ function }} were skipped due to the --disable-security argument"
       unset 'security_skipped'
-      command "${FUNCNAME[0]}" "${arguments[@]}"
+      run_command "${FUNCNAME[0]}" "${arguments[@]}"
       return=$?
       popd > /dev/null
       if [[ "${return:-1}" != 0 ]]; then
@@ -155,7 +192,7 @@ function {{ function }}() {
     elif [[ "${DISABLE_SECURITY,,}" == "true" ]]; then
       _feedback WARNING "Skipping all security checks for {{ function }} due to the DISABLE_SECURITY environment variable value"
       _log "easy_infra.stdouterr" info unknown "{{ function }}" "${dir}" string "All security checks for {{ function }} were skipped due to the DISABLE_SECURITY environment variable value"
-      command "${FUNCNAME[0]}" "${arguments[@]}"
+      run_command "${FUNCNAME[0]}" "${arguments[@]}"
       return=$?
       popd > /dev/null
       if [[ "${return:-1}" != 0 ]]; then
@@ -287,7 +324,7 @@ function {{ function }}() {
     {%- endfor %}
 
     # Run the command per a PATH lookup, after any easy_infra specific arguments are removed
-    command "${FUNCNAME[0]}" "${arguments[@]}"
+    run_command "${FUNCNAME[0]}" "${arguments[@]}"
     return=$?
     if [[ "${return:-1}" != 0 ]]; then
       popd > /dev/null
@@ -329,8 +366,14 @@ function {{ function }}() {
 {# Loop through each of the provided packages (or aliases, if they are set) to be wrapped and generate a function for each -#}
 {% for package in packages if packages[package]["security"] -%}
 {% for alias in packages[package]["aliases"] -%}
-{{ function(alias, packages[package]["file_extensions"], packages[package]["security"], packages[package]["allow_filter"], packages[package]["version_argument"], packages[package]["validation"]) }}
+{# Create the alias function -#}
+{{ function(alias, package) }}
+{# And then a scan alias function -#}
+{{ function(alias, package, scan=true) }}
 {% else %}
-{{ function(package, packages[package]["file_extensions"], packages[package]["security"], packages[package]["allow_filter"], packages[package]["version_argument"], packages[package]["validation"]) }}
+{# Create the package function -#}
+{{ function(package) }}
+{# And then a scan package function -#}
+{{ function(package, scan=true) }}
 {% endfor %}
 {%- endfor -%}

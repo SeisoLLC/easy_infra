@@ -16,18 +16,14 @@ ARG {{ argument }}
 {% endfor %}
 
 {# Skip this if there is no relevant env, such as for the -terraform base tag #}
-{% if dockerfile_envs %}
-{% for dockerfile in dockerfile_envs %}
+{% for dockerfile in dockerfile_envs if dockerfile_envs %}
 {{ dockerfile }}
 {% endfor %}
-{% endif %}
 
 {# Skip this if there is no tool-env combination specific dockerfile/frag #}
-{% if dockerfile_tool_envs %}
-{% for dockerfile in dockerfile_tool_envs %}
+{% for dockerfile in dockerfile_tool_envs if dockerfile_tool_envs %}
 {{ dockerfile }}
 {% endfor %}
-{% endif %}
 
 FROM base as final
 
@@ -42,15 +38,11 @@ USER easy_infra
 {% endfor %}
 
 {# Skip this if there is no relevant env, such as for the -terraform base tag #}
-{% if dockerfrag_envs %}
-{% for dockerfrag in dockerfrag_envs %}
+{% for dockerfrag in dockerfrag_envs if dockerfrag_envs %}
 {{ dockerfrag }}
 {% endfor %}
-{% endif %}
 
 {# Skip this if there is no tool-env combination specific dockerfile/frag #}
-{% if dockerfrag_tool_envs %}
-{% for dockerfrag in dockerfrag_tool_envs %}
+{% for dockerfrag in dockerfrag_tool_envs if dockerfrag_tool_envs %}
 {{ dockerfrag }}
 {% endfor %}
-{% endif %}
