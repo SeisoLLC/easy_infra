@@ -116,7 +116,10 @@ def opinionated_docker_run(
                 "Received an unexpected exit when invoking CLIENT.containers.run() with the following arguments: "
                 + f"{auto_remove=}, {command=}, {detach=}, {environment=}, {image=}, {network_mode=}, {tty=}, {volumes=}, {working_dir=}"
             )
-            sys.exit(response["StatusCode"])
+
+            # This ensures that if it unexpectedly exits 0, it still fails the pipeline
+            exit_code = response["StatusCode"]
+            sys.exit(max(exit_code, 1))
 
 
 def is_status_expected(*, expected: int, response: dict) -> bool:
