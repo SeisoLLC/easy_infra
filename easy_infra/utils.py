@@ -1,7 +1,8 @@
+import re
 import sys
 from logging import getLogger
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any, Optional, Pattern, Union
 
 import docker
 import requests
@@ -205,3 +206,33 @@ def get_tags(
         tags = tags[::2]
 
     return tags
+
+
+def update_terraform_required_version(*, test_file: Path, version: str) -> None:
+    """Update the terraform required_version in the tests"""
+    pattern: Pattern[str] = re.compile(r'^([ \t]+)required_version = "[\d.]+"$\n')
+    final_content: list[str] = []
+
+    # Validate
+    if not test_file.is_file():
+        LOG.error(f"{test_file} is not a valid file")
+        sys.exit(1)
+
+    # Read lines of the provided file into a list
+    with test_file.open(encoding="utf-8") as file:
+        file_contents: list[str] = file.readlines()
+
+    # Transform the list to update the required_version line
+    for line in file_contents:
+        if match := pattern.fullmatch(line):
+            # The first grouping is the whitespace
+            whitespace = match.group(1)
+            new_line: str = f'{whitespace}required_version = "{version}"\n'
+            final_content.append(new_line)
+            continue
+
+        final_content.append(line)
+
+    # Load
+    with test_file.open("w", encoding="utf-8") as file:
+        file.writelines(final_content)

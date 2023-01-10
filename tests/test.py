@@ -333,9 +333,11 @@ def run_terraform(*, image: str) -> None:
         "bind": fluent_bit_config_container,
         "mode": "ro",
     }
-    hooks_secure_terraform_v_1_3_dir = TESTS_PATH.joinpath("terraform/hooks/secure_1_3")
-    hooks_secure_terraform_v_1_3_dir_volumes = {
-        hooks_secure_terraform_v_1_3_dir: {"bind": working_dir, "mode": "rw"}
+    hooks_secure_terraform_v_builtin_dir = TESTS_PATH.joinpath(
+        "terraform/hooks/secure_builtin_version"
+    )
+    hooks_secure_terraform_v_builtin_dir_volumes = {
+        hooks_secure_terraform_v_builtin_dir: {"bind": working_dir, "mode": "rw"}
     }
     hooks_secure_terraform_v_0_14_dir = TESTS_PATH.joinpath(
         "terraform/hooks/secure_0_14"
@@ -662,7 +664,7 @@ def run_terraform(*, image: str) -> None:
             '/bin/bash -c "terraform init -backend=false && terraform validate"',
             0,
         ),  # This tests the terraform version switching hook failback due to no network (see exec_tests below)
-        # It succeeds because only terraform/hooks/secure_1_3/secure.tf is tested, which will validate properly with the version of terraform that
+        # It succeeds because only terraform/hooks/secure_builtin_version/secure.tf is tested, which will validate properly with the version of terraform that
         # TERRAFORM_VERSION indicates by default
         (
             {
@@ -674,7 +676,7 @@ def run_terraform(*, image: str) -> None:
             '/bin/bash -c "terraform init -backend=false && terraform validate"',
             0,
         ),  # This tests the bring-your-own TERRAFORM_VERSION hook, regardless of the built-in security tools
-        # It succeeds because only terraform/hooks/secure_1_3/secure.tf is tested, and it requires a version of terraform newer then the provided
+        # It succeeds because only terraform/hooks/secure_builtin_version/secure.tf is tested, and it requires a version of terraform newer then the provided
         # TERRAFORM_VERSION environment variable specifies, but because there is no network access the change does not take place
     ]
     LOG.debug(
@@ -682,7 +684,7 @@ def run_terraform(*, image: str) -> None:
     )
     num_tests_ran += exec_tests(
         tests=tests,
-        volumes=hooks_secure_terraform_v_1_3_dir_volumes,
+        volumes=hooks_secure_terraform_v_builtin_dir_volumes,
         image=image,
         network_mode="none",
     )
@@ -711,7 +713,7 @@ def run_terraform(*, image: str) -> None:
             "terraform plan || false",
             1,
         ),  # Not supported; reproduce "Too many command line arguments. Configuration path expected." error
-        #     locally with `docker run -e DISABLE_SECURITY=true -v $(pwd)/tests/terraform/tool/checkov:/iac seiso/easy_infra:latest terraform plan
+        #     locally with `docker run -e DISABLE_SECURITY=true -v $(pwd)/tests/terraform/tool/checkov:/iac seiso/easy_infra:latest-terraform terraform plan
         #     \|\| false`, prefer passing the commands through bash like the following test
         (
             {},

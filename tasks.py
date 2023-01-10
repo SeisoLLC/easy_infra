@@ -23,7 +23,6 @@ from invoke import task
 from easy_infra import __project_name__, __version__, config, constants, utils
 from tests import test as run_test
 
-# TODO: Does this work on intel?
 platform_machine = platform.machine()
 if platform_machine == "arm64":
     PLATFORM: Union[str, None] = "linux/arm64"
@@ -457,23 +456,30 @@ def update(_c, debug=False):
 
     for package in constants.APT_PACKAGES:
         version = utils.get_latest_release_from_apt(package=package)
-        config.update_config_file(thing=package, version=version)
+        config.update_config_file(package=package, version=version)
 
     for repo in constants.GITHUB_REPOS_RELEASES:
         version = utils.get_latest_release_from_github(repo=repo)
-        config.update_config_file(thing=repo, version=version)
+        config.update_config_file(package=repo, version=version)
 
     for repo in constants.GITHUB_REPOS_TAGS:
         version = utils.get_latest_tag_from_github(repo=repo)
-        config.update_config_file(thing=repo, version=version)
+        config.update_config_file(package=repo, version=version)
 
     for project in constants.HASHICORP_PROJECTS:
         version = utils.get_latest_release_from_hashicorp(project=project)
-        config.update_config_file(thing=project, version=version)
+        config.update_config_file(package=project, version=version)
+        if project == "terraform":
+            test_file: Path = constants.CWD.joinpath(
+                "tests/terraform/hooks/secure_builtin_version/secure.tf"
+            )
+            utils.update_terraform_required_version(
+                test_file=test_file, version=version
+            )
 
     for package in constants.PYTHON_PACKAGES:
         version = utils.get_latest_release_from_pypi(package=package)
-        config.update_config_file(thing=package, version=version)
+        config.update_config_file(package=package, version=version)
 
     # Update the CI dependencies
     image = "python:3.10"
