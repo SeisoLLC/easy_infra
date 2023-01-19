@@ -129,7 +129,7 @@ function {{ "scan_" ~ function if scan else function }}() {
 {%- for file_extension in file_extensions %}
     files=$(find . -iname "*.{{ file_extension }}" -type f)
     if [[ "${files}" ]]; then
-      dirs+=($(for file in "${files}"; do dirname ${file}; done | sort -u | xargs readlink --canonicalize))
+      dirs+=($(for file in ${files}; do dirname ${file}; done | sort -u | xargs readlink --canonicalize))
     fi
 {%- endfor %}
 {%- else %}
