@@ -277,11 +277,11 @@ function {{ "scan_" ~ function if scan else function }}() {
 
         # Identify the best message content to log
         if [[ -v {{ security_tool | upper | replace("-", "_") }}_JSON_REPORT_PATH && -r "{{ '${' }}{{ security_tool | upper | replace("-", "_") }}{{ '_JSON_REPORT_PATH}' }}/{{ security_tool | replace("-", "_") }}.json" ]]; then
-          message_content="$(cat "{{ '${' }}{{ security_tool | upper | replace("-", "_") }}{{ '_JSON_REPORT_PATH}' }}/{{ security_tool | replace("-", "_") }}.json")"
+          message_file_path="{{ '${' }}{{ security_tool | upper | replace("-", "_") }}{{ '_JSON_REPORT_PATH}' }}/{{ security_tool | replace("-", "_") }}.json"
           message_type="json"
         else
           _feedback DEBUGGING "{{ security_tool | upper | replace("-", "_") }}{{ '_JSON_REPORT_PATH' }} was not set or {{ '\${' }}{{ security_tool | upper | replace("-", "_") }}{{ '_JSON_REPORT_PATH}' }}/{{ security_tool | replace("-", "_") }}.json is not readable; falling back to /tmp/{{ security_tool | replace("-", "_") }}_stdouterr"
-          message_content="$(cat /tmp/{{ security_tool | replace("-", "_") }}_stdouterr | tr '\n' '\t')"
+          message_file_path="/tmp/{{ security_tool | replace("-", "_") }}_stdouterr"
           message_type="string"
         fi
 
@@ -295,7 +295,7 @@ function {{ "scan_" ~ function if scan else function }}() {
 
           if [[ "${LEARNING_MODE,,}" != "true" ]]; then
             # easy_infra denied the command because the security tool failed
-            _log "{{ security_tool }}.stdouterr" denied failure "${interpolated_security_tool_command}" "${dir}" "${message_type}" "${message_content}"
+            _log "{{ security_tool }}.stdouterr" denied failure "${interpolated_security_tool_command}" "${dir}" "${message_type}" "${message_file_path}"
             _feedback DEBUGGING "{{ security_tool }} running from the ${dir} folder exited ${return}; learning mode was ${LEARNING_MODE:-null or unset}. Returning ${return}"
             popd > /dev/null
             if [[ "${FAIL_FAST:-false}" == "true" ]]; then
@@ -307,12 +307,12 @@ function {{ "scan_" ~ function if scan else function }}() {
             fi
           else
             # easy_infra allowed the command due to learning mode, but the security tool failed
-            _log "{{ security_tool }}.stdouterr" allowed failure "${interpolated_security_tool_command}" "${dir}" "${message_type}" "${message_content}"
+            _log "{{ security_tool }}.stdouterr" allowed failure "${interpolated_security_tool_command}" "${dir}" "${message_type}" "${message_file_path}"
             _feedback DEBUGGING "{{ security_tool }} running from the ${dir} folder exited ${return}, but suppressing it due to learning mode"
           fi
         else
           # easy_infra allowed the command and the security tool succeeded
-          _log "{{ security_tool }}.stdouterr" allowed success "${interpolated_security_tool_command}" "${dir}" "${message_type}" "${message_content}"
+          _log "{{ security_tool }}.stdouterr" allowed success "${interpolated_security_tool_command}" "${dir}" "${message_type}" "${message_file_path}"
           _feedback DEBUGGING "{{ security_tool }} was run successfully from the ${dir} folder; specifically '${interpolated_security_tool_command}'"
         fi
       else
