@@ -605,6 +605,8 @@ def build(_c, tool="all", environment="all", trace=False, debug=False, dry_run=F
                 f"Would have run utils.render_jinja2 on {constants.FUNCTIONS_INPUT_FILE}..."
             )
 
+        # TODO: Figure out how to handle -large, somewhere in this function?
+
         if environment not in constants.ENVIRONMENTS:
             # Build and Tag the tool-only tag
             if not dry_run:

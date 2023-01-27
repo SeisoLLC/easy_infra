@@ -4,6 +4,7 @@ Test Functions
 """
 
 import copy
+import re
 import subprocess
 import sys
 from logging import getLogger
@@ -398,12 +399,16 @@ def run_terraform(*, image: str) -> None:
     LOG.debug(
         "Test writing easy_infra.log when there are a significant number of findings"
     )
+    # If this is matches the stderr, it will fail the test
+    pattern = re.compile(r"ERROR")
+
     utils.opinionated_docker_run(
         image=image,
         volumes=large_checkov_volumes,
         command=command,
         environment=environment,
         expected_exit=0,
+        check_logs=pattern,
     )
     num_tests_ran += 1
 
