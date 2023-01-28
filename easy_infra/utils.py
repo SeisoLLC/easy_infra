@@ -127,7 +127,7 @@ def opinionated_docker_run(
             exit_code = response["StatusCode"]
             sys.exit(max(exit_code, 1))
 
-    if check_logs.search(response["logs"]):
+    if check_logs and check_logs.search(response["logs"]):
         LOG.error(
             f"Found the pattern {check_logs} in the container logs; failing the test..."
         )
