@@ -399,7 +399,7 @@ def run_terraform(*, image: str) -> None:
     LOG.debug(
         "Test writing easy_infra.log when there are a significant number of findings"
     )
-    # If this is matches the stderr, it will fail the test
+    # If this pattern matches the logs, it will fail the test
     pattern = re.compile(r"ERROR")
 
     utils.opinionated_docker_run(
