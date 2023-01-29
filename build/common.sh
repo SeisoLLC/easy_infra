@@ -162,6 +162,8 @@ function _clone() {
     local clone_url
     if [[ "${protocol}" == "ssh" ]]; then
       clone_url="git@${vcs_domain}:${namespace_and_repository}.git"
+    elif [[ "${protocol}" == "https" ]]; then
+      clone_url="https://${vcs_domain}/${namespace_and_repository}"
     else
       # This validation could happen prior to the loop, but putting it here for simiplicity
       _feedback ERROR "Invalid protocol of ${protocol} was provided to the _clone function; exiting..."

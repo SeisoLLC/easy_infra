@@ -17,5 +17,8 @@ Configuration options
 +------------------------+--------------------------------------------+
 | ``CLONE_REPOSITORIES`` | ``seisollc/easy_infra,seisollc/easy_sast`` |
 +------------------------+--------------------------------------------+
-| ``CLONE_PROTOCOL``     | ``ssh``                                    |
+| ``CLONE_PROTOCOL``     | ``https``                                  |
 +------------------------+--------------------------------------------+
+
+.. note::
+    Note: Only unauthenticated clones are supported over https. If you do not specify the CLONE_PROTOCOL, or specify it as ssh, you must provide the associated ssh configurations and keys.
