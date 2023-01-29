@@ -10,6 +10,8 @@ encountered, a log is written to which can then be centralized for analysis if `
 Configuration options
 ^^^^^^^^^^^^^^^^^^^^^
 
+Cloning will only occur when the ``VCS_DOMAIN`` and ``CLONE_REPOSITORIES`` environment variables are set at runtime.
+
 +------------------------+--------------------------------------------+
 | Environment Variable   | Example                                    |
 +========================+============================================+
