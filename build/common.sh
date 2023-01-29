@@ -43,7 +43,7 @@ function _log() {
     message="${7}" # message (JSON)
   else
     _feedback ERROR "Incorrect message type of ${message_type:-null or unset} sent to the _log function"
-    exit 1
+    exit 230
   fi
 
   # Validation
@@ -52,10 +52,10 @@ function _log() {
   # https://www.elastic.co/guide/en/ecs/1.11/ecs-allowed-values-event-category.html#ecs-event-category-configuration
   if [[ "${event_type}" != '"denied"' && "${event_type}" != '"allowed"' && "${event_type}" != '"info"' ]]; then
     _feedback ERROR "Incorrect event.type of ${event_type} sent to the _log function"
-    exit 1
+    exit 230
   elif [[ "${event_outcome}" != '"failure"' && "${event_outcome}" != '"success"' && "${event_outcome}" != '"unknown"' ]]; then
     _feedback ERROR "Incorrect event.outcome of ${event_outcome} sent to the _log function"
-    exit 1
+    exit 230
   fi
 
   if [[ "${git_labels}" == "true" ]]; then
@@ -143,7 +143,7 @@ function _clone() {
   local base_clone_path
   base_clone_path="${4:-/iac}"
   local clone_error_log
-  clone_error_log="/var/log/clone_errors.log"
+  clone_error_log="/var/log/clone.err.log"
 
   local unique_namespace_and_repository_list
   unique_namespace_and_repository_list=$(tr ',' '\n' <<< "${namespace_and_repository_list}" | sort -u | tr '\n' ',' | sed 's/,$//')
@@ -156,13 +156,12 @@ function _clone() {
       message="Failed to create ${base_clone_path}"
       _feedback ERROR "${message}"
       _log "easy_infra.stdouterr" denied failure "easy_infra" "${PWD}" string "${message}"
-      exit 1
+      exit 230
     fi
   fi
 
   if [[ -n "$(ls -A "${base_clone_path}")" ]]; then
-    echo "${base_clone_path} is not empty"
-    exit 1
+    _feedback WARNING "${base_clone_path} is not empty"
   fi
 
   for namespace_and_repository in "${namespaces_and_repositories[@]}"; do
@@ -176,7 +175,7 @@ function _clone() {
       message="Invalid protocol of ${protocol} was provided to the _clone function; exiting..."
       _feedback ERROR "${message}"
       _log "easy_infra.stdouterr" denied failure "easy_infra" "${PWD}" string "${message}"
-      exit 1
+      exit 230
     fi
 
     local clone_destination
@@ -197,10 +196,10 @@ function _clone() {
     message="Encountered ${error_count} fatal errors while cloning ${namespace_and_repository_list} repositories into ${base_clone_path} using ${protocol}"
     _feedback ERROR "${message}"
     _log "easy_infra.stdouterr" denied failure "easy_infra" "${PWD}" string "${message}"
-    exit 1
+    exit 230
   fi
 
   folder_count=$(find "${clone_destination}" -maxdepth 2 -mindepth 2 -type d | wc -l)
-  clone_log="${clone_destination}/results.log"
+  clone_log="/var/log/clone.log"
   echo "$(date): Cloned ${folder_count} folders" >> "${clone_log}"
 }
