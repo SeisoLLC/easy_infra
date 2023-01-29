@@ -128,9 +128,9 @@ function _feedback() {
 
 
 function _clone() {
-  # This function expects 4 positional arguments:
-  # - The version control system base domain (i.e. github.com)
-  # - A comma-separated list of the namespace and repository names (i.e. seisollc/easy_infra or seisollc/easy_infra,seisollc/easy_sast)
+  # This function expects up to 4 positional arguments:
+  # - (Required) The version control system base domain (i.e. github.com)
+  # - (Required) A comma-separated list of the namespace and repository names (i.e. seisollc/easy_infra or seisollc/easy_infra,seisollc/easy_sast)
   # - (Optional) The protocol (defaults to "ssh")
   # - (Optional) The base path where the repository should be cloned (defaults to "/iac")
 
