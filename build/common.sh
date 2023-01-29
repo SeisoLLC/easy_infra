@@ -148,9 +148,16 @@ function _clone() {
   local unique_namespace_and_repository_list
   unique_namespace_and_repository_list=$(tr ',' '\n' <<< "${namespace_and_repository_list}" | sort -u | tr '\n' ',' | sed 's/,$//')
   IFS=',' read -r -a namespaces_and_repositories <<< "${unique_namespace_and_repository_list}"
+  local message
 
   if [[ ! -d "${base_clone_path}" ]]; then
-    mkdir -p "${base_clone_path}"
+    # This will attempt to mkdir and if it fails it will pass the if statement, generating a failure log
+    if ! mkdir -p "${base_clone_path}" &>/dev/null ; then
+      message="Failed to create ${base_clone_path}"
+      _feedback ERROR "${message}"
+      _log "easy_infra.stdouterr" denied failure "easy_infra" "${PWD}" string "${message}"
+      exit 1
+    fi
   fi
 
   if [[ -n "$(ls -A "${base_clone_path}")" ]]; then
@@ -168,8 +175,9 @@ function _clone() {
       clone_url="https://${vcs_domain}/${namespace_and_repository}"
     else
       # This validation could happen prior to the loop, but putting it here for simiplicity
-      _feedback ERROR "Invalid protocol of ${protocol} was provided to the _clone function; exiting..."
-      _log "easy_infra.stdouterr" info unknown "easy_infra" "${PWD}" string "Failed to generate a valid JSON log message"
+      message="Invalid protocol of ${protocol} was provided to the _clone function; exiting..."
+      _feedback ERROR "${message}"
+      _log "easy_infra.stdouterr" denied failure "easy_infra" "${PWD}" string "${message}"
       exit 1
     fi
 
@@ -190,7 +198,7 @@ function _clone() {
     local message
     message="Encountered ${error_count} fatal errors while cloning ${namespace_and_repository_list} repositories into ${base_clone_path} using ${protocol}"
     _feedback ERROR "${message}"
-    _log "easy_infra.stdouterr" info unknown "easy_infra" "${PWD}" string "${message}"
+    _log "easy_infra.stdouterr" denied failure "easy_infra" "${PWD}" string "${message}"
     exit 1
   fi
 
