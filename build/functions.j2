@@ -121,6 +121,11 @@ function {{ "scan_" ~ function if scan else function }}() {
     done
   fi
 
+  # Clone the provided repositories when configured
+  if [[ -v "VCS_DOMAIN" && -v "CLONE_REPOSITORIES" ]]; then
+    _clone "${VCS_DOMAIN}" "${CLONE_REPOSITORIES}" "${CLONE_PROTOCOL:-ssh}"
+  fi
+
   # Methods to skip **all** security tools for {{ function }}
   DISABLE_SECURITY="${DISABLE_SECURITY:-false}"
   dirs=()
