@@ -1134,6 +1134,27 @@ def run_ansible(*, image: str) -> None:
 
     num_tests_ran += num_successful_tests
 
+    # Test the git clone feature
+    command = "scan_ansible"
+    LOG.debug("Testing scan_ansible against a repository that was cloned at runtime")
+    environment = {}
+    environment["VCS_DOMAIN"] = "github.com"
+    environment["CLONE_REPOSITORIES"] = "seisollc/easy_infra,seisollc/easy_infra"
+    environment["CLONE_PROTOCOL"] = "https"
+
+    # TODO: In the future, migrate this to a general test config
+    working_dir = "/iac/easy_infra/tests/ansible/tool/kics"
+
+    # Purposefully missing volumes= because we are using clone to do it
+    utils.opinionated_docker_run(
+        image=image,
+        command=command,
+        working_dir=working_dir,
+        environment=environment,
+        expected_exit=0,
+    )
+    num_tests_ran += 1
+
     LOG.info(f"{image} passed {num_tests_ran} end to end ansible-playbook tests")
 
 
