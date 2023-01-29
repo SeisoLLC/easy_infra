@@ -12,4 +12,5 @@
    Ansible/index
    Logging/index
    Hooks/index
+   Cloning/index
    Technical Details/index

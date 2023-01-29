@@ -372,7 +372,8 @@ def run_terraform(*, image: str) -> None:
     num_tests_ran += 1
 
     # Test learning mode on an invalid configuration, using the git clone feature
-    command = "terraform validate"
+    # Running two commands to test the git clone feature with dual commands
+    command = '/bin/bash -c "terraform validate && scan_terraform"'
     LOG.debug("Testing learning mode on an invalid configuration")
     learning_environment = copy.deepcopy(environment)
     learning_environment["LEARNING_MODE"] = "true"
@@ -1135,7 +1136,8 @@ def run_ansible(*, image: str) -> None:
     num_tests_ran += num_successful_tests
 
     # Test the git clone feature
-    command = "scan_ansible"
+    # Running two commands to test the git clone feature with dual commands
+    command = '/bin/bash -c "scan_ansible && scan_ansible"'
     LOG.debug("Testing scan_ansible against a repository that was cloned at runtime")
     environment = {}
     environment["VCS_DOMAIN"] = "github.com"

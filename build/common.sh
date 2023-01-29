@@ -143,7 +143,7 @@ function _clone() {
   local base_clone_path
   base_clone_path="${4:-/iac}"
   local clone_error_log
-  clone_error_log="${base_clone_path}/errors.log"
+  clone_error_log="/var/log/clone_errors.log"
 
   local unique_namespace_and_repository_list
   unique_namespace_and_repository_list=$(tr ',' '\n' <<< "${namespace_and_repository_list}" | sort -u | tr '\n' ',' | sed 's/,$//')
@@ -164,8 +164,6 @@ function _clone() {
     echo "${base_clone_path} is not empty"
     exit 1
   fi
-
-  touch "${clone_error_log}"
 
   for namespace_and_repository in "${namespaces_and_repositories[@]}"; do
     local clone_url
@@ -202,7 +200,7 @@ function _clone() {
     exit 1
   fi
 
-  folder_count=$(find "${clone_destination}" -type d -maxdepth 2 -mindepth 2 | wc -l)
+  folder_count=$(find "${clone_destination}" -maxdepth 2 -mindepth 2 -type d | wc -l)
   clone_log="${clone_destination}/results.log"
   echo "$(date): Cloned ${folder_count} folders" >> "${clone_log}"
 }
