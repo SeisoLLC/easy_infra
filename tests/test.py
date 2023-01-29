@@ -371,16 +371,27 @@ def run_terraform(*, image: str) -> None:
     )
     num_tests_ran += 1
 
-    # Test learning mode on an invalid configuration
+    # Test learning mode on an invalid configuration, using the git clone feature
     command = "terraform validate"
     LOG.debug("Testing learning mode on an invalid configuration")
     learning_environment = copy.deepcopy(environment)
     learning_environment["LEARNING_MODE"] = "true"
+    learning_mode_and_clone_environment = copy.deepcopy(learning_environment)
+
+    # Setup the cloning
+    learning_mode_and_clone_environment["VCS_DOMAIN"] = "github.com"
+    learning_mode_and_clone_environment[
+        "CLONE_REPOSITORIES"
+    ] = "seisollc/easy_infra,seisollc/easy_infra"
+    learning_mode_and_clone_environment["CLONE_PROTOCOL"] = "https"
+    working_dir = "/iac/easy_infra/tests/terraform/general/invalid"
+
+    # Purposefully missing volumes= because we are using clone to do it
     utils.opinionated_docker_run(
         image=image,
-        volumes=invalid_volumes,
         command=command,
-        environment=learning_environment,
+        working_dir=working_dir,
+        environment=learning_mode_and_clone_environment,
         expected_exit=1,  # This still fails terraform validate
     )
     num_tests_ran += 1

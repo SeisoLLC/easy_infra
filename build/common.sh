@@ -145,7 +145,9 @@ function _clone() {
   local clone_error_log
   clone_error_log="${base_clone_path}/errors.log"
 
-  IFS=',' read -r -a namespaces_and_repositories <<< "${namespace_and_repository_list}"
+  local unique_namespace_and_repository_list
+  unique_namespace_and_repository_list=$(tr ',' '\n' <<< "${namespace_and_repository_list}" | sort -u | tr '\n' ',' | sed 's/,$//')
+  IFS=',' read -r -a namespaces_and_repositories <<< "${unique_namespace_and_repository_list}"
 
   if [[ ! -d "${base_clone_path}" ]]; then
     mkdir -p "${base_clone_path}"
