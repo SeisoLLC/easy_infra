@@ -180,9 +180,29 @@ function _clone() {
 
     local clone_destination
     clone_destination="${base_clone_path}/${namespace_and_repository}"
+    local is_git_repo
+    is_git_repo="false"
 
-    # If this fails, the script will continue but stderr goes into the clone error log and is analyzed later
-    GIT_TERMINAL_PROMPT=0 git clone --single-branch --depth 1 --quiet "${clone_url}" "${clone_destination}" >/dev/null 2>>"${clone_error_log}" &
+    local message
+    if [[ -d "${clone_destination}" ]]; then
+      pushd "${clone_destination}" &>/dev/null
+      is_git_repo="$(git rev-parse --is-inside-work-tree)"
+      popd &>/dev/null
+
+      if [[ "${is_git_repo,,}" == "true" ]]; then
+        message="The directory ${clone_destination} already exists and is a git repo, skipping..."
+        _feedback "WARNING" "${message}"
+        _log "easy_infra.stdouterr" info unknown "easy_infra" "${PWD}" string "${message}"
+      else
+        message="The directory ${clone_destination} already exists and is not a git repo; exiting..."
+        _feedback "ERROR" "${message}"
+        _log "easy_infra.stdouterr" info unknown "easy_infra" "${PWD}" string "${message}"
+        exit 230
+      fi
+    else
+      # If this fails, the script will continue but stderr goes into the clone error log and is analyzed later
+      GIT_TERMINAL_PROMPT=0 git clone --single-branch --depth 1 --quiet "${clone_url}" "${clone_destination}" >/dev/null 2>>"${clone_error_log}" &
+    fi
   done
 
   wait
@@ -192,7 +212,6 @@ function _clone() {
     # Print the cloning errors to the screen
     cat "${clone_error_log}"
 
-    local message
     message="Encountered ${error_count} fatal errors while cloning ${namespace_and_repository_list} repositories into ${base_clone_path} using ${protocol}"
     _feedback ERROR "${message}"
     _log "easy_infra.stdouterr" denied failure "easy_infra" "${PWD}" string "${message}"
