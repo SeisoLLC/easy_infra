@@ -4,6 +4,7 @@ Test Functions
 """
 
 import copy
+import re
 import subprocess
 import sys
 from logging import getLogger
@@ -297,7 +298,7 @@ def run_tests(*, image: str, tool: str, environment: str | None) -> None:
 
     if environment and environment != "none":
         environment_test_function = f"run_{environment}"
-        # TODO: Consider how we may want to test {tool}-{environment} features specially; right now it is environment-only testing
+        # TODO: Consider how we may want to test {tool}-{environment} features specifically; right now it is environment-only testing
         eval(environment_test_function)(  # nosec B307 pylint: disable=eval-used
             image=image
         )
@@ -316,15 +317,23 @@ def run_terraform(*, image: str) -> None:
     environment = {"TF_DATA_DIR": "/tmp"}
     tests_test_dir = TESTS_PATH
     tests_volumes = {tests_test_dir: {"bind": working_dir, "mode": "ro"}}
-    invalid_test_dir = TESTS_PATH.joinpath("terraform/general/invalid")
+    terraform_test_dir = TESTS_PATH.joinpath("terraform")
+    invalid_test_dir = terraform_test_dir.joinpath("general/invalid")
     invalid_volumes = {invalid_test_dir: {"bind": working_dir, "mode": "rw"}}
-    checkov_test_dir = TESTS_PATH.joinpath("terraform/tool/checkov")
+    checkov_test_dir = terraform_test_dir.joinpath("tool/checkov")
     checkov_volumes = {checkov_test_dir: {"bind": working_dir, "mode": "rw"}}
-    secure_config_dir = TESTS_PATH.joinpath("terraform/general/secure")
+    large_checkov_output_file = terraform_test_dir.joinpath("checkov.json")
+    large_checkov_volumes = {
+        large_checkov_output_file: {
+            "bind": "/tmp/reports/checkov/checkov.json",
+            "mode": "ro",
+        }
+    }
+    secure_config_dir = terraform_test_dir.joinpath("general/secure")
     secure_volumes = {secure_config_dir: {"bind": working_dir, "mode": "rw"}}
-    general_test_dir = TESTS_PATH.joinpath("terraform/general")
+    general_test_dir = terraform_test_dir.joinpath("general")
     general_test_volumes = {general_test_dir: {"bind": working_dir, "mode": "rw"}}
-    hooks_config_dir = TESTS_PATH.joinpath("terraform/hooks")
+    hooks_config_dir = terraform_test_dir.joinpath("hooks")
     hooks_config_volumes = {hooks_config_dir: {"bind": working_dir, "mode": "rw"}}
     fluent_bit_config_host = TESTS_PATH.joinpath("fluent-bit.outputs.conf")
     fluent_bit_config_container = "/usr/local/etc/fluent-bit/fluent-bit.outputs.conf"
@@ -394,6 +403,24 @@ def run_terraform(*, image: str) -> None:
         working_dir=working_dir,
         environment=learning_mode_and_clone_environment,
         expected_exit=1,  # This still fails terraform validate
+    )
+    num_tests_ran += 1
+
+    # Ensure that the logging functions work, even when there are a lot of findings
+    command = '_log "test" "denied" "failure" "_log test" "/tmp" "json" "/tmp/reports/checkov/checkov.json"'
+    LOG.debug(
+        "Test writing easy_infra.log when there are a significant number of findings"
+    )
+    # If this pattern matches the logs, it will fail the test
+    pattern = re.compile(r"ERROR")
+
+    utils.opinionated_docker_run(
+        image=image,
+        volumes=large_checkov_volumes,
+        command=command,
+        environment=environment,
+        expected_exit=0,
+        check_logs=pattern,
     )
     num_tests_ran += 1
 
