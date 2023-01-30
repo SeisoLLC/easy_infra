@@ -1180,7 +1180,7 @@ def run_ansible(*, image: str) -> None:
     # https://github.com/docker/docker-py/issues/2230 issue from January 2019
     #
     # The exit 230 ensures that, if the dir doesn't exist, it doesn't accidentally match the expected_exit of 1 below
-    command = '/bin/bash -c "cd /iac/seisollc/easy_infra/tests/ansible/tool/kics || exit 230 && scan_ansible && scan_ansible"'
+    command = '/bin/bash -c "cd /iac/seisollc/easy_infra/tests/ansible/tool/kics || exit 230 && scan_ansible || scan_ansible"'
     LOG.debug("Testing scan_ansible against a repository that was cloned at runtime")
     environment = {}
     environment["VCS_DOMAIN"] = "github.com"
