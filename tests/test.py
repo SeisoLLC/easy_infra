@@ -1172,7 +1172,6 @@ def run_ansible(*, image: str) -> None:
 
     # Test the git clone feature
     #
-    # Running two commands that include security scans purposefully; there used to be a bug
     #
     # Note that we can't just replace the cd with workdir because it will create the dir as root prior to hitting the ENTRYPOINT, and the container
     # user won't have access to write in that directory when it tries to run _clone. This was fixed in buildkit in
