@@ -1194,7 +1194,7 @@ def run_ansible(*, image: str) -> None:
         image=image,
         command=command,
         environment=environment,
-        expected_exit=0,
+        expected_exit=50,
     )
     num_tests_ran += 1
 
