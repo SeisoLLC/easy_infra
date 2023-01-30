@@ -381,7 +381,6 @@ def run_terraform(*, image: str) -> None:
     num_tests_ran += 1
 
     # Test learning mode on an invalid configuration, using the git clone feature, non-interactively
-    #
     # Running two commands that include security scans purposefully; there used to be a bug
     #
     # Note that we can't just replace the cd with workdir because it will create the dir as root prior to hitting the ENTRYPOINT, and the container
