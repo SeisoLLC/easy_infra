@@ -380,10 +380,12 @@ def run_terraform(*, image: str) -> None:
     )
     num_tests_ran += 1
 
-    # Test learning mode on an invalid configuration, using the git clone feature
+    # Test learning mode on an invalid configuration, using the git clone feature, non-interactively
     # Running two commands to test the git clone feature with dual commands
-    command = '/bin/bash -c "terraform validate && scan_terraform"'
-    LOG.debug("Testing learning mode on an invalid configuration")
+    command = '/bin/bash -c "scan_terraform && terraform validate"'
+    LOG.debug(
+        "Testing learning mode on an invalid configuration using the git clone feature, non-interactively"
+    )
     learning_environment = copy.deepcopy(environment)
     learning_environment["LEARNING_MODE"] = "true"
     learning_mode_and_clone_environment = copy.deepcopy(learning_environment)
@@ -402,7 +404,7 @@ def run_terraform(*, image: str) -> None:
         command=command,
         working_dir=working_dir,
         environment=learning_mode_and_clone_environment,
-        expected_exit=1,  # This still fails terraform validate
+        expected_exit=1,  # This still fails the final terraform validate, which only runs if scan_terraform succeeds as expected
     )
     num_tests_ran += 1
 
