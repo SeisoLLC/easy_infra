@@ -89,9 +89,14 @@ def opinionated_docker_run(
     volumes: dict = {},
     working_dir: str = "/iac/",
     expected_exit: int = 0,
-    network_mode: Union[str, None] = None,
+    check_logs: Pattern[str] | None = None,
+    network_mode: str | None = None,
 ):
     """Perform an opinionated docker run"""
+    if auto_remove and check_logs:
+        LOG.error(f"auto_remove cannot be {auto_remove} when check_logs is specified")
+        sys.exit(1)
+
     LOG.debug(
         "Invoking CLIENT.containers.run() with the following arguments: "
         + f"{auto_remove=}, {command=}, {detach=}, {environment=}, {image=}, {network_mode=}, {tty=}, {volumes=}, {working_dir=}"
@@ -121,6 +126,12 @@ def opinionated_docker_run(
             # This ensures that if it unexpectedly exits 0, it still fails the pipeline
             exit_code = response["StatusCode"]
             sys.exit(max(exit_code, 1))
+
+    if check_logs and check_logs.search(response["logs"]):
+        LOG.error(
+            f"Found the pattern {check_logs} in the container logs; failing the test..."
+        )
+        sys.exit(1)
 
 
 def is_status_expected(*, expected: int, response: dict) -> bool:
