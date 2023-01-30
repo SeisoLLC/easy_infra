@@ -229,9 +229,10 @@ function _clone() {
 
     local message
     if [[ -d "${clone_destination}" ]]; then
-      pushd "${clone_destination}" &>/dev/null
+      message="Issue with the permissions of the clone destination of ${clone_destination}"
+      pushd "${clone_destination}" &>/dev/null || { _feedback "ERROR" "${message}"; _log "easy_infra.stdouterr" denied failure "easy_infra" "${PWD}" string "${message}"; exit 230; }
       is_git_repo="$(git rev-parse --is-inside-work-tree)"
-      popd &>/dev/null
+      popd &>/dev/null || { _feedback "ERROR" "${message}"; _log "easy_infra.stdouterr" denied failure "easy_infra" "${PWD}" string "${message}"; exit 230; }
 
       if [[ "${is_git_repo,,}" == "true" ]]; then
         message="The directory ${clone_destination} already exists and is a git repo, skipping..."
