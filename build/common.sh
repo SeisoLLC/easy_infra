@@ -231,7 +231,7 @@ function _clone() {
     if [[ -d "${clone_destination}" ]]; then
       message="Issue with the permissions of the clone destination of ${clone_destination}"
       pushd "${clone_destination}" &>/dev/null || { _feedback "ERROR" "${message}"; _log "easy_infra.stdouterr" denied failure "easy_infra" "${PWD}" string "${message}"; exit 230; }
-      is_git_repo="$(git rev-parse --is-inside-work-tree)"
+      is_git_repo="$(git rev-parse --is-inside-work-tree 2>/dev/null || echo "false")"
       popd &>/dev/null || { _feedback "ERROR" "${message}"; _log "easy_infra.stdouterr" denied failure "easy_infra" "${PWD}" string "${message}"; exit 230; }
 
       if [[ "${is_git_repo,,}" == "true" ]]; then

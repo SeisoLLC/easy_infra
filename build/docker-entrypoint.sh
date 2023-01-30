@@ -30,6 +30,11 @@ trap shutdown EXIT
 # to stdout
 fluent-bit -c /usr/local/etc/fluent-bit/fluent-bit.conf --verbose 2>/dev/null
 
+# Clone the provided repositories when configured
+if [[ -v "VCS_DOMAIN" && -v "CLONE_REPOSITORIES" ]]; then
+  _clone "${VCS_DOMAIN}" "${CLONE_REPOSITORIES}" "${CLONE_PROTOCOL:-ssh}" "${CLONE_DIRECTORY:-/iac}"
+fi
+
 if [[ -x "$(which strace)" ]]; then
   strace -t -o /tmp/strace-fluent-bit -fp "$(pidof fluent-bit)" &
   sleep .2

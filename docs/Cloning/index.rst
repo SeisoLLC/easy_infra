@@ -11,7 +11,8 @@ configured.
 Configuration options
 ^^^^^^^^^^^^^^^^^^^^^
 
-Cloning will only occur when the ``VCS_DOMAIN`` and ``CLONE_REPOSITORIES`` environment variables are set at runtime.
+Cloning will only occur when the ``VCS_DOMAIN`` and ``CLONE_REPOSITORIES`` environment variables are set at runtime. The other environment variables
+are optional.
 
 +------------------------+--------------------------------------------+
 | Environment Variable   | Example                                    |
@@ -21,6 +22,8 @@ Cloning will only occur when the ``VCS_DOMAIN`` and ``CLONE_REPOSITORIES`` envir
 | ``CLONE_REPOSITORIES`` | ``seisollc/easy_infra,seisollc/easy_sast`` |
 +------------------------+--------------------------------------------+
 | ``CLONE_PROTOCOL``     | ``https``                                  |
++------------------------+--------------------------------------------+
+| ``CLONE_DIRECTORY``    | ``/iac``                                   |
 +------------------------+--------------------------------------------+
 
 .. note::

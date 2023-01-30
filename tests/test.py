@@ -381,8 +381,16 @@ def run_terraform(*, image: str) -> None:
     num_tests_ran += 1
 
     # Test learning mode on an invalid configuration, using the git clone feature, non-interactively
-    # Running two commands to test the git clone feature with dual commands
-    command = '/bin/bash -c "scan_terraform && terraform validate"'
+    #
+    # Running two commands that include security scans purposefully; there used to be a bug
+    #
+    # Note that we can't just replace the cd with workdir because it will create the dir as root prior to hitting the ENTRYPOINT, and the container
+    # user won't have access to write in that directory when it tries to run _clone. This was fixed in buildkit in
+    # https://github.com/moby/buildkit/pull/1002 but docker-py doesn't support buildkit yet; see the very popular
+    # https://github.com/docker/docker-py/issues/2230 issue from January 2019
+    #
+    # The exit 230 ensures that, if the dir doesn't exist, it doesn't accidentally match the expected_exit of 1 below
+    command = '/bin/bash -c "cd /iac/seisollc/easy_infra/tests/terraform/general/invalid || exit 230 && scan_terraform && terraform validate"'
     LOG.debug(
         "Testing learning mode on an invalid configuration using the git clone feature, non-interactively"
     )
@@ -396,13 +404,11 @@ def run_terraform(*, image: str) -> None:
         "CLONE_REPOSITORIES"
     ] = "seisollc/easy_infra,seisollc/easy_infra"
     learning_mode_and_clone_environment["CLONE_PROTOCOL"] = "https"
-    working_dir = "/iac/seisollc/easy_infra/tests/terraform/general/invalid"
 
     # Purposefully missing volumes= because we are using clone to do it
     utils.opinionated_docker_run(
         image=image,
         command=command,
-        working_dir=working_dir,
         environment=learning_mode_and_clone_environment,
         expected_exit=1,  # This still fails the final terraform validate, which only runs if scan_terraform succeeds as expected
     )
@@ -1165,8 +1171,16 @@ def run_ansible(*, image: str) -> None:
     num_tests_ran += num_successful_tests
 
     # Test the git clone feature
-    # Running two commands to test the git clone feature with dual commands
-    command = '/bin/bash -c "scan_ansible && scan_ansible"'
+    #
+    # Running two commands that include security scans purposefully; there used to be a bug
+    #
+    # Note that we can't just replace the cd with workdir because it will create the dir as root prior to hitting the ENTRYPOINT, and the container
+    # user won't have access to write in that directory when it tries to run _clone. This was fixed in buildkit in
+    # https://github.com/moby/buildkit/pull/1002 but docker-py doesn't support buildkit yet; see the very popular
+    # https://github.com/docker/docker-py/issues/2230 issue from January 2019
+    #
+    # The exit 230 ensures that, if the dir doesn't exist, it doesn't accidentally match the expected_exit of 1 below
+    command = '/bin/bash -c "cd /iac/seisollc/easy_infra/tests/ansible/tool/kics || exit 230 && scan_ansible && scan_ansible"'
     LOG.debug("Testing scan_ansible against a repository that was cloned at runtime")
     environment = {}
     environment["VCS_DOMAIN"] = "github.com"
@@ -1174,13 +1188,11 @@ def run_ansible(*, image: str) -> None:
     environment["CLONE_PROTOCOL"] = "https"
 
     # TODO: In the future, migrate this to a general test config
-    working_dir = "/iac/seisollc/easy_infra/tests/ansible/tool/kics"
 
     # Purposefully missing volumes= because we are using clone to do it
     utils.opinionated_docker_run(
         image=image,
         command=command,
-        working_dir=working_dir,
         environment=environment,
         expected_exit=0,
     )
