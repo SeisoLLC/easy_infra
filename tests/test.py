@@ -390,7 +390,7 @@ def run_terraform(*, image: str) -> None:
     # https://github.com/docker/docker-py/issues/2230 issue from January 2019
     #
     # The exit 230 ensures that, if the dir doesn't exist, it doesn't accidentally match the expected_exit of 1 below
-    command = '/bin/bash -c "cd /iac/seisollc/easy_infra/tests/terraform/general/invalid || exit 230 && scan_terraform && terraform validate"'
+    command = '/bin/bash -c "cd /iac/seisollc/easy_infra/tests/terraform/general/invalid || exit 230 && scan_terraform || terraform validate"'
     LOG.debug(
         "Testing learning mode on an invalid configuration using the git clone feature, non-interactively"
     )
