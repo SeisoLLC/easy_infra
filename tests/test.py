@@ -396,7 +396,7 @@ def run_terraform(*, image: str) -> None:
         "CLONE_REPOSITORIES"
     ] = "seisollc/easy_infra,seisollc/easy_infra"
     learning_mode_and_clone_environment["CLONE_PROTOCOL"] = "https"
-    working_dir = "/iac/easy_infra/tests/terraform/general/invalid"
+    working_dir = "/iac/seisollc/easy_infra/tests/terraform/general/invalid"
 
     # Purposefully missing volumes= because we are using clone to do it
     utils.opinionated_docker_run(
@@ -1174,7 +1174,7 @@ def run_ansible(*, image: str) -> None:
     environment["CLONE_PROTOCOL"] = "https"
 
     # TODO: In the future, migrate this to a general test config
-    working_dir = "/iac/easy_infra/tests/ansible/tool/kics"
+    working_dir = "/iac/seisollc/easy_infra/tests/ansible/tool/kics"
 
     # Purposefully missing volumes= because we are using clone to do it
     utils.opinionated_docker_run(

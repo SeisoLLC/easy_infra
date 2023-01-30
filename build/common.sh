@@ -195,7 +195,7 @@ function _clone() {
   local message
 
   if [[ ! -d "${base_clone_path}" ]]; then
-    # This will attempt to mkdir and if it fails it will pass the if statement, generating a failure log
+    # This will attempt to mkdir and if it fails it will pass the if statement, generating a failure log and exiting non-zero
     if ! mkdir -p "${base_clone_path}" &>/dev/null ; then
       message="Failed to create ${base_clone_path}"
       _feedback ERROR "${message}"
