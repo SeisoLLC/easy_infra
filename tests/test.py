@@ -4,6 +4,7 @@ Test Functions
 """
 
 import copy
+import re
 import subprocess
 import sys
 from logging import getLogger
@@ -297,7 +298,7 @@ def run_tests(*, image: str, tool: str, environment: str | None) -> None:
 
     if environment and environment != "none":
         environment_test_function = f"run_{environment}"
-        # TODO: Consider how we may want to test {tool}-{environment} features specially; right now it is environment-only testing
+        # TODO: Consider how we may want to test {tool}-{environment} features specifically; right now it is environment-only testing
         eval(environment_test_function)(  # nosec B307 pylint: disable=eval-used
             image=image
         )
@@ -316,15 +317,23 @@ def run_terraform(*, image: str) -> None:
     environment = {"TF_DATA_DIR": "/tmp"}
     tests_test_dir = TESTS_PATH
     tests_volumes = {tests_test_dir: {"bind": working_dir, "mode": "ro"}}
-    invalid_test_dir = TESTS_PATH.joinpath("terraform/general/invalid")
+    terraform_test_dir = TESTS_PATH.joinpath("terraform")
+    invalid_test_dir = terraform_test_dir.joinpath("general/invalid")
     invalid_volumes = {invalid_test_dir: {"bind": working_dir, "mode": "rw"}}
-    checkov_test_dir = TESTS_PATH.joinpath("terraform/tool/checkov")
+    checkov_test_dir = terraform_test_dir.joinpath("tool/checkov")
     checkov_volumes = {checkov_test_dir: {"bind": working_dir, "mode": "rw"}}
-    secure_config_dir = TESTS_PATH.joinpath("terraform/general/secure")
+    large_checkov_output_file = terraform_test_dir.joinpath("checkov.json")
+    large_checkov_volumes = {
+        large_checkov_output_file: {
+            "bind": "/tmp/reports/checkov/checkov.json",
+            "mode": "ro",
+        }
+    }
+    secure_config_dir = terraform_test_dir.joinpath("general/secure")
     secure_volumes = {secure_config_dir: {"bind": working_dir, "mode": "rw"}}
-    general_test_dir = TESTS_PATH.joinpath("terraform/general")
+    general_test_dir = terraform_test_dir.joinpath("general")
     general_test_volumes = {general_test_dir: {"bind": working_dir, "mode": "rw"}}
-    hooks_config_dir = TESTS_PATH.joinpath("terraform/hooks")
+    hooks_config_dir = terraform_test_dir.joinpath("hooks")
     hooks_config_volumes = {hooks_config_dir: {"bind": working_dir, "mode": "rw"}}
     fluent_bit_config_host = TESTS_PATH.joinpath("fluent-bit.outputs.conf")
     fluent_bit_config_container = "/usr/local/etc/fluent-bit/fluent-bit.outputs.conf"
@@ -371,17 +380,53 @@ def run_terraform(*, image: str) -> None:
     )
     num_tests_ran += 1
 
-    # Test learning mode on an invalid configuration
-    command = "terraform validate"
-    LOG.debug("Testing learning mode on an invalid configuration")
+    # Test learning mode on an invalid configuration, using the git clone feature, non-interactively
+    #
+    # Note that we can't just replace the cd with workdir because it will create the dir as root prior to hitting the ENTRYPOINT, and the container
+    # user won't have access to write in that directory when it tries to run _clone. This was fixed in buildkit in
+    # https://github.com/moby/buildkit/pull/1002 but docker-py doesn't support buildkit yet; see the very popular
+    # https://github.com/docker/docker-py/issues/2230 issue from January 2019
+    #
+    # The exit 230 ensures that, if the dir doesn't exist, it doesn't accidentally match the expected_exit of 1 below
+    command = '/bin/bash -c "cd /iac/seisollc/easy_infra/tests/terraform/general/invalid || exit 230 && terraform validate"'
+    LOG.debug(
+        "Testing learning mode on an invalid configuration using the git clone feature, non-interactively"
+    )
     learning_environment = copy.deepcopy(environment)
     learning_environment["LEARNING_MODE"] = "true"
+    learning_mode_and_clone_environment = copy.deepcopy(learning_environment)
+
+    # Setup the cloning
+    learning_mode_and_clone_environment["VCS_DOMAIN"] = "github.com"
+    learning_mode_and_clone_environment[
+        "CLONE_REPOSITORIES"
+    ] = "seisollc/easy_infra,seisollc/easy_infra"
+    learning_mode_and_clone_environment["CLONE_PROTOCOL"] = "https"
+
+    # Purposefully missing volumes= because we are using clone to do it
     utils.opinionated_docker_run(
         image=image,
-        volumes=invalid_volumes,
         command=command,
-        environment=learning_environment,
-        expected_exit=1,  # This still fails terraform validate
+        environment=learning_mode_and_clone_environment,
+        expected_exit=1,  # This still fails the final terraform validate, which only runs if scan_terraform succeeds as expected
+    )
+    num_tests_ran += 1
+
+    # Ensure that the logging functions work, even when there are a lot of findings
+    command = '_log "test" "denied" "failure" "_log test" "/tmp" "json" "/tmp/reports/checkov/checkov.json"'
+    LOG.debug(
+        "Test writing easy_infra.log when there are a significant number of findings"
+    )
+    # If this pattern matches the logs, it will fail the test
+    pattern = re.compile(r"ERROR")
+
+    utils.opinionated_docker_run(
+        image=image,
+        volumes=large_checkov_volumes,
+        command=command,
+        environment=environment,
+        expected_exit=0,
+        check_logs=pattern,
     )
     num_tests_ran += 1
 
@@ -1122,6 +1167,32 @@ def run_ansible(*, image: str) -> None:
         sys.exit(1)
 
     num_tests_ran += num_successful_tests
+
+    # Test the git clone feature
+    #
+    # Note that we can't just replace the cd with workdir because it will create the dir as root prior to hitting the ENTRYPOINT, and the container
+    # user won't have access to write in that directory when it tries to run _clone. This was fixed in buildkit in
+    # https://github.com/moby/buildkit/pull/1002 but docker-py doesn't support buildkit yet; see the very popular
+    # https://github.com/docker/docker-py/issues/2230 issue from January 2019
+    #
+    # The exit 230 ensures that, if the dir doesn't exist, it doesn't accidentally match the expected_exit of 1 below
+    command = '/bin/bash -c "cd /iac/seisollc/easy_infra/tests/ansible/tool/kics || exit 230 && scan_ansible"'
+    LOG.debug("Testing scan_ansible against a repository that was cloned at runtime")
+    environment = {}
+    environment["VCS_DOMAIN"] = "github.com"
+    environment["CLONE_REPOSITORIES"] = "seisollc/easy_infra,seisollc/easy_infra"
+    environment["CLONE_PROTOCOL"] = "https"
+
+    # TODO: In the future, migrate this to a general test config
+
+    # Purposefully missing volumes= because we are using clone to do it
+    utils.opinionated_docker_run(
+        image=image,
+        command=command,
+        environment=environment,
+        expected_exit=50,
+    )
+    num_tests_ran += 1
 
     LOG.info(f"{image} passed {num_tests_ran} end to end ansible-playbook tests")
 
