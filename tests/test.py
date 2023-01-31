@@ -380,17 +380,35 @@ def run_terraform(*, image: str) -> None:
     )
     num_tests_ran += 1
 
-    # Test learning mode on an invalid configuration
-    command = "terraform validate"
-    LOG.debug("Testing learning mode on an invalid configuration")
+    # Test learning mode on an invalid configuration, using the git clone feature, non-interactively
+    #
+    # Note that we can't just replace the cd with workdir because it will create the dir as root prior to hitting the ENTRYPOINT, and the container
+    # user won't have access to write in that directory when it tries to run _clone. This was fixed in buildkit in
+    # https://github.com/moby/buildkit/pull/1002 but docker-py doesn't support buildkit yet; see the very popular
+    # https://github.com/docker/docker-py/issues/2230 issue from January 2019
+    #
+    # The exit 230 ensures that, if the dir doesn't exist, it doesn't accidentally match the expected_exit of 1 below
+    command = '/bin/bash -c "cd /iac/seisollc/easy_infra/tests/terraform/general/invalid || exit 230 && terraform validate"'
+    LOG.debug(
+        "Testing learning mode on an invalid configuration using the git clone feature, non-interactively"
+    )
     learning_environment = copy.deepcopy(environment)
     learning_environment["LEARNING_MODE"] = "true"
+    learning_mode_and_clone_environment = copy.deepcopy(learning_environment)
+
+    # Setup the cloning
+    learning_mode_and_clone_environment["VCS_DOMAIN"] = "github.com"
+    learning_mode_and_clone_environment[
+        "CLONE_REPOSITORIES"
+    ] = "seisollc/easy_infra,seisollc/easy_infra"
+    learning_mode_and_clone_environment["CLONE_PROTOCOL"] = "https"
+
+    # Purposefully missing volumes= because we are using clone to do it
     utils.opinionated_docker_run(
         image=image,
-        volumes=invalid_volumes,
         command=command,
-        environment=learning_environment,
-        expected_exit=1,  # This still fails terraform validate
+        environment=learning_mode_and_clone_environment,
+        expected_exit=1,  # This still fails the final terraform validate, which only runs if scan_terraform succeeds as expected
     )
     num_tests_ran += 1
 
@@ -1149,6 +1167,32 @@ def run_ansible(*, image: str) -> None:
         sys.exit(1)
 
     num_tests_ran += num_successful_tests
+
+    # Test the git clone feature
+    #
+    # Note that we can't just replace the cd with workdir because it will create the dir as root prior to hitting the ENTRYPOINT, and the container
+    # user won't have access to write in that directory when it tries to run _clone. This was fixed in buildkit in
+    # https://github.com/moby/buildkit/pull/1002 but docker-py doesn't support buildkit yet; see the very popular
+    # https://github.com/docker/docker-py/issues/2230 issue from January 2019
+    #
+    # The exit 230 ensures that, if the dir doesn't exist, it doesn't accidentally match the expected_exit of 1 below
+    command = '/bin/bash -c "cd /iac/seisollc/easy_infra/tests/ansible/tool/kics || exit 230 && scan_ansible"'
+    LOG.debug("Testing scan_ansible against a repository that was cloned at runtime")
+    environment = {}
+    environment["VCS_DOMAIN"] = "github.com"
+    environment["CLONE_REPOSITORIES"] = "seisollc/easy_infra,seisollc/easy_infra"
+    environment["CLONE_PROTOCOL"] = "https"
+
+    # TODO: In the future, migrate this to a general test config
+
+    # Purposefully missing volumes= because we are using clone to do it
+    utils.opinionated_docker_run(
+        image=image,
+        command=command,
+        environment=environment,
+        expected_exit=50,
+    )
+    num_tests_ran += 1
 
     LOG.info(f"{image} passed {num_tests_ran} end to end ansible-playbook tests")
 
