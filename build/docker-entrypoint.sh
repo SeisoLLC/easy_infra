@@ -8,7 +8,7 @@ shopt -s dotglob
 # shellcheck disable=SC1091
 source /usr/local/bin/common.sh
 
-function shutdown() {
+function dequeue() {
   # Watch the fluent-bit process
   tail --pid="$(pidof fluent-bit)" -f /dev/null &
 
@@ -24,7 +24,17 @@ function shutdown() {
   _feedback DEBUGGING "Successfully dequeud fluent-bit, shutting down easy_infra..."
 }
 
-trap shutdown EXIT
+function interrupt() {
+  # Log the interruption
+  _log "easy_infra.stdouterr" info unknown "interruption" "${PWD}" string "Captured a SIGNIT"
+
+  dequeue
+
+  exit 230
+}
+
+trap dequeue EXIT
+trap interrupt INT TERM
 
 # The fluent-bit banner and other logs go to stderr, but warnings and errors go
 # to stdout
