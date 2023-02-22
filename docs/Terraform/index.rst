@@ -7,8 +7,7 @@ Terraform
 The ``easy_infra`` project includes and secures Terraform as a component due to its popularity and versitility in provisioning and updating
 environments as Infrastructure as Code (IaC).
 
-``easy_infra`` uses security tools, such as `Checkov <https://www.checkov.io/>`_ and `KICS <https://kics.io/>`_, to transparently assess the provided
-IaC against the defined security policy.
+``easy_infra`` uses security tools, such as `Checkov <https://www.checkov.io/>`_, to transparently assess the provided IaC against the defined security policy.
 
 
 Use Cases
@@ -46,25 +45,6 @@ Customizing Checkov
     docker run --env-file <(env | grep ^CHECKOV_) -v $(pwd):/iac easy_infra:latest-terraform terraform validate
 
 
-Customizing KICS
-^^^^^^^^^^^^^^^^
-
-+-----------------------------+----------------------------------------------+-------------------------------------------------------------------------------+
-| Environment variable        | Result                                       | Example                                                                       |
-+=============================+==============================================+===============================================================================+
-| ``KICS_INCLUDE_QUERIES``    | Passes the value to ``--include-queries``    | ``4728cd65-a20c-49da-8b31-9c08b423e4db,46883ce1-dc3e-4b17-9195-c6a601624c73`` |
-+-----------------------------+----------------------------------------------+-------------------------------------------------------------------------------+
-| ``KICS_EXCLUDE_SEVERITIES`` | Passes the value to ``--exclude-severities`` | ``info,low``                                                                  |
-+-----------------------------+----------------------------------------------+-------------------------------------------------------------------------------+
-
-
-::
-
-    KICS_INCLUDE_QUERIES=4728cd65-a20c-49da-8b31-9c08b423e4db,46883ce1-dc3e-4b17-9195-c6a601624c73
-    KICS_EXCLUDE_SEVERITIES=info,low
-    docker run --env-file <(env | grep ^KICS_) -v $(pwd):/iac easy_infra:latest-terraform terraform validate
-
-
 Preinstalled Hooks
 ^^^^^^^^^^^^^^^^^^
 
@@ -95,8 +75,6 @@ The injected security tooling can be disabled entirely or individually, using ``
 +----------------------+-----------+---------------------------------------------------------------------------------+
 | ``SKIP_CHECKOV``     | ``false`` | Disables Checkov when set to ``true``                                           |
 +----------------------+-----------+---------------------------------------------------------------------------------+
-| ``SKIP_KICS``        | ``false`` | Disables KICS when set to ``true``                                              |
-+----------------------+-----------+---------------------------------------------------------------------------------+
 
 +------------------------+------------------------------+-------------------------------------------+
 | Parameter              | Result                       | Example                                   |
@@ -104,8 +82,6 @@ The injected security tooling can be disabled entirely or individually, using ``
 | ``--disable-security`` | Disable all security tooling | ``terraform validate --disable-security`` |
 +------------------------+------------------------------+-------------------------------------------+
 | ``--skip-checkov``     | Disable Checkov              | ``terraform --skip-checkov validate``     |
-+------------------------+------------------------------+-------------------------------------------+
-| ``--skip-kics``        | Disable KICS                 | ``terraform validate --skip-kics``        |
 +------------------------+------------------------------+-------------------------------------------+
 
 .. note::
