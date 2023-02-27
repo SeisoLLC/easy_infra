@@ -41,7 +41,7 @@ packages:
   aws-cli:
     aliases:
     - aws
-    version: 2.9.23
+    version: 2.10.3
     version_argument: --version
   azure-cli:
     aliases:
@@ -49,7 +49,7 @@ packages:
     version: 2.45.0-1~focal
     version_argument: version
   checkov:
-    version: 2.3.3
+    version: 2.3.44
     version_argument: --version
   consul-template:
     helper:
@@ -67,18 +67,18 @@ packages:
     version: v2.0.9
     version_argument: --version
   kics:
-    version: v1.6.9
+    version: v1.6.10
     version_argument: version
   terraform:
     file_extensions: *id001
     security: *id002
     validation: *id003
-    version: 1.3.8
+    version: 1.3.9
     version_argument: version
   terratag:
     helper:
     - terraform
-    version: v0.1.48
+    version: v0.1.49
   tfenv:
     allow_filter:
     - match: exec
