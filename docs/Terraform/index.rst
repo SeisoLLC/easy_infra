@@ -50,9 +50,11 @@ Preinstalled Hooks
 
 There are some preinstalled hooks in ``/opt/hooks/bin/`` which apply to terraform commands:
 
-* If the ``TERRAFORM_VERSION`` environment variable is customized, easy_infra will attempt to install and switch to that version at runtime.
+* If the ``TERRAFORM_VERSION`` environment variable is customized, easy_infra will attempt to install and switch to that version at runtime. This
+  effectively makes it the "new default" in place of the version which was preinstalled in the version of the easy_infra container.
 * If ``AUTODETECT`` is set to ``true``, easy_infra will attempt to detect and install the correct version of terraform for each folder that a
-  ``terraform`` command runs in.
+  ``terraform`` command runs in using the ``required_version`` block in the code. Since this is module-specific, it will override the default
+  terraform version to use (specified by ``TERRAFORM_VERSION``; see the prior bullet).
 
 
 Terraform Caching
