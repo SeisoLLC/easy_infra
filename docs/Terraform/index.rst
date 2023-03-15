@@ -115,8 +115,5 @@ command (or series of commands) on all of them without needing to maintain a met
 Resources
 ---------
 
-Configuring custom checks can be done by leveraging the robust Rego language, maintained by the, Open Policy Agent (OPA) offers useful resources for
-cloud native infrastructure administrators.  Their example Terraform workflow is available `here
-<https://www.openpolicyagent.org/docs/latest/terraform/>`_.
-
-OPA also hosts `The Rego Playground <https://play.openpolicyagent.org/>`_ for testing custom rules written in Rego.
+Checkov allow numerous methods for creating custom policies, such as by writing them in Python or using the Checkov-specific DSL in yaml files. These
+options are described in more detail `here <https://www.checkov.io/3.Custom%20Policies/Custom%20Policies%20Overview.html>_`

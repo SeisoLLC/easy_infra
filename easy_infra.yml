@@ -3,14 +3,14 @@ _anchors:
   - tf
   security: &id002
     checkov:
-      command: checkov -d . --download-external-modules True --skip-download --output
+      command: checkov -d . --download-external-modules True --framework terraform --skip-download --output
         json --output-file-path ${CHECKOV_JSON_REPORT_PATH}/checkov.json,
-      customizations:
+      customizations: &id003
         CHECKOV_BASELINE: --baseline
         CHECKOV_EXTERNAL_CHECKS_DIR: --external-checks-dir
         CHECKOV_SKIP_CHECK: --skip-check
       description: directory scan
-  validation: &id003
+  validation: &id004
   - command: terraform init -backend=false
     description: initialization
   - command: terraform validate
@@ -38,9 +38,18 @@ packages:
         description: directory scan
     version: 2.9.6+dfsg-1
     version_argument: --version
-  aws-cli:
+  aws-cli: # TODO: Add a tool name override so this can be -cloudformation. Update the Technical docs. Ensure it's used for the run_{tool} eval and in the image_and_tag evaluations too?
     aliases:
     - aws
+    allow_filter:
+    - match: deploy # TODO: Add feature for matching the start of subcommands.  Match on create- deploy and update-
+      position: 1
+    security:
+      checkov:
+        command: checkov -d . --framework cloudformation --skip-download --output
+          json --output-file-path ${CHECKOV_JSON_REPORT_PATH}/checkov.json,
+        customizations: *id003
+        description: directory scan
     version: 2.11.5
     version_argument: --version
   azure-cli:
@@ -72,7 +81,7 @@ packages:
   terraform:
     file_extensions: *id001
     security: *id002
-    validation: *id003
+    validation: *id004
     version: 1.4.2
     version_argument: version
   terratag:
@@ -87,6 +96,6 @@ packages:
     helper:
     - terraform
     security: *id002
-    validation: *id003
+    validation: *id004
     version: v3.0.0
     version_argument: --version

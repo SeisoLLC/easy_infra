@@ -9,6 +9,7 @@
 .. toctree::
    Home <self>
    Terraform/index
+   CloudFormation/index
    Ansible/index
    Logging/index
    Hooks/index

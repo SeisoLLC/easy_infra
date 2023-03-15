@@ -16,7 +16,7 @@ import docker
 from easy_infra import constants, utils
 
 # Globals
-CWD = Path(".").absolute()
+CWD = Path().absolute()
 TESTS_PATH = CWD.joinpath("tests")
 
 LOG = getLogger(__name__)
@@ -24,21 +24,55 @@ LOG = getLogger(__name__)
 CLIENT = docker.from_env()
 
 
-def version_arguments(*, tool: str, environment: str):
-    """Given a specific image, test the appropriate version arguments from the config"""
-    image_and_tag = utils.get_image_and_tag(tool=tool, environment=environment)
+def global_tests(*, tool: str, environment: str) -> None:
+    """Global tests"""
+    image_and_tag: str = utils.get_image_and_tag(tool=tool, environment=environment)
 
-    working_dir = "/iac/"
-    tests_path = constants.CWD.joinpath("tests")
-    volumes = {tests_path: {"bind": working_dir, "mode": "ro"}}
-
-    num_tests_ran = 0
-
-    tools_to_environments = utils.gather_tools_and_environments(
-        tool=tool, environment=environment
+    va_num_tests_ran: int = version_arguments(
+        image=image_and_tag, tool=tool, environment=environment
     )
+    LOG.info(f"{image_and_tag} passed {va_num_tests_ran} integration tests")
 
-    environment_packages = []
+    ts_num_tests_ran: int = test_sh(image=image_and_tag)
+    LOG.info(f"{image_and_tag} passed {ts_num_tests_ran} global tests")
+
+
+def test_sh(*, image: str) -> int:
+    """Run test.sh"""
+    num_tests_ran: int = 0
+    working_dir: str = "/iac/"
+    tests_test_dir: Path = TESTS_PATH
+    tests_volumes: dict[Path, dict[str, str]] = {
+        tests_test_dir: {"bind": working_dir, "mode": "ro"}
+    }
+
+    command: str = "./test.sh"
+    LOG.debug("Running test.sh")
+    utils.opinionated_docker_run(
+        image=image,
+        volumes=tests_volumes,
+        command=command,
+        expected_exit=0,
+    )
+    num_tests_ran += 1
+    return num_tests_ran
+
+
+def version_arguments(*, image: str, tool: str, environment: str) -> int:
+    """Given a specific image, test the appropriate version arguments from the config"""
+    working_dir: str = "/iac/"
+    tests_path: Path = constants.CWD.joinpath("tests")
+    volumes: dict[Path, dict[str, str]] = {
+        tests_path: {"bind": working_dir, "mode": "ro"}
+    }
+
+    num_tests_ran: int = 0
+
+    tools_to_environments: dict[
+        str, dict[str, list[str]]
+    ] = utils.gather_tools_and_environments(tool=tool, environment=environment)
+
+    environment_packages: list[str] = []
     for env in tools_to_environments[tool]["environments"]:
         for env_package in constants.CONFIG["environments"][env]["packages"]:
             environment_packages.append(env_package)
@@ -63,14 +97,14 @@ def version_arguments(*, tool: str, environment: str):
             continue
 
         if "aliases" in constants.CONFIG["packages"][package]:
-            aliases = constants.CONFIG["packages"][package]["aliases"]
+            aliases: list[str] = constants.CONFIG["packages"][package]["aliases"]
         else:
-            aliases = [package]
+            aliases: list[str] = [package]
 
         for alias in aliases:
-            docker_command = f'command {alias} {constants.CONFIG["packages"][package]["version_argument"]}'
+            docker_command: str = f'command {alias} {constants.CONFIG["packages"][package]["version_argument"]}'
             utils.opinionated_docker_run(
-                image=image_and_tag,
+                image=image,
                 volumes=volumes,
                 working_dir=working_dir,
                 command=docker_command,
@@ -78,7 +112,7 @@ def version_arguments(*, tool: str, environment: str):
             )
             num_tests_ran += 1
 
-    LOG.info(f"{image_and_tag} passed {num_tests_ran} integration tests")
+    return num_tests_ran
 
 
 def check_for_files(
@@ -123,7 +157,7 @@ def is_expected_file_length(
     exit_code, output = container.exec_run(
         cmd=f"/bin/bash -c \"set -o pipefail; wc -l {log_path} | awk '{{print $1}}'\""
     )
-    sanitized_output = int(output.decode("utf-8").strip())
+    sanitized_output: int = int(output.decode("utf-8").strip())
     if exit_code != 0:
         LOG.error(f"The provided container exited with an exit code of {exit_code}")
         return False
@@ -306,70 +340,84 @@ def run_tests(*, image: str, tool: str, environment: str | None) -> None:
     else:
         tag = constants.CONTEXT[tool]["versioned_tag"]
 
-    version_arguments(tool=tool, environment=environment)
+    global_tests(tool=tool, environment=environment)
     run_security(tag=tag)
+
+
+def run_cloudformation(*, image: str) -> None:
+    """Run the CloudFormation tests"""
+    num_tests_ran: int = 0
+    working_dir: str = "/iac/"
+
+    # TODO: Add a test for validate the invalid.yml and expect an exit of 254. May require valid creds and a region specified; env vars?
+
+    # TODO
+    raise NotImplementedError
 
 
 def run_terraform(*, image: str) -> None:
     """Run the terraform tests"""
-    num_tests_ran = 0
-    working_dir = "/iac/"
-    environment = {"TF_DATA_DIR": "/tmp"}
-    tests_test_dir = TESTS_PATH
-    tests_volumes = {tests_test_dir: {"bind": working_dir, "mode": "ro"}}
-    terraform_test_dir = TESTS_PATH.joinpath("terraform")
-    invalid_test_dir = terraform_test_dir.joinpath("general/invalid")
-    invalid_volumes = {invalid_test_dir: {"bind": working_dir, "mode": "rw"}}
-    checkov_test_dir = terraform_test_dir.joinpath("tool/checkov")
-    checkov_volumes = {checkov_test_dir: {"bind": working_dir, "mode": "rw"}}
-    large_checkov_output_file = terraform_test_dir.joinpath("checkov.json")
-    large_checkov_volumes = {
+    num_tests_ran: int = 0
+    working_dir: str = "/iac/"
+    environment: dict[str, str] = {"TF_DATA_DIR": "/tmp"}
+    terraform_test_dir: Path = TESTS_PATH.joinpath("terraform")
+    invalid_test_dir: Path = terraform_test_dir.joinpath("general/invalid")
+    invalid_volumes: dict[Path, dict[str, str]] = {
+        invalid_test_dir: {"bind": working_dir, "mode": "rw"}
+    }
+    checkov_test_dir: Path = terraform_test_dir.joinpath("tool/checkov")
+    checkov_volumes: dict[Path, dict[str, str]] = {
+        checkov_test_dir: {"bind": working_dir, "mode": "rw"}
+    }
+    large_checkov_output_file: Path = terraform_test_dir.joinpath("checkov.json")
+    large_checkov_volumes: dict[Path, dict[str, str]] = {
         large_checkov_output_file: {
             "bind": "/tmp/reports/checkov/checkov.json",
             "mode": "ro",
         }
     }
-    secure_config_dir = terraform_test_dir.joinpath("general/secure")
-    secure_volumes = {secure_config_dir: {"bind": working_dir, "mode": "rw"}}
-    general_test_dir = terraform_test_dir.joinpath("general")
-    general_test_volumes = {general_test_dir: {"bind": working_dir, "mode": "rw"}}
-    hooks_config_dir = terraform_test_dir.joinpath("hooks")
-    hooks_config_volumes = {hooks_config_dir: {"bind": working_dir, "mode": "rw"}}
-    fluent_bit_config_host = TESTS_PATH.joinpath("fluent-bit.outputs.conf")
-    fluent_bit_config_container = "/usr/local/etc/fluent-bit/fluent-bit.outputs.conf"
-    secure_volumes_with_log_config = copy.deepcopy(secure_volumes)
+    secure_config_dir: Path = terraform_test_dir.joinpath("general/secure")
+    secure_volumes: dict[Path, dict[str, str]] = {
+        secure_config_dir: {"bind": working_dir, "mode": "rw"}
+    }
+    general_test_dir: Path = terraform_test_dir.joinpath("general")
+    general_test_volumes: dict[Path, dict[str, str]] = {
+        general_test_dir: {"bind": working_dir, "mode": "rw"}
+    }
+    hooks_config_dir: Path = terraform_test_dir.joinpath("hooks")
+    hooks_config_volumes: dict[Path, dict[str, str]] = {
+        hooks_config_dir: {"bind": working_dir, "mode": "rw"}
+    }
+    fluent_bit_config_host: Path = TESTS_PATH.joinpath("fluent-bit.outputs.conf")
+    fluent_bit_config_container: str = (
+        "/usr/local/etc/fluent-bit/fluent-bit.outputs.conf"
+    )
+    secure_volumes_with_log_config: dict[Path, dict[str, str]] = copy.deepcopy(
+        secure_volumes
+    )
     secure_volumes_with_log_config[fluent_bit_config_host] = {
         "bind": fluent_bit_config_container,
         "mode": "ro",
     }
-    hooks_secure_terraform_v_builtin_dir = TESTS_PATH.joinpath(
+    hooks_secure_terraform_v_builtin_dir: Path = TESTS_PATH.joinpath(
         "terraform/hooks/secure_builtin_version"
     )
-    hooks_secure_terraform_v_builtin_dir_volumes = {
+    hooks_secure_terraform_v_builtin_dir_volumes: dict[Path, dict[str, str]] = {
         hooks_secure_terraform_v_builtin_dir: {"bind": working_dir, "mode": "rw"}
     }
-    hooks_secure_terraform_v_0_14_dir = TESTS_PATH.joinpath(
+    hooks_secure_terraform_v_0_14_dir: Path = TESTS_PATH.joinpath(
         "terraform/hooks/secure_0_14"
     )
-    hooks_secure_terraform_v_0_14_dir_volumes = {
+    hooks_secure_terraform_v_0_14_dir_volumes: dict[Path, dict[str, str]] = {
         hooks_secure_terraform_v_0_14_dir: {"bind": working_dir, "mode": "rw"}
     }
-    report_base_dir = Path("/tmp/reports")
-    checkov_output_file = report_base_dir.joinpath("checkov").joinpath("checkov.json")
-
-    # Base tests
-    command = "./test.sh"
-    LOG.debug("Running test.sh")
-    utils.opinionated_docker_run(
-        image=image,
-        volumes=tests_volumes,
-        command=command,
-        expected_exit=0,
+    report_base_dir: Path = Path("/tmp/reports")
+    checkov_output_file: Path = report_base_dir.joinpath("checkov").joinpath(
+        "checkov.json"
     )
-    num_tests_ran += 1
 
     # Ensure invalid configurations fail
-    command = "terraform plan"
+    command: str = "terraform plan"
     LOG.debug("Testing invalid terraform configurations")
     utils.opinionated_docker_run(
         image=image,

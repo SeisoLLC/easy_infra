@@ -254,8 +254,8 @@ Adding to the project
 Adding a tool
 -------------
 
-- Add the package to ``easy-infra.yml`` under ``packages`` and include a valid ``security``, ``file_extensions``, ``version``, and
-  ``version_argument`` section. Consider other optional configurations as they apply (see `easy_infra.yml`_ for more details).
+- Add the package to ``easy-infra.yml`` under ``packages`` and include a valid ``security``, ``version``, and ``version_argument`` section. Consider
+  other optional configurations as they apply (see `easy_infra.yml`_ for more details).
 - Modify ``docker-entrypoint.sh`` to print the tool version if the correct binary exists inside of the container.
 - Create a ``Dockerfile.{tool}`` and ``Dockerfrag.{tool}`` in the ``build/`` directory.
 - You may need to add the tool name or any aliases in ``.github/etc/dictionary.txt`` if it is not a standard english word, assuming it is used in
