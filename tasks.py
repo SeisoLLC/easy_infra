@@ -82,22 +82,60 @@ def filter_config(*, config: str, tools: list[str]) -> dict:
     filtered_config = {}
     filtered_config["packages"] = {}
 
+    # Preload all of the packages with a custom "tool" name specified
+    custom_tool: dict[str, str] = {}
+    for package in config["packages"]:
+        if (
+            "tool" in config["packages"][package]
+            and "name" in config["packages"][package]["tool"]
+        ):
+            tool: str = config["packages"][package]["tool"]["name"]
+            custom_tool[tool]: str = package
+
     for tool in tools:
-        filtered_config["packages"][tool] = copy.deepcopy(config["packages"][tool])
+        if tool in custom_tool:
+            package: str = custom_tool[tool]
+            filtered_config["packages"][package] = copy.deepcopy(
+                config["packages"][package]
+            )
+        else:
+            filtered_config["packages"][tool] = copy.deepcopy(config["packages"][tool])
 
     LOG.debug(f"Returning a filtered config of {filtered_config}")
 
     return filtered_config
 
 
-def add_version_to_buildarg(*, buildargs: dict, thing: str) -> None:
-    if "version" in constants.CONFIG["packages"][thing]:
-        # Normalize and add to buildargs
-        arg = thing.upper().replace("-", "_") + "_VERSION"
-        buildargs[arg] = constants.CONFIG["packages"][thing]["version"]
+def add_version_to_buildarg(*, buildargs: dict, thing: str) -> str:
+    """Add the version to the buildarg as a crafted key value pair"""
+    # Look up the correct package
+    if thing not in constants.CONFIG["packages"]:
+        for package in constants.CONFIG["packages"]:
+            if (
+                "tool" in constants.CONFIG["packages"][package]
+                and "name" in constants.CONFIG["packages"][package]["tool"]
+            ):
+                looked_up_package: str = package
+                break
+        else:
+            LOG.error(
+                f"Unable to find {thing} in the packages or tool names of the config"
+            )
+            sys.exit(1)
     else:
-        LOG.error(f"Unable to identify the version of {thing}")
+        # the thing provided is a package
+        looked_up_package: str = thing
+
+    # Then extract the version
+    if "version" in constants.CONFIG["packages"][looked_up_package]:
+        # Normalize and add to buildargs
+        arg: str = looked_up_package.upper().replace("-", "_") + "_VERSION"
+        buildargs[arg] = constants.CONFIG["packages"][looked_up_package]["version"]
+    else:
+        LOG.error(f"Unable to identify the version of {looked_up_package}")
         sys.exit(1)
+
+    return looked_up_package
 
 
 def setup_buildargs(*, tool: str, environment: str | None = None, trace: bool) -> dict:
@@ -117,13 +155,13 @@ def setup_buildargs(*, tool: str, environment: str | None = None, trace: bool) -
         buildargs["AWS_CLI_ARCH"] = "x86_64"
 
     # Add the tool version buildarg
-    add_version_to_buildarg(buildargs=buildargs, thing=tool)
+    looked_up_package: str = add_version_to_buildarg(buildargs=buildargs, thing=tool)
 
     # Pull in any other buildargs that the tool cares about
     for package in constants.CONFIG["packages"]:
         if (
             # Include all packages that are referenced in the tool's security section
-            package in constants.CONFIG["packages"][tool]["security"]
+            package in constants.CONFIG["packages"][looked_up_package]["security"]
             # Include the versions of packages which "help" other tools
             or (
                 "helper" in constants.CONFIG["packages"][package]
@@ -686,13 +724,13 @@ def test(_c, tool="all", environment="all", debug=False):
         tool=tool, environment=environment
     )
 
-    tags = utils.get_tags(
+    tags: list[str] = utils.get_tags(
         tools_to_environments=tools_to_environments,
         environment=environment,
         only_versioned=True,
     )
 
-    image_and_versioned_tags = []
+    image_and_versioned_tags: list[str] = []
 
     # pylint: disable=redefined-argument-from-local
     for tag in tags:

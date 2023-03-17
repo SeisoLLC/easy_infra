@@ -34,7 +34,7 @@ def global_tests(*, tool: str, environment: str) -> None:
     LOG.info(f"{image_and_tag} passed {va_num_tests_ran} integration tests")
 
     ts_num_tests_ran: int = test_sh(image=image_and_tag)
-    LOG.info(f"{image_and_tag} passed {ts_num_tests_ran} global tests")
+    LOG.info(f"{image_and_tag} passed {ts_num_tests_ran} filesystem tests")
 
 
 def test_sh(*, image: str) -> int:
@@ -327,19 +327,20 @@ def run_tests(*, image: str, tool: str, environment: str | None) -> None:
     """Fanout function to run the appropriate tests"""
     run_path_check(tool=tool, environment=environment)
 
-    tool_test_function = f"run_{tool}"
+    tool_test_function: str = f"run_{tool}"
     eval(tool_test_function)(image=image)  # nosec B307 pylint: disable=eval-used
 
     if environment and environment != "none":
-        environment_test_function = f"run_{environment}"
+        environment_test_function: str = f"run_{environment}"
         # TODO: Consider how we may want to test {tool}-{environment} features specifically; right now it is environment-only testing
         eval(environment_test_function)(  # nosec B307 pylint: disable=eval-used
             image=image
         )
-        tag = constants.CONTEXT[tool][environment]["versioned_tag"]
+        tag: str = constants.CONTEXT[tool][environment]["versioned_tag"]
     else:
-        tag = constants.CONTEXT[tool]["versioned_tag"]
+        tag: str = constants.CONTEXT[tool]["versioned_tag"]
 
+    # TODO: Fix typing issue here with environment; None vs str
     global_tests(tool=tool, environment=environment)
     run_security(tag=tag)
 

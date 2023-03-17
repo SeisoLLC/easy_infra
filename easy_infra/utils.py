@@ -150,6 +150,59 @@ def is_status_expected(*, expected: int, response: dict) -> bool:
     return True
 
 
+def get_supported_environments(*, tool: str) -> list[str]:
+    """Return a list of supported environments for a provided single tool"""
+    if tool == "all":
+        LOG.error("This function must be passed a specific tool")
+        sys.exit(1)
+
+    config = constants.CONFIG
+
+    # We need to scan all of the packages to see if the provided tool is a custom tool name
+    for package in config["packages"]:
+        # First, check to see if the provided tool matches the package name
+        if package == tool:
+            # See if there is a custom list of environments specified
+            if (
+                "tool" in config["packages"][package]
+                and "environments" in config["packages"][package]["tool"][tool]
+            ):
+                environments: list[str] = config["packages"][package]["tool"][
+                    "environments"
+                ]
+                break
+
+            # If there isn't a custom set of environments specified, default to all of them
+            environments: list[str] = list(constants.ENVIRONMENTS)
+            break
+
+        # Second, check if the provided tool is a custom tool name
+        if (
+            "tool" in config["packages"][package]
+            and "name" in config["packages"][package]["tool"]
+        ):
+            if (
+                tool == config["packages"][package]["tool"]["name"]
+                and "environments" in config["packages"][package]["tool"]
+            ):
+                environments: list[str] = config["packages"][package]["tool"][
+                    "environments"
+                ]
+                # Remove any explicit nones, they are handled implicitly upstream
+                if "none" in environments:
+                    environments.remove("none")
+                break
+
+            # If there isn't a custom set of environments specified, default to all of them
+            environments: list[str] = list(constants.ENVIRONMENTS)
+            break
+    else:
+        LOG.error(f"Unable to identify the tool {tool} in the config")
+        sys.exit(1)
+
+    return environments
+
+
 def gather_tools_and_environments(
     *, tool: str = "all", environment: str = "all"
 ) -> dict[str, dict[str, list[str]]]:
@@ -157,25 +210,32 @@ def gather_tools_and_environments(
     Returns a dict with a key of the tool, and a value of a list of environments
     """
     if tool == "all":
-        tools: Union[set[Any], list[str]] = constants.TOOLS
+        tools: list[str] = list(constants.TOOLS)
     elif tool not in constants.TOOLS:
         LOG.error(f"{tool} is not a supported tool, exiting...")
         sys.exit(1)
     else:
-        tools = [tool]
+        tools: list[str] = [tool]
 
-    if environment == "all":
-        environments = constants.ENVIRONMENTS
-    elif environment == "none":
-        environments = []
-    elif environment not in constants.ENVIRONMENTS:
-        LOG.error(f"{environment} is not a supported environment, exiting...")
-        sys.exit(1)
-    else:
-        environments = [environment]
-
-    image_and_tool_and_environment_tags = {}
+    image_and_tool_and_environment_tags: dict[str, dict[str, list[str]]] = {}
     for tool in tools:
+        if environment == "none":
+            environments: list[str] = []
+        elif environment == "all":
+            environments: list[str] = get_supported_environments(tool=tool)
+        elif environment not in constants.ENVIRONMENTS:
+            LOG.error(f"{environment} is not a supported environment, exiting...")
+            sys.exit(1)
+        else:
+            supported_environments: list[str] = get_supported_environments(tool=tool)
+            if environment not in supported_environments:
+                LOG.error(
+                    f"{environment} is not a supported environment for {tool}, exiting..."
+                )
+                sys.exit(1)
+            else:
+                environments: list[str] = [environment]
+
         image_and_tool_and_environment_tags[tool] = {"environments": environments}
 
     return image_and_tool_and_environment_tags

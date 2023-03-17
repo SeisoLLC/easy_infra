@@ -38,7 +38,7 @@ packages:
         description: directory scan
     version: 2.9.6+dfsg-1
     version_argument: --version
-  aws-cli: # TODO: Add a tool name override so this can be -cloudformation. Update the Technical docs. Ensure it's used for the run_{tool} eval and in the image_and_tag evaluations too?
+  aws-cli:
     aliases:
     - aws
     allow_filter:
@@ -50,6 +50,10 @@ packages:
           json --output-file-path ${CHECKOV_JSON_REPORT_PATH}/checkov.json,
         customizations: *id003
         description: directory scan
+    tool:
+      name: cloudformation
+      environments:
+        - none
     version: 2.11.5
     version_argument: --version
   azure-cli:
