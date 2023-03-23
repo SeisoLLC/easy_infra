@@ -27,8 +27,7 @@ jobs:
     name: Gather Tools and Environments
     runs-on: ubuntu-20.04
     outputs:
-      tools: ${{ steps.set-outputs.outputs.tools }}
-      environments: ${{ steps.set-outputs.outputs.environments }}
+      matrix: ${{ steps.set-outputs.outputs.matrix }}
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v3
