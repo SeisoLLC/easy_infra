@@ -150,6 +150,23 @@ def is_status_expected(*, expected: int, response: dict) -> bool:
     return True
 
 
+def get_github_actions_matrix(*, tool: str = "all", environment: str = "all") -> str:
+    """Return a matrix of tools and environments for use in the github actions pipeline"""
+    tools_and_environments: dict[
+        str, dict[str, list[str]]
+    ] = gather_tools_and_environments(tool=tool, environment=environment)
+
+    github_matrix: list[dict[str, str]] = []
+    for tool, environments in tools_and_environments.items():
+        job: dict[str, str] = {"tool": tool, "environment": "none"}
+        github_matrix.append(job)
+        for environment in environments["environments"]:
+            job: dict[str, str] = {"tool": tool, "environment": environment}
+            github_matrix.append(job)
+
+    return f"matrix={github_matrix}"
+
+
 def get_supported_environments(*, tool: str) -> list[str]:
     """Return a list of supported environments for a provided single tool"""
     if tool == "all":

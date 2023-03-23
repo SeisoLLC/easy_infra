@@ -50,20 +50,15 @@ jobs:
         id: set-outputs
         run: |
           pipenv run python -c \
-            'from easy_infra import constants; import json; \
-            print("tools=" + json.dumps(list(constants.TOOLS)))' >> "${GITHUB_OUTPUT}"
-          pipenv run python -c \
-            'from easy_infra import constants; import json; \
-            print("environments=" + json.dumps(list(constants.ENVIRONMENTS) + ["none"]))' >> "${GITHUB_OUTPUT}"
+              'from easy_infra import utils; \
+               print(utils.get_github_actions_matrix())' >> "${GITHUB_OUTPUT}"
   test:
     name: Test
     needs: [generate-matrix]
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
-      matrix:
-        tool: ${{ fromJSON(needs.generate-matrix.outputs.tools) }}
-        environment: ${{ fromJSON(needs.generate-matrix.outputs.environments) }}
+      matrix: ${{ fromJSON(needs.generate-matrix.outputs.matrix) }}
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v3
@@ -225,9 +220,7 @@ jobs:
     needs: [generate-matrix, bump-version, cut-release]
     strategy:
       fail-fast: false
-      matrix:
-        tool: ${{ fromJSON(needs.generate-matrix.outputs.tools) }}
-        environment: ${{ fromJSON(needs.generate-matrix.outputs.environments) }}
+      matrix: ${{ fromJSON(needs.generate-matrix.outputs.matrix) }}
     if: github.event_name == 'push'
     environment: "${{ needs.bump-version.outputs.git_tag }}"
     runs-on: ubuntu-20.04
