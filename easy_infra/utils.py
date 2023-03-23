@@ -164,7 +164,7 @@ def get_github_actions_matrix(*, tool: str = "all", environment: str = "all") ->
             job: dict[str, str] = {"tool": tool, "environment": environment}
             github_matrix.append(job)
 
-    return f"matrix={github_matrix}"
+    return f"matrix={{'include':{github_matrix}}}"
 
 
 def get_supported_environments(*, tool: str) -> list[str]:
