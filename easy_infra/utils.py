@@ -2,7 +2,7 @@ import re
 import sys
 from logging import getLogger
 from pathlib import Path
-from typing import Any, Optional, Pattern, Union
+from typing import Optional, Pattern
 
 import docker
 import requests
