@@ -1040,53 +1040,53 @@ def run_ansible(*, image: str) -> None:
     # Tests is a list of tuples containing the test environment, command, and
     # expected exit code
     tests: list[tuple[dict, str, int]] = [
-        ({}, "ansible-playbook insecure.yml --check", 50),
+        ({}, "ansible-playbook insecure.yml --syntax-check", 50),
         ({}, "scan_ansible", 50),
         ({}, "scan_ansible-playbook", 50),
         ({"DISABLE_SECURITY": "true"}, "scan_ansible-playbook", 0),
         ({}, "scan_ansible --skip-kics", 0),
         (
             {},
-            "ansible-playbook --skip-kics insecure.yml --check",
+            "ansible-playbook --skip-kics insecure.yml --syntax-check",
             4,
         ),  # Exits 4 because insecure.yml is not a valid Play
         (
             {},
-            "SKIP_KICS=true ansible-playbook insecure.yml --check",
+            "SKIP_KICS=true ansible-playbook insecure.yml --syntax-check",
             127,
         ),  # Not supported; prepended variables do not work unless the
         #     commands are passed through bash
         (
             {},
-            '/usr/bin/env bash -c "ansible-playbook insecure.yml --check || true"',
+            '/usr/bin/env bash -c "ansible-playbook insecure.yml --syntax-check || true"',
             0,
         ),
         (
             {},
-            '/usr/bin/env bash -c "LEARNING_MODE=true ansible-playbook insecure.yml --check"',
+            '/usr/bin/env bash -c "LEARNING_MODE=true ansible-playbook insecure.yml --syntax-check"',
             4,
         ),  # Exits 4 because insecure.yml is not a valid Play
         (
             {"LEARNING_MODE": "true"},
-            "ansible-playbook insecure.yml --check",
+            "ansible-playbook insecure.yml --syntax-check",
             4,
         ),  # Exits 4 because insecure.yml is not a valid Play
         (
             {"KICS_INCLUDE_QUERIES": "c3b9f7b0-f5a0-49ec-9cbc-f1e346b7274d"},
-            "ansible-playbook insecure.yml --check",
+            "ansible-playbook insecure.yml --syntax-check",
             4,
         ),  # Exits with 4 because insecure.yml is not a valid Play, and the provided insecure playbook does not apply to the included queries.
         # This tests the "customizations" idea from easy_infra.yml and functions.j2
         (
             {"KICS_INCLUDE_QUERIES": "7dfb316c-a6c2-454d-b8a2-97f147b0c0ff"},
-            "ansible-playbook insecure.yml --check",
+            "ansible-playbook insecure.yml --syntax-check",
             50,
         ),  # This tests the "customizations" idea from easy_infra.yml and functions.j2
         (
             {
                 "KICS_EXCLUDE_SEVERITIES": "info,low",
             },
-            "ansible-playbook insecure.yml --check",
+            "ansible-playbook insecure.yml --syntax-check",
             50,
         ),  # Doesn't exclude high or medium.
         # This tests the "customizations" idea from easy_infra.yml and functions.j2
@@ -1094,13 +1094,13 @@ def run_ansible(*, image: str) -> None:
             {
                 "KICS_EXCLUDE_SEVERITIES": "high,medium,low",
             },
-            "ansible-playbook insecure.yml --check",
+            "ansible-playbook insecure.yml --syntax-check",
             4,
         ),  # Excludes all the relevant severities, exits 4 because insecure.yml is not a valid Play.
         # This tests the "customizations" idea from easy_infra.yml and functions.j2
         (
             {},
-            '/usr/bin/env bash -c "KICS_EXCLUDE_SEVERITIES=info,low,medium,high ansible-playbook insecure.yml --check"',
+            '/usr/bin/env bash -c "KICS_EXCLUDE_SEVERITIES=info,low,medium,high ansible-playbook insecure.yml --syntax-check"',
             4,
         ),  # Excludes all the severities, exits 4 because insecure.yml is not a valid Play.
         # This tests the "customizations" idea from easy_infra.yml and functions.j2
@@ -1119,7 +1119,7 @@ def run_ansible(*, image: str) -> None:
 
     # Running an interactive ansible-playbook command
     test_interactive_container.exec_run(
-        cmd='/bin/bash -ic "ansible-playbook secure.yml --check"', tty=True
+        cmd='/bin/bash -ic "ansible-playbook secure.yml --syntax-check"', tty=True
     )
 
     # An interactive ansible-playbook command should not cause the creation of
@@ -1162,7 +1162,7 @@ def run_ansible(*, image: str) -> None:
     # the following files, and should have 1 log line in the fluent bit log
     # regardless of which image is being tested
     test_noninteractive_container.exec_run(
-        cmd='/bin/bash -c "ansible-playbook secure.yml --check"', tty=False
+        cmd='/bin/bash -c "ansible-playbook secure.yml --syntax-check"', tty=False
     )
     files = [
         "/tmp/kics_complete",
