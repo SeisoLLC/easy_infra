@@ -42,7 +42,7 @@ packages:
     aliases:
     - aws
     allow_filter:
-    - match: deploy # TODO: Add feature for matching the start of subcommands.  Match on create- deploy and update-
+    - match: cloudformation
       position: 1
     security:
       checkov:

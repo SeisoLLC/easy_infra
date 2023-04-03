@@ -351,7 +351,6 @@ def run_cloudformation(*, image: str) -> None:
     working_dir: str = "/iac/"
 
     # TODO: Add a test for validate the invalid.yml and expect an exit of 254. May require valid creds and a region specified; env vars?
-    # TODO: Add a test for the new "starts_with" feature
 
     # TODO
     raise NotImplementedError
