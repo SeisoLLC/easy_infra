@@ -290,8 +290,8 @@ def build_and_tag(
     # Layers the setup_buildargs on top of the base buildargs from the CONTEXT
     buildargs.update(setup_buildargs(tool=tool, environment=environment, trace=trace))
 
-    image_and_versioned_tag = f"{constants.IMAGE}:{versioned_tag}"
-    tool_image_and_latest_tag_no_hash = f"{constants.IMAGE}:latest-{tool}"
+    image_and_versioned_tag: str = f"{constants.IMAGE}:{versioned_tag}"
+    tool_image_and_latest_tag_no_hash: str = f"{constants.IMAGE}:latest-{tool}"
     # Default; will be updated later if there are tool-env Dockerfile/frags
     tool_env_exists = False
 
@@ -335,18 +335,43 @@ def build_and_tag(
     CLIENT.images.build(**build_kwargs)
 
     # Required Dockerfile/frag combos
+    custom_tool_name: bool = False  # Default to be updated later
+    for package in constants.CONFIG["packages"]:
+        # If the provided tool matches the package name, use the tool name to find the dockerfile/frag
+        if package == tool:
+            dockerfile_tool: str = f"Dockerfile.{tool}"
+            dockerfrag_tool: str = f"Dockerfrag.{tool}"
+            break
+
+        # If the provided tool is a custom name for a tool, use the package name to find the dockerfile/frag
+        if (
+            "tool" in constants.CONFIG["packages"][package]
+            and "name" in constants.CONFIG["packages"][package]["tool"]
+        ):
+            if tool == constants.CONFIG["packages"][package]["tool"]["name"]:
+                custom_tool_name = True
+                dockerfile_tool: str = f"Dockerfile.{package}"
+                dockerfrag_tool: str = f"Dockerfrag.{package}"
+                break
+    else:
+        LOG.error(f"Unable to identify the tool {tool} in the config")
+        sys.exit(1)
+
     try:
         config["dockerfile_tools"] = [
-            constants.BUILD.joinpath(f"Dockerfile.{tool}").read_text(encoding="UTF-8")
+            constants.BUILD.joinpath(dockerfile_tool).read_text(encoding="UTF-8")
         ]
         config["dockerfrag_tools"] = [
-            constants.BUILD.joinpath(f"Dockerfrag.{tool}").read_text(encoding="UTF-8")
+            constants.BUILD.joinpath(dockerfrag_tool).read_text(encoding="UTF-8")
         ]
 
         # populate the security tools for {tool}
         security_tools = []
-        if "security" in constants.CONFIG["packages"][tool]:
-            for security_tool in constants.CONFIG["packages"][tool]["security"]:
+
+        # Use the package from the earlier loop if the tool name is custom
+        key = package if custom_tool_name else tool
+        if "security" in constants.CONFIG["packages"][key]:
+            for security_tool in constants.CONFIG["packages"][key]["security"]:
                 security_tools.append(security_tool)
 
         # Load in the security tool dockerfiles/frags
@@ -399,29 +424,35 @@ def build_and_tag(
                 )
                 sys.exit(1)
 
-            # Optional Dockerfiles
-            if constants.BUILD.joinpath(f"Dockerfile.{tool}-{environment}").exists():
-                tool_env_exists = True
-                config["dockerfile_tool_envs"].append(
-                    constants.BUILD.joinpath(
-                        f"Dockerfile.{tool}-{environment}"
-                    ).read_text(encoding="UTF-8")
-                )
-                try:
-                    config["dockerfrag_tool_envs"].append(
+            # Optional Dockerfiles; support tool or package named files
+            if custom_tool_name:
+                keys = [tool, package]
+            else:
+                keys = [tool]
+
+            for key in keys:
+                if constants.BUILD.joinpath(f"Dockerfile.{key}-{environment}").exists():
+                    tool_env_exists = True
+                    config["dockerfile_tool_envs"].append(
                         constants.BUILD.joinpath(
-                            f"Dockerfrag.{tool}-{environment}"
+                            f"Dockerfile.{key}-{environment}"
                         ).read_text(encoding="UTF-8")
                     )
-                except FileNotFoundError:
-                    LOG.exception(
-                        f"Dockerfile.{tool}-{environment} existed but the related (required) Dockerfrag was not found"
+                    try:
+                        config["dockerfrag_tool_envs"].append(
+                            constants.BUILD.joinpath(
+                                f"Dockerfrag.{key}-{environment}"
+                            ).read_text(encoding="UTF-8")
+                        )
+                    except FileNotFoundError:
+                        LOG.exception(
+                            f"Dockerfile.{key}-{environment} existed but the related (required) Dockerfrag was not found"
+                        )
+                        sys.exit(1)
+                else:
+                    LOG.debug(
+                        f"No Dockerfile.{key}-{environment} detected, skipping as it is optional..."
                     )
-                    sys.exit(1)
-            else:
-                LOG.debug(
-                    f"No Dockerfile.{tool}-{environment} detected, skipping as it is optional..."
-                )
     else:
         LOG.debug(
             "The environment was not set (or not set properly); not requiring the related Dockerfile/frag"
@@ -438,16 +469,19 @@ def build_and_tag(
 
     if tool_env_exists:
         pull_image(image_and_tag=tool_image_and_latest_tag_no_hash)
-        tool_image_and_versioned_tag = f"seiso/easy_infra:{easy_infra_tag_tool_only}"
+        tool_image_and_versioned_tag: str = (
+            f"seiso/easy_infra:{easy_infra_tag_tool_only}"
+        )
+        target = package if custom_tool_name else tool
         build_kwargs = {
             "buildargs": buildargs,
             "cache_from": [tool_image_and_latest_tag_no_hash],
-            "dockerfile": f"Dockerfile.{tool}",
+            "dockerfile": dockerfile_tool,
             "path": str(constants.BUILD),
             "platform": PLATFORM,
             "rm": True,
             "tag": tool_image_and_versioned_tag,
-            "target": tool,
+            "target": target,
         }
         log_image_build(build_kwargs=build_kwargs)
         LOG.debug(
@@ -618,7 +652,7 @@ def build(_c, tool="all", environment="all", trace=False, debug=False, dry_run=F
 
     # pylint: disable=redefined-argument-from-local
     for tool in tools_to_environments:
-        tools = [tool]
+        tools: list[str] = [tool]
         for package in constants.CONFIG["packages"]:
             if (
                 # It is a helper
