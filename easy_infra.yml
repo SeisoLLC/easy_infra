@@ -54,7 +54,7 @@ packages:
       name: cloudformation
       environments:
         - none
-    version: 2.11.5
+    version: 2.11.8
     version_argument: --version
   azure-cli:
     aliases:
@@ -62,7 +62,7 @@ packages:
     version: 2.46.0-1~focal
     version_argument: version
   checkov:
-    version: 2.3.110
+    version: 2.3.148
     version_argument: --version
   consul-template:
     helper:
@@ -80,18 +80,18 @@ packages:
     version: v2.0.10
     version_argument: --version
   kics:
-    version: v1.6.12
+    version: v1.6.13
     version_argument: version
   terraform:
     file_extensions: *id001
     security: *id002
     validation: *id004
-    version: 1.4.2
+    version: 1.4.4
     version_argument: version
   terratag:
     helper:
     - terraform
-    version: v0.1.50
+    version: v0.2.0
   tfenv:
     allow_filter:
     - match: exec
