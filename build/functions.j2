@@ -363,7 +363,7 @@ function {{ "scan_" ~ function if scan else function }}() {
 }
 {% endmacro %}
 
-{# Loop through each of the provided packages (or aliases, if they are set) to be wrapped and generate a function for each -#}
+{# Loop through each of the provided packages, aliases, or tool names to be wrapped and generate a function for each -#}
 {% for package in packages if packages[package]["security"] -%}
 {% for alias in packages[package]["aliases"] -%}
 {# Create the alias function -#}
@@ -376,4 +376,8 @@ function {{ "scan_" ~ function if scan else function }}() {
 {# And then a scan package function -#}
 {{ function(package, scan=true) }}
 {% endfor %}
+{# Add in a function for any custom tool names -#}
+{% if "tool" in packages[package] and "name" in packages[package]["tool"] -%}
+{{ function(packages[package]["tool"]["name"], package, scan=true) }}
+{% endif %}
 {%- endfor -%}

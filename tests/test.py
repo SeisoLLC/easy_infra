@@ -7,6 +7,7 @@ import copy
 import re
 import subprocess
 import sys
+import time
 from logging import getLogger
 from pathlib import Path
 from typing import Union
@@ -150,9 +151,8 @@ def is_expected_file_length(
     expected_log_length: int,
 ) -> bool:
     """
-    Compare the number of lines in the provided file_path to the provided
-    expected length, in the provided container. Return True if the file length
-    is expected, else False
+    Compare the number of lines in the provided file_path to the provided expected length, in the provided container.
+    Return True if the file length is expected, else False
     """
     exit_code, output = container.exec_run(
         cmd=f"/bin/bash -c \"set -o pipefail; wc -l {log_path} | awk '{{print $1}}'\""
@@ -188,6 +188,9 @@ def check_container(
     num_successful_tests = 0
 
     if files:
+        # Give fluent-bit enough time to dequeue to the output file
+        time.sleep(1)
+
         if (
             num_successful_tests := check_for_files(
                 container=container,
@@ -209,16 +212,25 @@ def check_container(
 
 def run_path_check(*, tool: str, environment: str | None = None) -> None:
     """Wrapper to run check_paths"""
-    commands = []
+    commands: list[str] = []
 
-    image_and_tag = utils.get_image_and_tag(tool=tool, environment=environment)
+    image_and_tag: str = utils.get_image_and_tag(tool=tool, environment=environment)
 
     for package in constants.CONFIG["packages"]:
         if (
             # If it's the tool package
             package == tool
             # Or if it's a security tool for tool
-            or package in constants.CONFIG["packages"][tool]["security"]
+            or (
+                tool in constants.CONFIG["packages"]
+                and package in constants.CONFIG["packages"][tool]["security"]
+            )
+            # Or if the tool is a custom name
+            or (
+                "tool" in constants.CONFIG["packages"][package]
+                and "name" in constants.CONFIG["packages"][package]["tool"]
+                and package == constants.CONFIG["packages"][package]["tool"]["name"]
+            )
             # Or if it's an applicable helper
             or (
                 "helper" in constants.CONFIG["packages"][package]
@@ -239,7 +251,7 @@ def run_path_check(*, tool: str, environment: str | None = None) -> None:
                 commands.append(package)
 
     for interactive in [True, False]:
-        num_successful_tests = check_paths(
+        num_successful_tests: int = check_paths(
             interactive=interactive,
             tool=tool,
             environment=environment,
@@ -247,12 +259,12 @@ def run_path_check(*, tool: str, environment: str | None = None) -> None:
         )
 
         if num_successful_tests > 0:
-            context = "interactive" if interactive else "non-interactive"
+            context: str = "interactive" if interactive else "non-interactive"
             LOG.info(
                 f"{image_and_tag} passed all {num_successful_tests} {context} path tests"
             )
         else:
-            context = "an interactive" if interactive else "a non-interactive"
+            context: str = "an interactive" if interactive else "a non-interactive"
             LOG.error(f"{image_and_tag} failed {context} path test")
             sys.exit(1)
 
@@ -264,7 +276,7 @@ def check_paths(
     Check the commands in easy_infra.yml to ensure they are in the easy_infra user's PATH.
     Return 0 for any failures, or the number of correctly found files
     """
-    image_and_tag = utils.get_image_and_tag(tool=tool, environment=environment)
+    image_and_tag: str = utils.get_image_and_tag(tool=tool, environment=environment)
 
     container = CLIENT.containers.run(
         image=image_and_tag,
@@ -275,7 +287,7 @@ def check_paths(
 
     # All commands should be in the PATH of the easy_infra user
     LOG.debug(f"Testing the easy_infra user's PATH when interactive is {interactive}")
-    num_successful_tests = 0
+    num_successful_tests: int = 0
     for command in commands:
         if interactive:
             attempt = container.exec_run(
@@ -349,11 +361,232 @@ def run_cloudformation(*, image: str) -> None:
     """Run the CloudFormation tests"""
     num_tests_ran: int = 0
     working_dir: str = "/iac/"
+    environment: dict[str, str] = {"AWS_DEFAULT_REGION": "ap-northeast-1"}
+    cloudformation_test_dir: Path = TESTS_PATH.joinpath("cloudformation")
+    secure_test_dir: Path = cloudformation_test_dir.joinpath("general/secure")
+    secure_volumes: dict[Path, dict[str, str]] = {
+        secure_test_dir: {"bind": working_dir, "mode": "rw"}
+    }
+    checkov_test_dir: Path = cloudformation_test_dir.joinpath("tool/checkov")
+    checkov_volumes: dict[Path, dict[str, str]] = {
+        checkov_test_dir: {"bind": working_dir, "mode": "rw"}
+    }
+    fluent_bit_config_host: Path = TESTS_PATH.joinpath("fluent-bit.outputs.conf")
+    fluent_bit_config_container: str = (
+        "/usr/local/etc/fluent-bit/fluent-bit.outputs.conf"
+    )
+    secure_volumes_with_log_config: dict[Path, dict[str, str]] = copy.deepcopy(
+        secure_volumes
+    )
+    secure_volumes_with_log_config[fluent_bit_config_host] = {
+        "bind": fluent_bit_config_container,
+        "mode": "ro",
+    }
+    # This is for use inside of the container
+    report_base_dir: Path = Path("/tmp/reports")
+    checkov_output_file: Path = report_base_dir.joinpath("checkov").joinpath(
+        "checkov.json"
+    )
 
-    # TODO: Add a test for validate the invalid.yml and expect an exit of 254. May require valid creds and a region specified; env vars?
+    # NOTE: Unable to test the exit code for an invalid CloudFormation template, as it actually deploys the resources by design by AWS. Details in:
+    # https://www.linkedin.com/posts/jonzeolla_aws-iac-infrastructureascode-activity-7049057908302471168-WMqJ
+    # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-validate-template.html
 
-    # TODO
-    raise NotImplementedError
+    # Ensure secure configurations pass
+    # Tests is a list of tuples containing the test environment, command, and expected exit code
+    tests: list[tuple[dict, str, int]] = [  # type: ignore
+        ({}, "scan_cloudformation", 0),
+        (
+            {},
+            '/bin/bash -c "aws --version; scan_cloudformation"',
+            0,
+        ),
+        (
+            {"CHECKOV_SKIP_CHECK": "CKV_AWS_20"},
+            "scan_cloudformation",
+            0,
+        ),  # This tests "customizations" features from easy_infra.yml and functions.j2
+    ]
+
+    LOG.debug("Testing secure cloudformation templates")
+    num_tests_ran += exec_tests(tests=tests, volumes=secure_volumes, image=image)
+
+    # Ensure insecure configurations still succeed when security checks are disabled
+    # Tests is a list of tuples containing the test environment, command, and expected exit code
+    tests: list[tuple[dict, str, int]] = [  # type: ignore
+        ({"DISABLE_SECURITY": "true"}, "scan_cloudformation", 0),
+        ({}, '/usr/bin/env bash -c "DISABLE_SECURITY=true scan_cloudformation"', 0),
+        ({}, "scan_cloudformation --disable-security", 0),
+        (
+            {},
+            '/usr/bin/env bash -c "DISABLE_SECURITY=true scan_cloudformation --disable-security"',
+            0,
+        ),
+        (
+            {},
+            '/usr/bin/env bash -c "DISABLE_SECURITY=true scan_cloudformation --disable-security && false"',
+            1,
+        ),
+        (
+            {
+                "CHECKOV_SKIP_CHECK": "CKV_AWS_53",  # Would normally still fail due to numerous other rules (currently 33)
+                "DISABLE_SECURITY": "true",
+            },
+            "scan_cloudformation",
+            0,
+        ),  # This tests the "customizations" idea from easy_infra.yml and functions.j2
+    ]
+
+    LOG.debug("Testing scan_cloudformation with security disabled")
+    num_tests_ran += exec_tests(tests=tests, volumes=checkov_volumes, image=image)
+
+    # Ensure insecure configurations fail properly due to checkov
+    # Tests is a list of tuples containing the test environment, command, and expected exit code
+    tests: list[tuple[dict, str, int]] = [  # type: ignore
+        ({}, "scan_cloudformation", 1),
+        (
+            {},
+            '/usr/bin/env bash -c "scan_cloudformation"',
+            1,
+        ),
+        (
+            {},
+            '/usr/bin/env bash -c "scan_cloudformation || true"',
+            0,
+        ),
+        (
+            {"LEARNING_MODE": "tRuE"},
+            '/usr/bin/env bash -c "scan_cloudformation"',
+            0,
+        ),
+        (
+            {"LEARNING_MODE": "tRuE"},
+            "scan_cloudformation",
+            0,
+        ),
+    ]
+
+    LOG.debug("Testing checkov against insecure cloudformation templates")
+    num_tests_ran += exec_tests(tests=tests, volumes=checkov_volumes, image=image)
+
+    # Run base interactive cloudformation tests
+    test_interactive_container = CLIENT.containers.run(
+        image=image,
+        detach=True,
+        auto_remove=False,
+        tty=True,
+        volumes=secure_volumes_with_log_config,
+        environment=environment,
+    )
+
+    # Running an interactive scan_cloudformation
+    test_interactive_container.exec_run(
+        cmd='/bin/bash -ic "scan_cloudformation"', tty=True
+    )
+
+    # An interactive scan_cloudformation should not cause the creation of the following files, and should have the same number of logs lines in the
+    # fluent bit log regardless of which image is being tested
+    files: list[str] = ["/tmp/checkov_complete"]
+    LOG.debug("Testing interactive scan_cloudformation")
+    # The package name for cloudformation is aws-cli
+    number_of_security_tools: int = len(
+        constants.CONFIG["packages"]["aws-cli"]["security"]
+    )
+    expected_number_of_logs: int = number_of_security_tools
+
+    # Check the container
+    if (
+        num_successful_tests := check_container(
+            container=test_interactive_container,
+            files=files,
+            files_expected_to_exist=False,
+            log_path="/tmp/fluent_bit.log",
+            expected_log_length=expected_number_of_logs,
+        )
+    ) == 0:
+        test_interactive_container.kill()
+        sys.exit(230)
+
+    test_interactive_container.kill()
+
+    num_tests_ran += num_successful_tests
+
+    # Run base non-interactive tests for cloudformation
+    test_noninteractive_container = CLIENT.containers.run(
+        image=image,
+        detach=True,
+        auto_remove=False,
+        tty=True,
+        volumes=secure_volumes_with_log_config,
+        environment=environment,
+    )
+
+    # Running a non-interactive scan_cloudformation
+    test_noninteractive_container.exec_run(
+        cmd='/bin/bash -c "scan_cloudformation"', tty=False
+    )
+
+    # A non-interactive scan_cloudformation should cause the creation of the following files, and should have the same number of logs lines in the
+    # fluent bit log regardless of which image is being tested
+    files = ["/tmp/checkov_complete"]
+    # Piggyback checking the checkov reports on the checkov complete file checks
+    files.append(str(checkov_output_file))
+    LOG.debug("Testing non-interactive scan_cloudformation")
+    # The package name for cloudformation is aws-cli
+    number_of_security_tools: int = len(
+        constants.CONFIG["packages"]["aws-cli"]["security"]
+    )
+    expected_number_of_logs = number_of_security_tools
+
+    # Check the container
+    if (
+        num_successful_tests := check_container(
+            container=test_noninteractive_container,
+            files=files,
+            files_expected_to_exist=True,
+            log_path="/tmp/fluent_bit.log",
+            expected_log_length=expected_number_of_logs,
+        )
+    ) == 0:
+        test_noninteractive_container.kill()
+        sys.exit(230)
+
+    test_noninteractive_container.kill()
+
+    num_tests_ran += num_successful_tests
+
+    # Run scan_cloudformation version non-interactive test
+    test_noninteractive_container = CLIENT.containers.run(
+        image=image,
+        detach=True,
+        auto_remove=False,
+        tty=True,
+        volumes=secure_volumes,
+        environment=environment,
+    )
+
+    # Running a non-interactive scan_cloudformation version (or any other supported "version" argument) should NOT cause the creation of the following
+    # files
+    test_noninteractive_container.exec_run(
+        cmd='/bin/bash -c "scan_cloudformation version"', tty=False
+    )
+    files = ["/tmp/checkov_complete"]
+    LOG.debug("Testing non-interactive scan_cloudformation version")
+    if (
+        num_successful_tests := check_for_files(
+            container=test_noninteractive_container,
+            files=files,
+            expected_to_exist=False,
+        )
+    ) == 0:
+        test_noninteractive_container.kill()
+        sys.exit(1)
+
+    test_noninteractive_container.kill()
+
+    num_tests_ran += num_successful_tests
+
+    LOG.info(f"{image} passed {num_tests_ran} end to end cloudformation tests")
 
 
 def run_terraform(*, image: str) -> None:
@@ -923,7 +1156,7 @@ def run_terraform(*, image: str) -> None:
     # An interactive terraform command should still cause the creation of the following files, and should have the same number of logs lines in the
     # fluent bit log regardless of which image is being tested
     files = [str(checkov_output_file)]
-    LOG.debug("Testing that interactive terraform commands still create json reports")
+    LOG.debug("Testing that interactive terraform commands still create reports")
     number_of_security_tools = len(
         constants.CONFIG["packages"]["terraform"]["security"]
     )
@@ -964,7 +1197,7 @@ def run_terraform(*, image: str) -> None:
     # A non-interactive terraform command should cause the creation of the following files, and should have the same number of logs lines in the
     # fluent bit log regardless of which image is being tested
     files = ["/tmp/checkov_complete"]
-    # Piggyback checking the checkov json reports on the checkov complete file checks
+    # Piggyback checking the checkov reports on the checkov complete file checks
     files.append(str(checkov_output_file))
     LOG.debug("Testing non-interactive terraform commands")
     number_of_security_tools = len(

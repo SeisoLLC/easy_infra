@@ -22,6 +22,9 @@ You can also use easy_infra to deploy your infrastructure using ``aws cloudforma
 
     docker run -v $(pwd):/iac seiso/easy_infra:latest-cloudformation aws cloudformation deploy --template-file file://./example.yaml --stack-name example
 
+.. note::
+    In order to run ``aws cloudformation validate-template``, AWS requires that you have an active session with AWS
+
 
 Customizing Checkov
 ^^^^^^^^^^^^^^^^^^^
