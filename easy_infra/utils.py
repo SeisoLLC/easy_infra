@@ -325,3 +325,20 @@ def update_terraform_required_version(*, test_file: Path, version: str) -> None:
     # Load
     with test_file.open("w", encoding="utf-8") as file:
         file.writelines(final_content)
+
+
+def get_package_name(*, tool: str) -> str:
+    """Return the package name for the provided tool"""
+    for package in constants.CONFIG["packages"]:
+        if package == tool:
+            return package
+
+        if (
+            "tool" in constants.CONFIG["packages"][package]
+            and "name" in constants.CONFIG["packages"][package]["tool"]
+            and tool in constants.CONFIG["packages"][package]["tool"]["name"]
+        ):
+            return package
+
+    LOG.error(f"Unable to find the package for tool {tool}")
+    sys.exit(1)

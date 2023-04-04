@@ -73,14 +73,22 @@ def test_version_arguments(*, image: str, tool: str, environment: str) -> int:
         str, dict[str, list[str]]
     ] = utils.gather_tools_and_environments(tool=tool, environment=environment)
 
-    environment_packages: list[str] = []
+    # Find the package name for the provided tool
+    package_for_tool: str = utils.get_package_name(tool=tool)
+
+    # Assemble the packages to test starting with the environment packages
+    packages_to_test: list[str] = []
     for env in tools_to_environments[tool]["environments"]:
         for env_package in constants.CONFIG["environments"][env]["packages"]:
-            environment_packages.append(env_package)
+            packages_to_test.append(env_package)
 
     # Populate a list of version commands to test
-    commands_to_test: list[str] = []
     for package in constants.CONFIG["packages"]:
+        # Ignore already identified packages
+        if package in packages_to_test:
+            LOG.debug(f"{package} is already on the list to test, not re-adding it...")
+            continue
+
         # In order to test it, we need a version_argument set
         if "version_argument" not in constants.CONFIG["packages"][package]:
             LOG.debug(
@@ -88,53 +96,44 @@ def test_version_arguments(*, image: str, tool: str, environment: str) -> int:
             )
             continue
 
-        # Add the version command for packages, aliases, and helper packages/aliases
-        # Currently does not support aliases for helpers, security tools, or environment packages
+        # Add tool packages and helper packages
         if (
-            # The package and tool are the same
-            package == tool
-            # The package applies to the provided environment packages
-            or (package in environment_packages)
+            # The package is the right package for the given tool
+            package == package_for_tool
             # The package is referenced in the security section of the provided tool
             or (
-                tool in constants.CONFIG["packages"]
-                and package in constants.CONFIG["packages"][tool]["security"]
+                "security" in constants.CONFIG["packages"][package_for_tool]
+                and package
+                in constants.CONFIG["packages"][package_for_tool]["security"]
             )
             # The package "help"s the provided tool
             or (
                 "helper" in constants.CONFIG["packages"][package]
                 and set(constants.CONFIG["packages"][package]["helper"]).intersection(
-                    {tool, "all"}
+                    {tool, package_for_tool, "all"}
                 )
             )
         ):
-            commands_to_test.append(
-                f'command {package} {constants.CONFIG["packages"][package]["version_argument"]}'
-            )
+            packages_to_test.append(package)
+            continue
 
-        # Add the version command for custom tool names
-        if (
-            "tool" in constants.CONFIG["packages"][package]
-            and "name" in constants.CONFIG["packages"][package]["tool"]
-        ):
-            # Extract aliases, if they exist
-            if "aliases" in constants.CONFIG["packages"][package]:
-                for alias in constants.CONFIG["packages"][package]["aliases"]:
-                    commands_to_test.append(
-                        f'command {alias} {constants.CONFIG["packages"][package]["version_argument"]}'
-                    )
-            # Otherwise, use the package name (even when there's a custom tool name; if it is the base command it should also be an alias)
-            else:
-                commands_to_test.append(
-                    f'command {package} {constants.CONFIG["packages"][package]["version_argument"]}'
-                )
+    commands_to_test: set[str] = set()
+    for package in packages_to_test:
+        if "aliases" in constants.CONFIG["packages"][package]:
+            commands_to_test |= set(constants.CONFIG["packages"][package]["aliases"])
+        else:
+            commands_to_test.add(package)
 
+    LOG.debug(
+        f"Testing the following commands for image {image}: {commands_to_test}..."
+    )
     for command in commands_to_test:
+        thing = f'command {package} {constants.CONFIG["packages"][package]["version_argument"]}'
         utils.opinionated_docker_run(
             image=image,
             volumes=volumes,
             working_dir=working_dir,
-            command=command,
+            command=thing,
             expected_exit=0,
         )
         num_tests_ran += 1
@@ -414,13 +413,18 @@ def run_cloudformation(*, image: str) -> None:
         "checkov.json"
     )
 
-    # NOTE: Unable to test the exit code for an invalid CloudFormation template, as it actually deploys the resources by design by AWS. Details in:
-    # https://www.linkedin.com/posts/jonzeolla_aws-iac-infrastructureascode-activity-7049057908302471168-WMqJ
-    # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-validate-template.html
-
     # Ensure secure configurations pass
     # Tests is a list of tuples containing the test environment, command, and expected exit code
     tests: list[tuple[dict, str, int]] = [  # type: ignore
+        (
+            {"AWS_DEFAULT_REGION": "ap-northeast-1"},
+            "aws cloudformation validate-template --template-body file://./secure.yml",
+            253,
+        ),  # Unfortunately you need to provide creds to make this succeed, as it actually deploys the resources by design by AWS.
+        #     So we are testing for exit 253 which is what happens when the aws command isn't able to identify credentials, which is a weak way to
+        #     test that it passes the security scans. More details in:
+        #     https://www.linkedin.com/posts/jonzeolla_aws-iac-infrastructureascode-activity-7049057908302471168-WMqJ
+        #     https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-validate-template.html
         ({}, "scan_cloudformation", 0),
         (
             {},
@@ -440,6 +444,21 @@ def run_cloudformation(*, image: str) -> None:
     # Ensure insecure configurations still succeed when security checks are disabled
     # Tests is a list of tuples containing the test environment, command, and expected exit code
     tests: list[tuple[dict, str, int]] = [  # type: ignore
+        (
+            {"AWS_DEFAULT_REGION": "ap-northeast-1", "DISABLE_SECURITY": "true"},
+            "aws cloudformation validate-template --template-body file://./insecure.yml",
+            253,
+        ),  # See above exit 253 comments
+        (
+            {"AWS_DEFAULT_REGION": "ap-northeast-1"},
+            "aws cloudformation --disable-security validate-template --template-body file://./insecure.yml",
+            253,
+        ),  # See above exit 253 comments
+        (
+            {"AWS_DEFAULT_REGION": "ap-northeast-1"},
+            "aws cloudformation validate-template --template-body file://./insecure.yml --disable-security",
+            253,
+        ),  # See above exit 253 comments
         ({"DISABLE_SECURITY": "true"}, "scan_cloudformation", 0),
         ({}, '/usr/bin/env bash -c "DISABLE_SECURITY=true scan_cloudformation"', 0),
         ({}, "scan_cloudformation --disable-security", 0),
@@ -469,6 +488,16 @@ def run_cloudformation(*, image: str) -> None:
     # Ensure insecure configurations fail properly due to checkov
     # Tests is a list of tuples containing the test environment, command, and expected exit code
     tests: list[tuple[dict, str, int]] = [  # type: ignore
+        (
+            {},
+            "aws cloudformation validate-template --template-body file://./insecure.yml",
+            1,
+        ),
+        (
+            {"LEARNING_MODE": "TRUE"},
+            "aws cloudformation validate-template --template-body file://./insecure.yml",
+            253,
+        ),  # See above exit 253 comments
         ({}, "scan_cloudformation", 1),
         (
             {},
@@ -507,13 +536,14 @@ def run_cloudformation(*, image: str) -> None:
 
     # Running an interactive scan_cloudformation
     test_interactive_container.exec_run(
-        cmd='/bin/bash -ic "scan_cloudformation"', tty=True
+        cmd='/bin/bash -ic "aws cloudformation validate-template --template-body file://./insecure.yml"',
+        tty=True,
     )
 
     # An interactive scan_cloudformation should not cause the creation of the following files, and should have the same number of logs lines in the
     # fluent bit log regardless of which image is being tested
     files: list[str] = ["/tmp/checkov_complete"]
-    LOG.debug("Testing interactive scan_cloudformation")
+    LOG.debug("Testing interactive aws cloudformation command")
     # The package name for cloudformation is aws-cli
     number_of_security_tools: int = len(
         constants.CONFIG["packages"]["aws-cli"]["security"]
@@ -549,15 +579,16 @@ def run_cloudformation(*, image: str) -> None:
 
     # Running a non-interactive scan_cloudformation
     test_noninteractive_container.exec_run(
-        cmd='/bin/bash -c "scan_cloudformation"', tty=False
+        cmd='/bin/bash -c "aws cloudformation validate-template --template-body file://./insecure.yml"',
+        tty=False,
     )
 
-    # A non-interactive scan_cloudformation should cause the creation of the following files, and should have the same number of logs lines in the
+    # A non-interactive aws cloudformation command should cause the creation of the following files, and should have the same number of logs lines in the
     # fluent bit log regardless of which image is being tested
     files = ["/tmp/checkov_complete"]
     # Piggyback checking the checkov reports on the checkov complete file checks
     files.append(str(checkov_output_file))
-    LOG.debug("Testing non-interactive scan_cloudformation")
+    LOG.debug("Testing non-interactive aws cloudformation command")
     # The package name for cloudformation is aws-cli
     number_of_security_tools: int = len(
         constants.CONFIG["packages"]["aws-cli"]["security"]
