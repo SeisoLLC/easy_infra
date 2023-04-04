@@ -29,7 +29,7 @@ def global_tests(*, tool: str, environment: str) -> None:
     """Global tests"""
     image_and_tag: str = utils.get_image_and_tag(tool=tool, environment=environment)
 
-    va_num_tests_ran: int = version_arguments(
+    va_num_tests_ran: int = test_version_arguments(
         image=image_and_tag, tool=tool, environment=environment
     )
     LOG.info(f"{image_and_tag} passed {va_num_tests_ran} integration tests")
@@ -59,7 +59,7 @@ def test_sh(*, image: str) -> int:
     return num_tests_ran
 
 
-def version_arguments(*, image: str, tool: str, environment: str) -> int:
+def test_version_arguments(*, image: str, tool: str, environment: str) -> int:
     """Given a specific image, test the appropriate version arguments from the config"""
     working_dir: str = "/iac/"
     tests_path: Path = constants.CWD.joinpath("tests")
@@ -78,40 +78,66 @@ def version_arguments(*, image: str, tool: str, environment: str) -> int:
         for env_package in constants.CONFIG["environments"][env]["packages"]:
             environment_packages.append(env_package)
 
+    # Populate a list of version commands to test
+    commands_to_test: list[str] = []
     for package in constants.CONFIG["packages"]:
-        if not (
-            # packages that are referenced in the tool's security section
-            package in constants.CONFIG["packages"][tool]["security"]
-            # packages which "help" the provided tool
+        # In order to test it, we need a version_argument set
+        if "version_argument" not in constants.CONFIG["packages"][package]:
+            LOG.debug(
+                f"{tool} does not have a version_argument set, we cannot test it..."
+            )
+            continue
+
+        # Add the version command for packages, aliases, and helper packages/aliases
+        # Currently does not support aliases for helpers, security tools, or environment packages
+        if (
+            # The package and tool are the same
+            package == tool
+            # The package applies to the provided environment packages
+            or (package in environment_packages)
+            # The package is referenced in the security section of the provided tool
+            or (
+                tool in constants.CONFIG["packages"]
+                and package in constants.CONFIG["packages"][tool]["security"]
+            )
+            # The package "help"s the provided tool
             or (
                 "helper" in constants.CONFIG["packages"][package]
                 and set(constants.CONFIG["packages"][package]["helper"]).intersection(
                     {tool, "all"}
                 )
             )
-            # packages which apply to the environment
-            or (package in environment_packages)
         ):
-            continue
-
-        if "version_argument" not in constants.CONFIG["packages"][package]:
-            continue
-
-        if "aliases" in constants.CONFIG["packages"][package]:
-            aliases: list[str] = constants.CONFIG["packages"][package]["aliases"]
-        else:
-            aliases: list[str] = [package]
-
-        for alias in aliases:
-            docker_command: str = f'command {alias} {constants.CONFIG["packages"][package]["version_argument"]}'
-            utils.opinionated_docker_run(
-                image=image,
-                volumes=volumes,
-                working_dir=working_dir,
-                command=docker_command,
-                expected_exit=0,
+            commands_to_test.append(
+                f'command {package} {constants.CONFIG["packages"][package]["version_argument"]}'
             )
-            num_tests_ran += 1
+
+        # Add the version command for custom tool names
+        if (
+            "tool" in constants.CONFIG["packages"][package]
+            and "name" in constants.CONFIG["packages"][package]["tool"]
+        ):
+            # Extract aliases, if they exist
+            if "aliases" in constants.CONFIG["packages"][package]:
+                for alias in constants.CONFIG["packages"][package]["aliases"]:
+                    commands_to_test.append(
+                        f'command {alias} {constants.CONFIG["packages"][package]["version_argument"]}'
+                    )
+            # Otherwise, use the package name (even when there's a custom tool name; if it is the base command it should also be an alias)
+            else:
+                commands_to_test.append(
+                    f'command {package} {constants.CONFIG["packages"][package]["version_argument"]}'
+                )
+
+    for command in commands_to_test:
+        utils.opinionated_docker_run(
+            image=image,
+            volumes=volumes,
+            working_dir=working_dir,
+            command=command,
+            expected_exit=0,
+        )
+        num_tests_ran += 1
 
     return num_tests_ran
 
