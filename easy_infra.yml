@@ -43,7 +43,7 @@ packages:
     - aws
     allow_filter:
     - match: cloudformation
-      position: 1
+      position: 0
     security:
       checkov:
         command: checkov -d . --framework cloudformation --skip-download --output
