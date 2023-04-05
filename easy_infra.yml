@@ -1,16 +1,16 @@
 _anchors:
-  file_extensions: &id001
+  file_extensions: &id002
   - tf
-  security: &id002
+  security: &id003
     checkov:
-      command: checkov -d . --download-external-modules True --skip-download --output
-        json --output-file-path ${CHECKOV_JSON_REPORT_PATH}/checkov.json,
-      customizations:
+      command: checkov -d . --download-external-modules True --framework terraform
+        --skip-download --output json --output-file-path ${CHECKOV_JSON_REPORT_PATH}/checkov.json,
+      customizations: &id001
         CHECKOV_BASELINE: --baseline
         CHECKOV_EXTERNAL_CHECKS_DIR: --external-checks-dir
         CHECKOV_SKIP_CHECK: --skip-check
       description: directory scan
-  validation: &id003
+  validation: &id004
   - command: terraform init -backend=false
     description: initialization
   - command: terraform validate
@@ -41,15 +41,28 @@ packages:
   aws-cli:
     aliases:
     - aws
-    version: 2.11.8
+    allow_filter:
+    - match: cloudformation
+      position: 0
+    security:
+      checkov:
+        command: checkov -d . --framework cloudformation --skip-download --output
+          json --output-file-path ${CHECKOV_JSON_REPORT_PATH}/checkov.json,
+        customizations: *id001
+        description: directory scan
+    tool:
+      environments:
+      - none
+      name: cloudformation
+    version: 2.11.9
     version_argument: --version
   azure-cli:
     aliases:
     - az
-    version: 2.46.0-1~focal
+    version: 2.47.0-1~focal
     version_argument: version
   checkov:
-    version: 2.3.148
+    version: 2.3.152
     version_argument: --version
   consul-template:
     helper:
@@ -70,23 +83,23 @@ packages:
     version: v1.6.13
     version_argument: version
   terraform:
-    file_extensions: *id001
-    security: *id002
-    validation: *id003
+    file_extensions: *id002
+    security: *id003
+    validation: *id004
     version: 1.4.4
     version_argument: version
   terratag:
     helper:
     - terraform
-    version: v0.2.0
+    version: v0.2.1
   tfenv:
     allow_filter:
     - match: exec
       position: 0
-    file_extensions: *id001
+    file_extensions: *id002
     helper:
     - terraform
-    security: *id002
-    validation: *id003
+    security: *id003
+    validation: *id004
     version: v3.0.0
     version_argument: --version

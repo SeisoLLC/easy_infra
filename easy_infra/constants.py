@@ -35,7 +35,13 @@ for package in CONFIG["packages"]:
         "security" in CONFIG["packages"][package]
         and "helper" not in CONFIG["packages"][package]
     ):
-        TOOLS.add(package)
+        if (
+            "tool" in CONFIG["packages"][package]
+            and "name" in CONFIG["packages"][package]["tool"]
+        ):
+            TOOLS.add(CONFIG["packages"][package]["tool"]["name"])
+        else:
+            TOOLS.add(package)
 
 ENVIRONMENTS = set()
 for environment in CONFIG["environments"]:
@@ -78,7 +84,7 @@ else:
     ] = f"{__version__}-{COMMIT_HASH_SHORT}"
     RELEASE = False
 
-# TODO: Build the ":latest" tag a special way; not accounted for in the TOOLS loop below
+# Note that there is no ":latest" tag accounted for in the TOOLS loop below
 for tool in TOOLS:
     CONTEXT[tool] = {}
     # Layer the tool-specific buildargs_base on top of the base buildargs_base

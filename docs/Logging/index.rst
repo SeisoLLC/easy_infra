@@ -18,6 +18,9 @@ In order to customize ``fluent-bit``, you can volume mount your preferred config
 ``fluent-bit.inputs.conf``, ``fluent-bit.outputs.conf``, ``parsers.conf``, and/or ``plugins.conf`` from within the ``/usr/local/etc/fluent-bit/``
 folder at runtime.
 
+``fluent-bit`` is configured to read at most 100MB at a time, and up to 10GB of logs for a given run. If you'd like to change this, you can modify or
+replace ``Buffer_Chunk_Size`` in ``fluent-bit.inputs.conf``.
+
 Loki example
 ^^^^^^^^^^^^
 

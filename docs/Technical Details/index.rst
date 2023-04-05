@@ -44,6 +44,12 @@ Here is a ficticious ``easy_infra.yml`` that concisely demonstrates the various 
         file_extensions: *id001
         helper: ["terraform"]
         security: *id002
+        tool:
+          name: customname
+          environments:
+          - none
+          - aws
+          - azure
         validation: *id003
         version: v3.0.0
         version_argument: --version
@@ -156,6 +162,16 @@ actual checkov command that would be run would be::
 .. note::
     The ``--baseline ...`` at the end was dynamically added due to the enviornment variable.
 
+Tool
+^^^^
+
+If you have a situation where you'd like the ``tool`` to have a different name from the ``package``, you can simply add the optional ``tool`` key in
+your ``easy_infra.yml``, along with a ``name`` sub-key, and then it will use the provided value during building and testing. A good example of this is
+the ``aws-cli`` package and the ``cloudformation`` tool (which is technically ``aws cloudformation`` commands inside the container).
+
+If your ``tool`` only supports a subset of all the possible environments, you can specify ``environments`` as a sub-key under the optional ``tool``.
+For instance, our ``cloudformation`` images are not relevant to ``azure``.
+
 Validation
 ^^^^^^^^^^
 
@@ -254,8 +270,8 @@ Adding to the project
 Adding a tool
 -------------
 
-- Add the package to ``easy-infra.yml`` under ``packages`` and include a valid ``security``, ``file_extensions``, ``version``, and
-  ``version_argument`` section. Consider other optional configurations as they apply (see `easy_infra.yml`_ for more details).
+- Add the package to ``easy-infra.yml`` under ``packages`` and include a valid ``security``, ``version``, and ``version_argument`` section. Consider
+  other optional configurations as they apply (see `easy_infra.yml`_ for more details).
 - Modify ``docker-entrypoint.sh`` to print the tool version if the correct binary exists inside of the container.
 - Create a ``Dockerfile.{tool}`` and ``Dockerfrag.{tool}`` in the ``build/`` directory.
 - You may need to add the tool name or any aliases in ``.github/etc/dictionary.txt`` if it is not a standard english word, assuming it is used in
@@ -272,10 +288,10 @@ Adding a tool
     - At least one ``security_tool/{security_tool}``  folder under ``tests/{tool}`` containing insecure code.
     - If you developed hooks which register to the tool, create a ``tests/{tool}/hooks/`` directory, containing a variety of folders that exercise
       those built-in hooks.
-- Identify how the latest released version of the tool (the "package") can be retrieved. Ensure that the ``update`` function in ``tasks.py`` will
-  retrieve the latest version appropriately. You may be able to use some of the existing mechanisms (such as using ``apt``, github repo releases,
-  github repo tags, python package versions, etc.) which are maintained in ``easy_infra/constants.py`` and whose update functions exist in
-  ``easy_infra/utils.py`` (see the ``get_latest_release_from_*`` functions).
+- Identify how the latest released version of the tool (either the "package" or tool name under the package) can be retrieved. Ensure that the
+  ``update`` function in ``tasks.py`` will retrieve the latest version appropriately. You may be able to use some of the existing mechanisms (such as
+  using ``apt``, github repo releases, github repo tags, python package versions, etc.) which are maintained in ``easy_infra/constants.py`` and whose
+  update functions exist in ``easy_infra/utils.py`` (see the ``get_latest_release_from_*`` functions).
 
 .. note::
     If you need any special configuration at build time specific to the combination of a tool and an environment, you can create a

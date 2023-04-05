@@ -86,7 +86,7 @@ function {{ "scan_" ~ function if scan else function }}() {
     return
 {%- else %}
   if [[ "${1}" == "{{ version_argument }}" ]]; then
-    _feedback INFO "Detected version check, skipping security checks for {{ function }}"
+    _feedback INFO "Detected version check, skipping security checks for {{ function }}{% for filter in allow_filter if allow_filter is defined %} {{ filter['match'] }}{% endfor %}"
     # Allow piping of the version command into other commands
     run_command "${FUNCNAME[0]}" "${arguments[@]}"
     return $?
@@ -121,7 +121,7 @@ function {{ "scan_" ~ function if scan else function }}() {
     done
   fi
 
-  # Methods to skip **all** security tools for {{ function }}
+  # Methods to skip **all** security tools for {{ function }}{% for filter in allow_filter if allow_filter is defined %} {{ filter['match'] }}{% endfor %}
   DISABLE_SECURITY="${DISABLE_SECURITY:-false}"
   dirs=()
   if [[ "${AUTODETECT:-false}" == "true" ]]; then
@@ -134,8 +134,8 @@ function {{ "scan_" ~ function if scan else function }}() {
 {%- endfor %}
 {%- else %}
     dir=$(pwd -P)
-    _feedback WARNING "AUTODETECT enabled, but {{ function }} does not have any file extensions configured to search for; falling back to running in ${dir}"
-    _log "easy_infra.stdouterr" info unknown "{{ function }}" "${dir}" string "Failed to properly autodetect the directories to scan when running a {{ function }} command"
+    _feedback WARNING "AUTODETECT enabled, but {{ function }}{% for filter in allow_filter if allow_filter is defined %} {{ filter['match'] }}{% endfor %} does not have any file extensions configured to search for; falling back to running in ${dir}"
+    _log "easy_infra.stdouterr" info unknown "{{ function }}" "${dir}" string "Failed to properly autodetect the directories to scan when running a {{ function }}{% for filter in allow_filter if allow_filter is defined %} {{ filter['match'] }}{% endfor %} command"
     dirs+=("${dir}")
 {%- endif %}
   else
@@ -153,8 +153,8 @@ function {{ "scan_" ~ function if scan else function }}() {
 
     # Process the registered hooks
     if [[ "${DISABLE_HOOKS:-false}" == "true" ]]; then
-      _feedback WARNING "DISABLE_HOOKS is set to ${DISABLE_HOOKS}; skipping all hooks for the {{ function }} command..."
-      _log "easy_infra.stdouterr" info unknown "{{ function }}" "${dir}" string "The DISABLE_HOOKS environment variable is set to ${DISABLE_HOOKS}, skipping all hooks for the {{ function }} command"
+      _feedback WARNING "DISABLE_HOOKS is set to ${DISABLE_HOOKS}; skipping all hooks for the {{ function }}{% for filter in allow_filter if allow_filter is defined %} {{ filter['match'] }}{% endfor %} command..."
+      _log "easy_infra.stdouterr" info unknown "{{ function }}" "${dir}" string "The DISABLE_HOOKS environment variable is set to ${DISABLE_HOOKS}, skipping all hooks for the {{ function }}{% for filter in allow_filter if allow_filter is defined %} {{ filter['match'] }}{% endfor %} command"
     else
       for hook in ${easy_infra_{{ function | replace("-", "_") }}_hooks[@]}; do
         bash "${hook}"
@@ -173,8 +173,8 @@ function {{ "scan_" ~ function if scan else function }}() {
     fi
 
     if [[ "${security_skipped:-false}" == "argument" ]]; then
-      _feedback WARNING "Skipping all security checks for {{ function }} due to the --disable-security argument"
-      _log "easy_infra.stdouterr" info unknown "{{ function }}" "${dir}" string "All security checks for {{ function }} were skipped due to the --disable-security argument"
+      _feedback WARNING "Skipping all security checks for {{ function }}{% for filter in allow_filter if allow_filter is defined %} {{ filter['match'] }}{% endfor %} due to the --disable-security argument"
+      _log "easy_infra.stdouterr" info unknown "{{ function }}" "${dir}" string "All security checks for {{ function }}{% for filter in allow_filter if allow_filter is defined %} {{ filter['match'] }}{% endfor %} were skipped due to the --disable-security argument"
       unset 'security_skipped'
       run_command "${FUNCNAME[0]}" "${arguments[@]}"
       return=$?
@@ -190,8 +190,8 @@ function {{ "scan_" ~ function if scan else function }}() {
       fi
       continue
     elif [[ "${DISABLE_SECURITY,,}" == "true" ]]; then
-      _feedback WARNING "Skipping all security checks for {{ function }} due to the DISABLE_SECURITY environment variable value"
-      _log "easy_infra.stdouterr" info unknown "{{ function }}" "${dir}" string "All security checks for {{ function }} were skipped due to the DISABLE_SECURITY environment variable value"
+      _feedback WARNING "Skipping all security checks for {{ function }}{% for filter in allow_filter if allow_filter is defined %} {{ filter['match'] }}{% endfor %} due to the DISABLE_SECURITY environment variable value"
+      _log "easy_infra.stdouterr" info unknown "{{ function }}" "${dir}" string "All security checks for {{ function }}{% for filter in allow_filter if allow_filter is defined %} {{ filter['match'] }}{% endfor %} were skipped due to the DISABLE_SECURITY environment variable value"
       run_command "${FUNCNAME[0]}" "${arguments[@]}"
       return=$?
       popd > /dev/null
@@ -363,7 +363,7 @@ function {{ "scan_" ~ function if scan else function }}() {
 }
 {% endmacro %}
 
-{# Loop through each of the provided packages (or aliases, if they are set) to be wrapped and generate a function for each -#}
+{# Loop through each of the provided packages, aliases, or tool names to be wrapped and generate a function for each -#}
 {% for package in packages if packages[package]["security"] -%}
 {% for alias in packages[package]["aliases"] -%}
 {# Create the alias function -#}
@@ -376,4 +376,8 @@ function {{ "scan_" ~ function if scan else function }}() {
 {# And then a scan package function -#}
 {{ function(package, scan=true) }}
 {% endfor %}
+{# Add in a function for any custom tool names -#}
+{% if "tool" in packages[package] and "name" in packages[package]["tool"] -%}
+{{ function(packages[package]["tool"]["name"], package, scan=true) }}
+{% endif %}
 {%- endfor -%}
