@@ -120,20 +120,24 @@ def test_version_arguments(*, image: str, tool: str, environment: str) -> int:
     commands_to_test: set[str] = set()
     for package in packages_to_test:
         if "aliases" in constants.CONFIG["packages"][package]:
-            commands_to_test |= set(constants.CONFIG["packages"][package]["aliases"])
+            for alias in constants.CONFIG["packages"][package]["aliases"]:
+                commands_to_test.add(
+                    f'command {alias} {constants.CONFIG["packages"][package]["version_argument"]}'
+                )
         else:
-            commands_to_test.add(package)
+            commands_to_test.add(
+                f'command {package} {constants.CONFIG["packages"][package]["version_argument"]}'
+            )
 
     LOG.debug(
         f"Testing the following commands for image {image}: {commands_to_test}..."
     )
     for command in commands_to_test:
-        final_command: str = f'command {command} {constants.CONFIG["packages"][package]["version_argument"]}'
         utils.opinionated_docker_run(
             image=image,
             volumes=volumes,
             working_dir=working_dir,
-            command=final_command,
+            command=command,
             expected_exit=0,
         )
         num_tests_ran += 1
