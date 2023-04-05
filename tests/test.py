@@ -128,12 +128,12 @@ def test_version_arguments(*, image: str, tool: str, environment: str) -> int:
         f"Testing the following commands for image {image}: {commands_to_test}..."
     )
     for command in commands_to_test:
-        thing = f'command {package} {constants.CONFIG["packages"][package]["version_argument"]}'
+        final_command: str = f'command {command} {constants.CONFIG["packages"][package]["version_argument"]}'
         utils.opinionated_docker_run(
             image=image,
             volumes=volumes,
             working_dir=working_dir,
-            command=thing,
+            command=final_command,
             expected_exit=0,
         )
         num_tests_ran += 1
