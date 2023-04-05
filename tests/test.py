@@ -498,7 +498,7 @@ def run_cloudformation(*, image: str) -> None:
             1,
         ),
         (
-            {"LEARNING_MODE": "TRUE"},
+            {"AWS_DEFAULT_REGION": "ap-northeast-1", "LEARNING_MODE": "TRUE"},
             "aws cloudformation validate-template --template-body file://./insecure.yml",
             253,
         ),  # See above exit 253 comments
