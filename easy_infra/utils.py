@@ -179,7 +179,10 @@ def get_github_actions_matrix(*, tool: str = "all", environment: str = "all", us
             else:
                 github_matrix.append(job)
 
-    return f"matrix={{'include':{github_matrix}}}"
+    if testing:
+        return f"test-matrix={{'include':{github_matrix}}}"
+
+    return f"image-matrix={{'include':{github_matrix}}}"
 
 
 def get_supported_environments(*, tool: str) -> list[str]:

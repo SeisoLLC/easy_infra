@@ -27,8 +27,8 @@ jobs:
     name: Generate matrixes for future use in pipelines
     runs-on: ubuntu-20.04
     outputs:
-      image-matrix: ${{ steps.set-image-outputs.outputs.matrix }}
-      test-matrix: ${{ steps.set-testing-outputs.outputs.matrix }}
+      image-matrix: ${{ steps.set-image-outputs.outputs.image-matrix }}
+      test-matrix: ${{ steps.set-testing-outputs.outputs.test-matrix }}
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v3
