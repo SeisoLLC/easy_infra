@@ -99,8 +99,7 @@ def opinionated_docker_run(
 
     LOG.debug(
         "Invoking CLIENT.containers.run() with the following arguments: "
-        + f"{auto_remove=}, {command=}, {detach=}, {environment=}, {image=}, "
-        + f"{network_mode=}, {tty=}, {volumes=}, {working_dir=}"
+        + f"{auto_remove=}, {command=}, {detach=}, {environment=}, {image=}, {network_mode=}, {tty=}, {volumes=}, {working_dir=}"
     )
     container = CLIENT.containers.run(
         auto_remove=auto_remove,
@@ -122,8 +121,7 @@ def opinionated_docker_run(
             LOG.error(
                 f'Received an exit code of {response["StatusCode"]} when {expected_exit} was expected '
                 + "when invoking CLIENT.containers.run() with the following arguments: "
-                + f"{auto_remove=}, {command=}, {detach=}, {environment=}, {image=}, "
-                + f"{network_mode=}, {tty=}, {volumes=}, {working_dir=}"
+                + f"{auto_remove=}, {command=}, {detach=}, {environment=}, {image=}, {network_mode=}, {tty=}, {volumes=}, {working_dir=}"
             )
 
             # This ensures that if it unexpectedly exits 0, it still fails the pipeline
@@ -145,8 +143,7 @@ def is_status_expected(*, expected: int, response: dict) -> bool:
         status_code = response["StatusCode"]
         logs = response["logs"]
         LOG.error(
-            f"Received an unexpected status code of {status_code} "
-            + f"when {expected} was expected; additional details: {logs}",
+            f"Received an unexpected status code of {status_code} when {expected} was expected; additional details: {logs}",
         )
         return False
 
