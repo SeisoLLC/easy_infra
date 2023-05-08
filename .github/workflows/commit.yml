@@ -23,11 +23,12 @@ jobs:
         with:
           exclude: (.*tests/(ansible|terraform|cloudformation)/.*|.*build/Dockerfile\.j2$)
           disable_mypy: true
-  generate-matrix:
-    name: Gather Tools and Environments
+  generate-matrixes:
+    name: Generate matrixes for future use in pipelines
     runs-on: ubuntu-20.04
     outputs:
-      matrix: ${{ steps.set-outputs.outputs.matrix }}
+      image-matrix: ${{ steps.set-image-outputs.outputs.image-matrix }}
+      test-matrix: ${{ steps.set-testing-outputs.outputs.test-matrix }}
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v3
@@ -45,19 +46,25 @@ jobs:
         run: |
           python -m pip install --upgrade pipenv
           pipenv install --python ${{ env.python_version }} --deploy --ignore-pipfile --dev
-      - name: Gather the testing and distribution matrix
-        id: set-outputs
+      - name: Gather the image matrix
+        id: set-image-outputs
         run: |
           pipenv run python -c \
               'from easy_infra import utils; \
                print(utils.get_github_actions_matrix())' >> "${GITHUB_OUTPUT}"
+      - name: Gather the testing matrix
+        id: set-testing-outputs
+        run: |
+          pipenv run python -c \
+              'from easy_infra import utils; \
+               print(utils.get_github_actions_matrix(testing=True))' >> "${GITHUB_OUTPUT}"
   test:
     name: Test
-    needs: [generate-matrix]
+    needs: [generate-matrixes]
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(needs.generate-matrix.outputs.matrix) }}
+      matrix: ${{ fromJSON(needs.generate-matrixes.outputs.testing-matrix) }}
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v3
@@ -102,7 +109,7 @@ jobs:
       - name: Run tests
         run: |
           find tests -mindepth 1 -type d -exec chmod o+w {} \;
-          pipenv run invoke test --tool=${{ matrix.tool }} --environment=${{ matrix.environment }} --debug
+          pipenv run invoke test --tool=${{ matrix.tool }} --environment=${{ matrix.environment }} --user=${{ matrix.user }} --debug
   bump-version:
     name: Bump version
     needs: [lint, test]
@@ -216,10 +223,10 @@ jobs:
           repository: seiso/easy_infra
   distribute:
     name: Distribute
-    needs: [generate-matrix, bump-version, cut-release]
+    needs: [generate-matrixes, bump-version, cut-release]
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(needs.generate-matrix.outputs.matrix) }}
+      matrix: ${{ fromJSON(needs.generate-matrixes.outputs.image-matrix) }}
     if: github.event_name == 'push'
     environment: "${{ needs.bump-version.outputs.git_tag }}"
     runs-on: ubuntu-20.04

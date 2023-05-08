@@ -749,7 +749,7 @@ def sbom(_c, tool="all", environment="all", debug=False):
 
 
 @task
-def test(_c, tool="all", environment="all", debug=False):
+def test(_c, tool="all", environment="all", user="all", debug=False):
     """Test easy_infra"""
     if debug:
         getLogger().setLevel("DEBUG")
@@ -757,6 +757,7 @@ def test(_c, tool="all", environment="all", debug=False):
     tools_to_environments = utils.gather_tools_and_environments(
         tool=tool, environment=environment
     )
+    users: list[str] = utils.gather_users(user=user)
 
     tags: list[str] = utils.get_tags(
         tools_to_environments=tools_to_environments,
@@ -772,10 +773,11 @@ def test(_c, tool="all", environment="all", debug=False):
 
     # Only test using the versioned tag
     for image_and_versioned_tag in image_and_versioned_tags:
-        LOG.info(f"Testing {image_and_versioned_tag} for platform {PLATFORM}...")
-        run_test.run_tests(
-            image=image_and_versioned_tag, tool=tool, environment=environment
-        )
+        for user in users:
+            LOG.info(f"Testing {image_and_versioned_tag} for platform {PLATFORM} with user {user}...")
+            run_test.run_tests(
+                image=image_and_versioned_tag, tool=tool, environment=environment, user=user
+            )
 
 
 @task

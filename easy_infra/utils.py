@@ -1,3 +1,4 @@
+import copy
 import re
 import sys
 from logging import getLogger
@@ -86,6 +87,7 @@ def opinionated_docker_run(
     tty: bool = False,
     detach: bool = True,
     environment: dict = {},
+    user: str = "",
     volumes: dict = {},
     working_dir: str = "/iac/",
     expected_exit: int = 0,
@@ -99,7 +101,7 @@ def opinionated_docker_run(
 
     LOG.debug(
         "Invoking CLIENT.containers.run() with the following arguments: "
-        + f"{auto_remove=}, {command=}, {detach=}, {environment=}, {image=}, {network_mode=}, {tty=}, {volumes=}, {working_dir=}"
+        + f"{auto_remove=}, {command=}, {detach=}, {environment=}, {image=}, {network_mode=}, {tty=}, {user=}, {volumes=}, {working_dir=}"
     )
     container = CLIENT.containers.run(
         auto_remove=auto_remove,
@@ -109,6 +111,7 @@ def opinionated_docker_run(
         image=image,
         network_mode=network_mode,
         tty=tty,
+        user=user,
         volumes=volumes,
         working_dir=working_dir,
     )
@@ -121,7 +124,7 @@ def opinionated_docker_run(
             LOG.error(
                 f'Received an exit code of {response["StatusCode"]} when {expected_exit} was expected '
                 + "when invoking CLIENT.containers.run() with the following arguments: "
-                + f"{auto_remove=}, {command=}, {detach=}, {environment=}, {image=}, {network_mode=}, {tty=}, {volumes=}, {working_dir=}"
+                + f"{auto_remove=}, {command=}, {detach=}, {environment=}, {image=}, {network_mode=}, {tty=}, {user=}, {volumes=}, {working_dir=}"
             )
 
             # This ensures that if it unexpectedly exits 0, it still fails the pipeline
@@ -150,19 +153,31 @@ def is_status_expected(*, expected: int, response: dict) -> bool:
     return True
 
 
-def get_github_actions_matrix(*, tool: str = "all", environment: str = "all") -> str:
-    """Return a matrix of tools and environments for use in the github actions pipeline"""
+def get_github_actions_matrix(*, tool: str = "all", environment: str = "all", user: str = "all", testing: bool = False) -> str:
+    """Return a matrix of tool/environments or tool/environments/users for use in the github actions pipeline"""
     tools_and_environments: dict[
         str, dict[str, list[str]]
     ] = gather_tools_and_environments(tool=tool, environment=environment)
+    # Unused if testing isn't true
+    users: list[str] = gather_users(user=user)
 
     github_matrix: list[dict[str, str]] = []
     for tool, environments in tools_and_environments.items():
         job: dict[str, str] = {"tool": tool, "environment": "none"}
-        github_matrix.append(job)
+        if testing:
+            for user in users:
+                job["user"] = user
+                github_matrix.append(copy.copy(job))
+        else:
+            github_matrix.append(job)
         for environment in environments["environments"]:
             job: dict[str, str] = {"tool": tool, "environment": environment}
-            github_matrix.append(job)
+            if testing:
+                for user in users:
+                    job["user"] = user
+                    github_matrix.append(copy.copy(job))
+            else:
+                github_matrix.append(job)
 
     return f"matrix={{'include':{github_matrix}}}"
 
@@ -256,6 +271,19 @@ def gather_tools_and_environments(
         image_and_tool_and_environment_tags[tool] = {"environments": environments}
 
     return image_and_tool_and_environment_tags
+
+
+def gather_users(*, user: str) -> list[str]:
+    """Return a list of users, based on the simplified provided user"""
+    if user == "all":
+        users: list[str] = constants.USERS
+    elif user not in constants.USERS:
+        LOG.error(f"{user} is not a supported user, exiting...")
+        sys.exit(1)
+    else:
+        users: list[str] = constants.USERS
+
+    return users
 
 
 def get_image_and_tag(*, tool: str, environment: str | None = None) -> str:
