@@ -54,20 +54,20 @@ packages:
       environments:
       - none
       name: cloudformation
-    version: 2.11.9
+    version: 2.11.18
     version_argument: --version
   azure-cli:
     aliases:
     - az
-    version: 2.47.0-1~focal
+    version: 2.48.1-1~focal
     version_argument: version
   checkov:
-    version: 2.3.152
+    version: 2.3.227
     version_argument: --version
   consul-template:
     helper:
     - all
-    version: v0.30.0
+    version: v0.31.0
     version_argument: --version
   envconsul:
     helper:
@@ -77,21 +77,21 @@ packages:
   fluent-bit:
     helper:
     - all
-    version: v2.0.10
+    version: v2.1.2
     version_argument: --version
   kics:
-    version: v1.6.13
+    version: v1.7.0
     version_argument: version
   terraform:
     file_extensions: *id002
     security: *id003
     validation: *id004
-    version: 1.4.4
+    version: 1.4.6
     version_argument: version
   terratag:
     helper:
     - terraform
-    version: v0.2.1
+    version: v0.2.2
   tfenv:
     allow_filter:
     - match: exec

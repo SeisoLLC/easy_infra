@@ -30,7 +30,7 @@ terraform plan
 terraform apply
 ```
 
-To learn more, check out [our documentation](https://easy_infra.readthedocs.io/) and [CONTRIBUTING.md](./CONTRIBUTING.md).
+To learn more, check out [our documentation](https://easy-infra.readthedocs.io/) and [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## Secure by default
 
