@@ -6,6 +6,8 @@ ARG CHECKOV_VERSION
 ENV CHECKOV_VERSION="${CHECKOV_VERSION}"
 ENV CHECKOV_JSON_REPORT_PATH="/tmp/reports/checkov"
 ENV SKIP_CHECKOV="false"
+ENV VIRTUAL_ENV="/opt/venv"
+ENV PATH="${VIRTUAL_ENV}/bin:${PATH}"
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 USER root
@@ -18,8 +20,7 @@ RUN apt-get update \
  && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/cache/debconf/*-old \
  && python3 -m pip install --upgrade --no-cache-dir pip \
  # Setup a venv for install isolation
- && python3 -m venv /opt/venv \
- && export PATH="/opt/venv/bin:${PATH}" \
+ && python3 -m venv "${VIRTUAL_ENV}" \
  && pip install --no-cache-dir checkov==${CHECKOV_VERSION} \
  && mkdir -p "${CHECKOV_JSON_REPORT_PATH}"
 USER easy_infra
