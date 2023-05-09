@@ -165,8 +165,8 @@ def get_github_actions_matrix(
     tools_and_environments: dict[
         str, dict[str, list[str]]
     ] = gather_tools_and_environments(tool=tool, environment=environment)
-    # Unused if testing isn't true
-    users: list[str] = gather_users(user=user)
+    if testing:
+        users: list[str] = gather_users(user=user)
 
     github_matrix: dict[str, list[dict[str, str]]] = {}
     github_matrix["include"] = []
