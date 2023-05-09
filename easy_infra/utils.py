@@ -294,7 +294,7 @@ def gather_users(*, user: str) -> list[str]:
         LOG.error(f"{user} is not a supported user, exiting...")
         sys.exit(1)
     else:
-        users: list[str] = constants.USERS
+        users: list[str] = [user]
 
     return users
 
