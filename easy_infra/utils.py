@@ -154,7 +154,13 @@ def is_status_expected(*, expected: int, response: dict) -> bool:
     return True
 
 
-def get_github_actions_matrix(*, tool: str = "all", environment: str = "all", user: str = "all", testing: bool = False) -> str:
+def get_github_actions_matrix(
+    *,
+    tool: str = "all",
+    environment: str = "all",
+    user: str = "all",
+    testing: bool = False,
+) -> str:
     """Return a matrix of tool/environments or tool/environments/users for use in the github actions pipeline"""
     tools_and_environments: dict[
         str, dict[str, list[str]]
@@ -163,23 +169,23 @@ def get_github_actions_matrix(*, tool: str = "all", environment: str = "all", us
     users: list[str] = gather_users(user=user)
 
     github_matrix: dict[str, list[dict[str, str]]] = {}
-    github_matrix['include'] = []
+    github_matrix["include"] = []
     for tool, environments in tools_and_environments.items():
         job: dict[str, str] = {"tool": tool, "environment": "none"}
         if testing:
             for user in users:
                 job["user"] = user
-                github_matrix['include'].append(copy.copy(job))
+                github_matrix["include"].append(copy.copy(job))
         else:
-            github_matrix['include'].append(job)
+            github_matrix["include"].append(job)
         for environment in environments["environments"]:
             job: dict[str, str] = {"tool": tool, "environment": environment}
             if testing:
                 for user in users:
                     job["user"] = user
-                    github_matrix['include'].append(copy.copy(job))
+                    github_matrix["include"].append(copy.copy(job))
             else:
-                github_matrix['include'].append(job)
+                github_matrix["include"].append(job)
 
     include: str = json.dumps(github_matrix)
 

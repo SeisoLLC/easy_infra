@@ -60,7 +60,9 @@ def test_sh(*, image: str, user: str) -> int:
     return num_tests_ran
 
 
-def test_version_arguments(*, image: str, tool: str, environment: str, user: str) -> int:
+def test_version_arguments(
+    *, image: str, tool: str, environment: str, user: str
+) -> int:
     """Given a specific image, test the appropriate version arguments from the config"""
     working_dir: str = "/iac/"
     tests_path: Path = constants.CWD.joinpath("tests")
@@ -302,7 +304,12 @@ def run_path_check(*, tool: str, user: str, environment: str | None = None) -> N
 
 
 def check_paths(
-        *, interactive: bool, tool: str, environment: str | None = None, user: str, commands: list[str]
+    *,
+    interactive: bool,
+    tool: str,
+    environment: str | None = None,
+    user: str,
+    commands: list[str],
 ) -> int:
     """
     Check the commands in easy_infra.yml to ensure they are in the supported user's PATH.
@@ -378,7 +385,9 @@ def run_tests(*, image: str, user: str, tool: str, environment: str | None) -> N
     run_path_check(tool=tool, user=user, environment=environment)
 
     tool_test_function: str = f"run_{tool}"
-    eval(tool_test_function)(image=image, user=user)  # nosec B307 pylint: disable=eval-used
+    eval(tool_test_function)(
+        image=image, user=user
+    )  # nosec B307 pylint: disable=eval-used
 
     if environment and environment != "none":
         environment_test_function: str = f"run_{environment}"
@@ -453,7 +462,9 @@ def run_cloudformation(*, image: str, user: str) -> None:
     ]
 
     LOG.debug("Testing secure cloudformation templates")
-    num_tests_ran += exec_tests(tests=tests, volumes=secure_volumes, image=image, user=user)
+    num_tests_ran += exec_tests(
+        tests=tests, volumes=secure_volumes, image=image, user=user
+    )
 
     # Ensure insecure configurations still succeed when security checks are disabled
     # Tests is a list of tuples containing the test environment, command, and expected exit code
@@ -497,7 +508,9 @@ def run_cloudformation(*, image: str, user: str) -> None:
     ]
 
     LOG.debug("Testing scan_cloudformation with security disabled")
-    num_tests_ran += exec_tests(tests=tests, volumes=checkov_volumes, image=image, user=user)
+    num_tests_ran += exec_tests(
+        tests=tests, volumes=checkov_volumes, image=image, user=user
+    )
 
     # Ensure insecure configurations fail properly due to checkov
     # Tests is a list of tuples containing the test environment, command, and expected exit code
@@ -536,7 +549,9 @@ def run_cloudformation(*, image: str, user: str) -> None:
     ]
 
     LOG.debug("Testing checkov against insecure cloudformation templates")
-    num_tests_ran += exec_tests(tests=tests, volumes=checkov_volumes, image=image, user=user)
+    num_tests_ran += exec_tests(
+        tests=tests, volumes=checkov_volumes, image=image, user=user
+    )
 
     # Run base interactive cloudformation tests
     test_interactive_container = CLIENT.containers.run(
@@ -866,7 +881,9 @@ def run_terraform(*, image: str, user: str) -> None:
 
     tests.append((copy.deepcopy(learning_mode_and_autodetect_environment), command, 0))
 
-    num_tests_ran += exec_tests(tests=tests, volumes=general_test_volumes, image=image, user=user)
+    num_tests_ran += exec_tests(
+        tests=tests, volumes=general_test_volumes, image=image, user=user
+    )
 
     # Ensure autodetect finds the appropriate terraform configs, which can be inferred by the number of logs written to /var/log/easy_infra.log
     #
@@ -980,7 +997,9 @@ def run_terraform(*, image: str, user: str) -> None:
     ]
 
     LOG.debug("Testing secure terraform configurations")
-    num_tests_ran += exec_tests(tests=tests, volumes=secure_volumes, image=image, user=user)
+    num_tests_ran += exec_tests(
+        tests=tests, volumes=secure_volumes, image=image, user=user
+    )
 
     # Ensure the easy_infra hooks work as expected when network access is available
     # Tests is a list of tuples containing the test environment, command, and expected exit code
@@ -1005,7 +1024,9 @@ def run_terraform(*, image: str, user: str) -> None:
         ),  # This tests DISABLE_HOOKS; it fails because the terraform version used is incorrect
     ]
     LOG.debug("Testing the easy_infra hooks against various terraform configurations")
-    num_tests_ran += exec_tests(tests=tests, volumes=hooks_config_volumes, image=image, user=user)
+    num_tests_ran += exec_tests(
+        tests=tests, volumes=hooks_config_volumes, image=image, user=user
+    )
 
     tests: list[tuple[dict, str, int]] = [  # type: ignore
         (
@@ -1050,7 +1071,11 @@ def run_terraform(*, image: str, user: str) -> None:
         "Testing the easy_infra hooks with no network access, against various terraform configurations, expecting failures"
     )
     num_tests_ran += exec_tests(
-        tests=tests, volumes=hooks_config_volumes, image=image, user=user, network_mode="none"
+        tests=tests,
+        volumes=hooks_config_volumes,
+        image=image,
+        user=user,
+        network_mode="none",
     )
 
     tests: list[tuple[dict, str, int]] = [  # type: ignore
@@ -1132,7 +1157,9 @@ def run_terraform(*, image: str, user: str) -> None:
     ]
 
     LOG.debug("Testing terraform with security disabled")
-    num_tests_ran += exec_tests(tests=tests, volumes=checkov_volumes, image=image, user=user)
+    num_tests_ran += exec_tests(
+        tests=tests, volumes=checkov_volumes, image=image, user=user
+    )
 
     # Ensure insecure configurations fail properly due to checkov
     # Tests is a list of tuples containing the test environment, command, and expected exit code
@@ -1168,7 +1195,9 @@ def run_terraform(*, image: str, user: str) -> None:
     ]
 
     LOG.debug("Testing checkov against insecure terraform")
-    num_tests_ran += exec_tests(tests=tests, volumes=checkov_volumes, image=image, user=user)
+    num_tests_ran += exec_tests(
+        tests=tests, volumes=checkov_volumes, image=image, user=user
+    )
 
     # Run base interactive terraform tests
     test_interactive_container = CLIENT.containers.run(
@@ -1412,7 +1441,9 @@ def run_ansible(*, image: str, user: str) -> None:
         # This tests the "customizations" idea from easy_infra.yml and functions.j2
     ]
 
-    num_tests_ran += exec_tests(tests=tests, volumes=kics_volumes, image=image, user=user)
+    num_tests_ran += exec_tests(
+        tests=tests, volumes=kics_volumes, image=image, user=user
+    )
 
     # Run base interactive tests
     test_interactive_container = CLIENT.containers.run(
@@ -1558,7 +1589,9 @@ def run_azure(*, image: str, user: str) -> None:
 
     # Ensure a basic azure help command succeeds
     command = "az help"
-    utils.opinionated_docker_run(image=image, command=command, user=user, expected_exit=0)
+    utils.opinionated_docker_run(
+        image=image, command=command, user=user, expected_exit=0
+    )
     num_tests_ran += 1
 
     LOG.info(f"{image} passed {num_tests_ran} integration tests as {user}")
@@ -1570,7 +1603,9 @@ def run_aws(*, image: str, user: str) -> None:
 
     # Ensure a basic aws help command succeeds
     command = "aws help"
-    utils.opinionated_docker_run(image=image, command=command, user=user, expected_exit=0)
+    utils.opinionated_docker_run(
+        image=image, command=command, user=user, expected_exit=0
+    )
     num_tests_ran += 1
 
     LOG.info(f"{image} passed {num_tests_ran} integration tests as {user}")

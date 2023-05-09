@@ -774,9 +774,14 @@ def test(_c, tool="all", environment="all", user="all", debug=False):
     # Only test using the versioned tag
     for image_and_versioned_tag in image_and_versioned_tags:
         for user in users:
-            LOG.info(f"Testing {image_and_versioned_tag} for platform {PLATFORM} with user {user}...")
+            LOG.info(
+                f"Testing {image_and_versioned_tag} for platform {PLATFORM} with user {user}..."
+            )
             run_test.run_tests(
-                image=image_and_versioned_tag, tool=tool, environment=environment, user=user
+                image=image_and_versioned_tag,
+                tool=tool,
+                environment=environment,
+                user=user,
             )
 
 
