@@ -1,4 +1,5 @@
 import copy
+import json
 import re
 import sys
 from logging import getLogger
@@ -161,28 +162,31 @@ def get_github_actions_matrix(*, tool: str = "all", environment: str = "all", us
     # Unused if testing isn't true
     users: list[str] = gather_users(user=user)
 
-    github_matrix: list[dict[str, str]] = []
+    github_matrix: dict[str, list[dict[str, str]]] = {}
+    github_matrix['include'] = []
     for tool, environments in tools_and_environments.items():
         job: dict[str, str] = {"tool": tool, "environment": "none"}
         if testing:
             for user in users:
                 job["user"] = user
-                github_matrix.append(copy.copy(job))
+                github_matrix['include'].append(copy.copy(job))
         else:
-            github_matrix.append(job)
+            github_matrix['include'].append(job)
         for environment in environments["environments"]:
             job: dict[str, str] = {"tool": tool, "environment": environment}
             if testing:
                 for user in users:
                     job["user"] = user
-                    github_matrix.append(copy.copy(job))
+                    github_matrix['include'].append(copy.copy(job))
             else:
-                github_matrix.append(job)
+                github_matrix['include'].append(job)
+
+    include: str = json.dumps(github_matrix)
 
     if testing:
-        return f"test-matrix={{'include':{github_matrix}}}"
+        return f"test-matrix={include}"
 
-    return f"image-matrix={{'include':{github_matrix}}}"
+    return f"image-matrix={include}"
 
 
 def get_supported_environments(*, tool: str) -> list[str]:
