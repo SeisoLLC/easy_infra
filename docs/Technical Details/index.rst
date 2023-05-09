@@ -224,15 +224,15 @@ run ``command terraform`` which runs the ``terraform`` binary from the ``PATH``.
 Internal naming
 ===============
 
-- Tool: An executable file in the easy_infra user's ``PATH`` which perform IaC actions and has an associated security tool, as described in the
+- Tool: An executable file in the easy_infra and root user's ``PATH`` which perform IaC actions and has an associated security tool, as described in the
   easy_infra.yml used when building the image.
-- Security tool: An executable file in the easy_infra user's ``PATH`` which is configured to perform a security scan for an associated "tool" (see
+- Security tool: An executable file in the easy_infra and root user's ``PATH`` which is configured to perform a security scan for an associated "tool" (see
   above), as configured in the ``easy_infra.yml`` file used to build the image.
 - Package: The name of a package that can be installed to perform a necessary function. It could be a tool, a security tool, or a generic helper such
   as ``fluent-bit`` or ``envconsul``.
 - Command: A runtime command, following the use of the term by bash (see the "Command Execution" of this documentation). This could be an alias, a
   package, or some other executable on the user's ``PATH``.
-- Alias: An executable file in the easy_infra user's ``PATH`` which executes the installed by a package. While ``aws-cli`` would be a package, ``aws``
+- Alias: An executable file in the easy_infra and root user's ``PATH`` which executes the installed by a package. While ``aws-cli`` would be a package, ``aws``
   would be the associated alias.
 - Environment: A supported destination that a tool (see above) may deploy into, such as a cloud provider. An environment constitutes a bundle of
   packages.
