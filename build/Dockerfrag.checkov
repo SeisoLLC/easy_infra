@@ -5,7 +5,7 @@ ENV SKIP_CHECKOV="false"
 ENV VIRTUAL_ENV="/opt/venv"
 ENV PATH="${VIRTUAL_ENV}/bin:${PATH}"
 
-COPY --from=checkov --chown=easy_infra:easy_infra /opt/venv/bin/ /opt/venv/bin/
+COPY --from=checkov --chown=easy_infra:easy_infra /opt/venv /opt/venv
 COPY --from=checkov --chown=easy_infra:easy_infra /tmp/reports/checkov /tmp/reports/checkov
 
 # hadolint ignore=DL3008
