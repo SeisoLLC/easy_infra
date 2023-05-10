@@ -264,6 +264,13 @@ In order for a ``Dockerfile`` and a ``Dockerfrag`` to be "linked" together, they
 build on top of ``Dockerfile.abc``, and it is both expected that in ``Dockerfrag.abc`` it copies files using ``COPY --from=abc ...``, and that in
 ``Dockerfile.abc`` the ``FROM`` statement ends with ``... as abc``.
 
+Runtime user support
+====================
+
+By default, ``easy_infra`` runs as the ``easy_infra`` user and should be fully functional, however we also support the
+``root`` user due to various file system permission issues that often occur in pipelines when running as non-root users.
+Where possible, the ``easy_infra`` user should be used due to the security risks of running containers as ``root``.
+
 Adding to the project
 =====================
 
