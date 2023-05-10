@@ -80,7 +80,17 @@ You can now run the tests locally:
 pipenv run invoke test
 ```
 
-You can pass in the same `--tool` and `--environment` arguments as outlined in the build instructions above.
+You can pass in the `--tool`, `--environment`, and `--user` arguments to test a specific subset of functionality. See
+the build step to see the `tool` and `environment` possible inputs.
+
+To see the list of supported users, run the following command. If you don't specify a user, `test` will assume that you
+want to test with all of the supported users.
+
+```bash
+pipenv run python3 -c \
+  "from easy_infra import constants; \
+  print(constants.USERS)"
+```
 
 ### Generating the SBOMs
 

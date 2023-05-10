@@ -26,6 +26,7 @@ COMMIT_HASH = REPO.head.object.hexsha
 COMMIT_HASH_SHORT = REPO.git.rev_parse(COMMIT_HASH, short=True)
 CONFIG_FILE = Path(f"{__project_name__}.yml").absolute()
 CONFIG = config.parse_config(config_file=CONFIG_FILE)
+USERS = ["easy_infra", "root"]
 
 # TOOLS is used to create per-tool tags. If there isn't a security configuration, the tag will not be created, because then it wouldn't fit our secure
 # by default design

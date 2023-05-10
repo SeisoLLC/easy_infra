@@ -56,14 +56,16 @@ RUN groupadd --gid 53150 -r easy_infra \
                 git-codecommit.us-west-1.amazonaws.com \
                 git-codecommit.us-west-2.amazonaws.com \
     >> /home/easy_infra/.ssh/known_hosts \
- && apt-get remove -y ssh \
  && echo "# END preloaded known_hosts as of $(date)" >> /home/easy_infra/.ssh/known_hosts \
+ && apt-get remove -y ssh \
+ && mkdir -p /root/.ssh \
+ && touch /root/.ssh/known_hosts \
+ && cp /home/easy_infra/.ssh/known_hosts /root/.ssh/known_hosts \
  && if [ "${TRACE}" = "true" ]; then \
     apt-get -y install --no-install-recommends libcap2-bin \
                                                strace \
   ; fi \
  && su easy_infra -c "mkdir -p /home/easy_infra/.local/bin/" \
- && echo "export PATH=/home/easy_infra/.local/bin:${PATH}" >> /home/easy_infra/.bashrc \
  && apt-get -y install --no-install-recommends unzip \
  && curl -L https://releases.hashicorp.com/consul-template/${CONSUL_TEMPLATE_VERSION#v}/consul-template_${CONSUL_TEMPLATE_VERSION#v}_linux_${BUILDARCH}.zip -o /usr/local/bin/consul-template.zip \
  && unzip /usr/local/bin/consul-template.zip -d /usr/local/bin/ \
@@ -82,6 +84,7 @@ RUN groupadd --gid 53150 -r easy_infra \
  && rm -rf fluent-bit \
  && apt-get remove -y cmake build-essential flex bison libssl-dev \
  && echo "source /functions" >> /home/easy_infra/.bashrc \
+ && echo "source /functions" >> /root/.bashrc \
  && apt-get clean autoclean \
  && apt-get -y autoremove \
  # Must be after the autoremove for fluent-bit to work

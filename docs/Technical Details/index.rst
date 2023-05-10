@@ -9,7 +9,7 @@ easy_infra.yml
 configuration to instruct those generation and composition processes. It describes which version of software to use, where, how to generate the very
 important ``/functions`` script (more on that in `functions and functions.j2`_), which is what provides all of the hooking and capabilities.
 
-Here is a ficticious ``easy_infra.yml`` that concisely demonstrates the various features that are possible::
+Here is a fictitious ``easy_infra.yml`` that concisely demonstrates the various features that are possible::
 
     _anchors:
       file_extensions: &id001
@@ -97,10 +97,10 @@ perform security scans as described in the ``security`` object under the respect
 Allow update
 ^^^^^^^^^^^^
 
-When projects are added to ``easy_infra`` they are automatically onboarded to our automated maintenance scripts (see ``def update`` in ``tasks.py``
-for how that works). All projects that are properly configured will be automatically updated when ``invoke update`` is run, and ``allow_update`` is a
-boolean field under that package in ``easy_infra.yml`` which allows the onboarding of a package, while exempting it from automatic updates. This is
-typically temporary, and only done when a given project changes how it performs releases or makes a breaking changes that we have yet to accomodate.
+When projects are added to ``easy_infra`` they are automatically on-boarded to our automated maintenance scripts (see ``def update`` in ``tasks.py`` for how
+that works). All projects that are properly configured will be automatically updated when ``invoke update`` is run, and ``allow_update`` is a boolean field
+under that package in ``easy_infra.yml`` which allows the on-boarding of a package, while exempting it from automatic updates. This is typically temporary, and
+only done when a given project changes how it performs releases or makes a breaking changes that we have yet to accommodate.
 
 File extensions
 ^^^^^^^^^^^^^^^
@@ -160,7 +160,7 @@ actual checkov command that would be run would be::
     --baseline /iac/.checkov.baseline
 
 .. note::
-    The ``--baseline ...`` at the end was dynamically added due to the enviornment variable.
+    The ``--baseline ...`` at the end was dynamically added due to the environment variable.
 
 Tool
 ^^^^
@@ -182,7 +182,7 @@ security scanning tools.
 Version
 ^^^^^^^
 
-``version`` is where you can specify which versions of tool you want to include when you're buliding an ``easy_infra`` image. This is what is maintained by this
+``version`` is where you can specify which versions of tool you want to include when you're building an ``easy_infra`` image. This is what is maintained by this
 project's automated maintenance scripts, and it is parsed into build arguments which are passed into the container image building process.
 
 Version Argument
@@ -224,15 +224,15 @@ run ``command terraform`` which runs the ``terraform`` binary from the ``PATH``.
 Internal naming
 ===============
 
-- Tool: An executable file in the easy_infra user's ``PATH`` which perform IaC actions and has an associated security tool, as described in the
+- Tool: An executable file in the easy_infra and root user's ``PATH`` which perform IaC actions and has an associated security tool, as described in the
   easy_infra.yml used when building the image.
-- Security tool: An executable file in the easy_infra user's ``PATH`` which is configured to perform a security scan for an associated "tool" (see
+- Security tool: An executable file in the easy_infra and root user's ``PATH`` which is configured to perform a security scan for an associated "tool" (see
   above), as configured in the ``easy_infra.yml`` file used to build the image.
 - Package: The name of a package that can be installed to perform a necessary function. It could be a tool, a security tool, or a generic helper such
   as ``fluent-bit`` or ``envconsul``.
 - Command: A runtime command, following the use of the term by bash (see the "Command Execution" of this documentation). This could be an alias, a
   package, or some other executable on the user's ``PATH``.
-- Alias: An executable file in the easy_infra user's ``PATH`` which executes the installed by a package. While ``aws-cli`` would be a package, ``aws``
+- Alias: An executable file in the easy_infra and root user's ``PATH`` which executes the installed by a package. While ``aws-cli`` would be a package, ``aws``
   would be the associated alias.
 - Environment: A supported destination that a tool (see above) may deploy into, such as a cloud provider. An environment constitutes a bundle of
   packages.
@@ -264,6 +264,13 @@ In order for a ``Dockerfile`` and a ``Dockerfrag`` to be "linked" together, they
 build on top of ``Dockerfile.abc``, and it is both expected that in ``Dockerfrag.abc`` it copies files using ``COPY --from=abc ...``, and that in
 ``Dockerfile.abc`` the ``FROM`` statement ends with ``... as abc``.
 
+Runtime user support
+====================
+
+By default, ``easy_infra`` runs as the ``easy_infra`` user and should be fully functional, however we also support the
+``root`` user due to various file system permission issues that often occur in pipelines when running as non-root users.
+Where possible, the ``easy_infra`` user should be used due to the security risks of running containers as ``root``.
+
 Adding to the project
 =====================
 
@@ -274,7 +281,7 @@ Adding a tool
   other optional configurations as they apply (see `easy_infra.yml`_ for more details).
 - Modify ``docker-entrypoint.sh`` to print the tool version if the correct binary exists inside of the container.
 - Create a ``Dockerfile.{tool}`` and ``Dockerfrag.{tool}`` in the ``build/`` directory.
-- You may need to add the tool name or any aliases in ``.github/etc/dictionary.txt`` if it is not a standard english word, assuming it is used in
+- You may need to add the tool name or any aliases in ``.github/etc/dictionary.txt`` if it is not a standard English word, assuming it is used in
   documentation.
 - Create a new folder in ``docs/`` and add documentation regarding the tool. Reference the new docs in the ``toctree`` of ``docs/index.rst`` in line
   with the other ``toctree`` entries.
@@ -290,7 +297,7 @@ Adding a tool
       those built-in hooks.
 - Identify how the latest released version of the tool (either the "package" or tool name under the package) can be retrieved. Ensure that the
   ``update`` function in ``tasks.py`` will retrieve the latest version appropriately. You may be able to use some of the existing mechanisms (such as
-  using ``apt``, github repo releases, github repo tags, python package versions, etc.) which are maintained in ``easy_infra/constants.py`` and whose
+  using ``apt``, GitHub repo releases, GitHub repo tags, python package versions, etc.) which are maintained in ``easy_infra/constants.py`` and whose
   update functions exist in ``easy_infra/utils.py`` (see the ``get_latest_release_from_*`` functions).
 
 .. note::

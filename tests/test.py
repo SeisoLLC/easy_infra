@@ -25,20 +25,20 @@ LOG = getLogger(__name__)
 CLIENT = docker.from_env()
 
 
-def global_tests(*, tool: str, environment: str) -> None:
+def global_tests(*, tool: str, environment: str, user: str) -> None:
     """Global tests"""
     image_and_tag: str = utils.get_image_and_tag(tool=tool, environment=environment)
 
     va_num_tests_ran: int = test_version_arguments(
-        image=image_and_tag, tool=tool, environment=environment
+        image=image_and_tag, tool=tool, environment=environment, user=user
     )
-    LOG.info(f"{image_and_tag} passed {va_num_tests_ran} integration tests")
+    LOG.info(f"{image_and_tag} passed {va_num_tests_ran} integration tests as {user}")
 
-    ts_num_tests_ran: int = test_sh(image=image_and_tag)
-    LOG.info(f"{image_and_tag} passed {ts_num_tests_ran} filesystem tests")
+    ts_num_tests_ran: int = test_sh(image=image_and_tag, user=user)
+    LOG.info(f"{image_and_tag} passed {ts_num_tests_ran} filesystem tests as {user}")
 
 
-def test_sh(*, image: str) -> int:
+def test_sh(*, image: str, user: str) -> int:
     """Run test.sh"""
     num_tests_ran: int = 0
     working_dir: str = "/iac/"
@@ -48,18 +48,21 @@ def test_sh(*, image: str) -> int:
     }
 
     command: str = "./test.sh"
-    LOG.debug("Running test.sh")
+    LOG.debug(f"Running test.sh as {user}")
     utils.opinionated_docker_run(
         image=image,
         volumes=tests_volumes,
         command=command,
+        user=user,
         expected_exit=0,
     )
     num_tests_ran += 1
     return num_tests_ran
 
 
-def test_version_arguments(*, image: str, tool: str, environment: str) -> int:
+def test_version_arguments(
+    *, image: str, tool: str, environment: str, user: str
+) -> int:
     """Given a specific image, test the appropriate version arguments from the config"""
     working_dir: str = "/iac/"
     tests_path: Path = constants.CWD.joinpath("tests")
@@ -130,7 +133,7 @@ def test_version_arguments(*, image: str, tool: str, environment: str) -> int:
             )
 
     LOG.debug(
-        f"Testing the following commands for image {image}: {commands_to_test}..."
+        f"Testing the following commands for image {image} as {user}: {commands_to_test}..."
     )
     for command in commands_to_test:
         utils.opinionated_docker_run(
@@ -138,6 +141,7 @@ def test_version_arguments(*, image: str, tool: str, environment: str) -> int:
             volumes=volumes,
             working_dir=working_dir,
             command=command,
+            user=user,
             expected_exit=0,
         )
         num_tests_ran += 1
@@ -239,7 +243,7 @@ def check_container(
     return num_successful_tests
 
 
-def run_path_check(*, tool: str, environment: str | None = None) -> None:
+def run_path_check(*, tool: str, user: str, environment: str | None = None) -> None:
     """Wrapper to run check_paths"""
     commands: list[str] = []
 
@@ -283,6 +287,7 @@ def run_path_check(*, tool: str, environment: str | None = None) -> None:
         num_successful_tests: int = check_paths(
             interactive=interactive,
             tool=tool,
+            user=user,
             environment=environment,
             commands=commands,
         )
@@ -290,33 +295,39 @@ def run_path_check(*, tool: str, environment: str | None = None) -> None:
         if num_successful_tests > 0:
             context: str = "interactive" if interactive else "non-interactive"
             LOG.info(
-                f"{image_and_tag} passed all {num_successful_tests} {context} path tests"
+                f"{image_and_tag} passed all {num_successful_tests} {context} path tests with user {user}"
             )
         else:
             context: str = "an interactive" if interactive else "a non-interactive"
-            LOG.error(f"{image_and_tag} failed {context} path test")
+            LOG.error(f"{image_and_tag} failed {context} path test with user {user}")
             sys.exit(1)
 
 
 def check_paths(
-    *, interactive: bool, tool: str, environment: str | None = None, commands: list[str]
+    *,
+    interactive: bool,
+    tool: str,
+    environment: str | None = None,
+    user: str,
+    commands: list[str],
 ) -> int:
     """
-    Check the commands in easy_infra.yml to ensure they are in the easy_infra user's PATH.
+    Check the commands in easy_infra.yml to ensure they are in the supported user's PATH.
     Return 0 for any failures, or the number of correctly found files
     """
     image_and_tag: str = utils.get_image_and_tag(tool=tool, environment=environment)
 
+    # All commands should be in the PATH of supported users
+    num_successful_tests: int = 0
     container = CLIENT.containers.run(
         image=image_and_tag,
         detach=True,
+        user=user,
         auto_remove=False,
         tty=True,
     )
 
-    # All commands should be in the PATH of the easy_infra user
-    LOG.debug(f"Testing the easy_infra user's PATH when interactive is {interactive}")
-    num_successful_tests: int = 0
+    LOG.debug(f"Testing the {user} user's PATH when interactive is {interactive}")
     for command in commands:
         if interactive:
             attempt = container.exec_run(
@@ -327,27 +338,31 @@ def check_paths(
                 cmd=f'/bin/bash -c "which {command}"',
             )
         if attempt[0] != 0:
-            LOG.error(f"{command} is not in the PATH of {image_and_tag}")
+            LOG.error(f"{command} is not in the PATH of {user} in {image_and_tag}")
             container.kill()
             return 0
 
         num_successful_tests += 1
-
     container.kill()
     return num_successful_tests
 
 
 def exec_tests(
     *,
-    tests: list[tuple[dict, str, int]],
-    volumes: dict,
     image: str,
+    tests: list[tuple[dict, str, int]],
+    user: str = "",
+    volumes: dict,
     network_mode: Union[str, None] = None,
 ) -> int:
     """Execute the provided tests and return a count of tests run"""
     num_tests_ran = 0
     config_dir = list(volumes.keys())[0]
     working_dir = volumes[config_dir]["bind"]
+
+    if not user:
+        LOG.error("A user must be specified to execute tests!")
+        sys.exit(1)
 
     for environment, command, expected_exit in tests:
         LOG.debug(f"{environment=}, {command=}, {expected_exit=}")
@@ -356,6 +371,7 @@ def exec_tests(
             environment=environment,
             expected_exit=expected_exit,
             image=image,
+            user=user,
             volumes=volumes,
             working_dir=working_dir,
             network_mode=network_mode,
@@ -364,29 +380,32 @@ def exec_tests(
     return num_tests_ran
 
 
-def run_tests(*, image: str, tool: str, environment: str | None) -> None:
+def run_tests(*, image: str, user: str, tool: str, environment: str | None) -> None:
     """Fanout function to run the appropriate tests"""
-    run_path_check(tool=tool, environment=environment)
+    run_path_check(tool=tool, user=user, environment=environment)
 
     tool_test_function: str = f"run_{tool}"
-    eval(tool_test_function)(image=image)  # nosec B307 pylint: disable=eval-used
+    eval(tool_test_function)(
+        image=image, user=user
+    )  # nosec B307 pylint: disable=eval-used
 
     if environment and environment != "none":
         environment_test_function: str = f"run_{environment}"
         # TODO: Consider how we may want to test {tool}-{environment} features specifically; right now it is environment-only testing
         eval(environment_test_function)(  # nosec B307 pylint: disable=eval-used
-            image=image
+            image=image, user=user
         )
         tag: str = constants.CONTEXT[tool][environment]["versioned_tag"]
     else:
         tag: str = constants.CONTEXT[tool]["versioned_tag"]
 
     # TODO: Fix typing issue here with environment; None vs str
-    global_tests(tool=tool, environment=environment)
+    global_tests(tool=tool, environment=environment, user=user)
+    # No need to supply a user to the security scans as they are container-global
     run_security(tag=tag)
 
 
-def run_cloudformation(*, image: str) -> None:
+def run_cloudformation(*, image: str, user: str) -> None:
     """Run the CloudFormation tests"""
     num_tests_ran: int = 0
     working_dir: str = "/iac/"
@@ -443,7 +462,9 @@ def run_cloudformation(*, image: str) -> None:
     ]
 
     LOG.debug("Testing secure cloudformation templates")
-    num_tests_ran += exec_tests(tests=tests, volumes=secure_volumes, image=image)
+    num_tests_ran += exec_tests(
+        tests=tests, volumes=secure_volumes, image=image, user=user
+    )
 
     # Ensure insecure configurations still succeed when security checks are disabled
     # Tests is a list of tuples containing the test environment, command, and expected exit code
@@ -487,7 +508,9 @@ def run_cloudformation(*, image: str) -> None:
     ]
 
     LOG.debug("Testing scan_cloudformation with security disabled")
-    num_tests_ran += exec_tests(tests=tests, volumes=checkov_volumes, image=image)
+    num_tests_ran += exec_tests(
+        tests=tests, volumes=checkov_volumes, image=image, user=user
+    )
 
     # Ensure insecure configurations fail properly due to checkov
     # Tests is a list of tuples containing the test environment, command, and expected exit code
@@ -526,7 +549,9 @@ def run_cloudformation(*, image: str) -> None:
     ]
 
     LOG.debug("Testing checkov against insecure cloudformation templates")
-    num_tests_ran += exec_tests(tests=tests, volumes=checkov_volumes, image=image)
+    num_tests_ran += exec_tests(
+        tests=tests, volumes=checkov_volumes, image=image, user=user
+    )
 
     # Run base interactive cloudformation tests
     test_interactive_container = CLIENT.containers.run(
@@ -650,7 +675,7 @@ def run_cloudformation(*, image: str) -> None:
     LOG.info(f"{image} passed {num_tests_ran} end to end cloudformation tests")
 
 
-def run_terraform(*, image: str) -> None:
+def run_terraform(*, image: str, user: str) -> None:
     """Run the terraform tests"""
     num_tests_ran: int = 0
     working_dir: str = "/iac/"
@@ -856,7 +881,9 @@ def run_terraform(*, image: str) -> None:
 
     tests.append((copy.deepcopy(learning_mode_and_autodetect_environment), command, 0))
 
-    num_tests_ran += exec_tests(tests=tests, volumes=general_test_volumes, image=image)
+    num_tests_ran += exec_tests(
+        tests=tests, volumes=general_test_volumes, image=image, user=user
+    )
 
     # Ensure autodetect finds the appropriate terraform configs, which can be inferred by the number of logs written to /var/log/easy_infra.log
     #
@@ -970,7 +997,9 @@ def run_terraform(*, image: str) -> None:
     ]
 
     LOG.debug("Testing secure terraform configurations")
-    num_tests_ran += exec_tests(tests=tests, volumes=secure_volumes, image=image)
+    num_tests_ran += exec_tests(
+        tests=tests, volumes=secure_volumes, image=image, user=user
+    )
 
     # Ensure the easy_infra hooks work as expected when network access is available
     # Tests is a list of tuples containing the test environment, command, and expected exit code
@@ -995,7 +1024,9 @@ def run_terraform(*, image: str) -> None:
         ),  # This tests DISABLE_HOOKS; it fails because the terraform version used is incorrect
     ]
     LOG.debug("Testing the easy_infra hooks against various terraform configurations")
-    num_tests_ran += exec_tests(tests=tests, volumes=hooks_config_volumes, image=image)
+    num_tests_ran += exec_tests(
+        tests=tests, volumes=hooks_config_volumes, image=image, user=user
+    )
 
     tests: list[tuple[dict, str, int]] = [  # type: ignore
         (
@@ -1018,6 +1049,7 @@ def run_terraform(*, image: str) -> None:
         tests=tests,
         volumes=hooks_secure_terraform_v_0_14_dir_volumes,
         image=image,
+        user=user,
     )
 
     # Ensure the easy_infra hooks work as expected when network access is NOT available
@@ -1039,7 +1071,11 @@ def run_terraform(*, image: str) -> None:
         "Testing the easy_infra hooks with no network access, against various terraform configurations, expecting failures"
     )
     num_tests_ran += exec_tests(
-        tests=tests, volumes=hooks_config_volumes, image=image, network_mode="none"
+        tests=tests,
+        volumes=hooks_config_volumes,
+        image=image,
+        user=user,
+        network_mode="none",
     )
 
     tests: list[tuple[dict, str, int]] = [  # type: ignore
@@ -1074,6 +1110,7 @@ def run_terraform(*, image: str) -> None:
         tests=tests,
         volumes=hooks_secure_terraform_v_builtin_dir_volumes,
         image=image,
+        user=user,
         network_mode="none",
     )
 
@@ -1120,7 +1157,9 @@ def run_terraform(*, image: str) -> None:
     ]
 
     LOG.debug("Testing terraform with security disabled")
-    num_tests_ran += exec_tests(tests=tests, volumes=checkov_volumes, image=image)
+    num_tests_ran += exec_tests(
+        tests=tests, volumes=checkov_volumes, image=image, user=user
+    )
 
     # Ensure insecure configurations fail properly due to checkov
     # Tests is a list of tuples containing the test environment, command, and expected exit code
@@ -1156,7 +1195,9 @@ def run_terraform(*, image: str) -> None:
     ]
 
     LOG.debug("Testing checkov against insecure terraform")
-    num_tests_ran += exec_tests(tests=tests, volumes=checkov_volumes, image=image)
+    num_tests_ran += exec_tests(
+        tests=tests, volumes=checkov_volumes, image=image, user=user
+    )
 
     # Run base interactive terraform tests
     test_interactive_container = CLIENT.containers.run(
@@ -1314,7 +1355,7 @@ def run_terraform(*, image: str) -> None:
     LOG.info(f"{image} passed {num_tests_ran} end to end terraform tests")
 
 
-def run_ansible(*, image: str) -> None:
+def run_ansible(*, image: str, user: str) -> None:
     """Run the ansible-playbook tests"""
     num_tests_ran = 0
     working_dir = "/iac/"
@@ -1400,7 +1441,9 @@ def run_ansible(*, image: str) -> None:
         # This tests the "customizations" idea from easy_infra.yml and functions.j2
     ]
 
-    num_tests_ran += exec_tests(tests=tests, volumes=kics_volumes, image=image)
+    num_tests_ran += exec_tests(
+        tests=tests, volumes=kics_volumes, image=image, user=user
+    )
 
     # Run base interactive tests
     test_interactive_container = CLIENT.containers.run(
@@ -1540,28 +1583,32 @@ def run_ansible(*, image: str) -> None:
     LOG.info(f"{image} passed {num_tests_ran} end to end ansible-playbook tests")
 
 
-def run_azure(*, image: str) -> None:
+def run_azure(*, image: str, user: str) -> None:
     """Run the azure tests"""
     num_tests_ran = 0
 
     # Ensure a basic azure help command succeeds
     command = "az help"
-    utils.opinionated_docker_run(image=image, command=command, expected_exit=0)
+    utils.opinionated_docker_run(
+        image=image, command=command, user=user, expected_exit=0
+    )
     num_tests_ran += 1
 
-    LOG.info(f"{image} passed {num_tests_ran} integration tests")
+    LOG.info(f"{image} passed {num_tests_ran} integration tests as {user}")
 
 
-def run_aws(*, image: str) -> None:
+def run_aws(*, image: str, user: str) -> None:
     """Run the aws tests"""
     num_tests_ran = 0
 
     # Ensure a basic aws help command succeeds
     command = "aws help"
-    utils.opinionated_docker_run(image=image, command=command, expected_exit=0)
+    utils.opinionated_docker_run(
+        image=image, command=command, user=user, expected_exit=0
+    )
     num_tests_ran += 1
 
-    LOG.info(f"{image} passed {num_tests_ran} integration tests")
+    LOG.info(f"{image} passed {num_tests_ran} integration tests as {user}")
 
 
 def run_security(*, tag: str) -> None:
