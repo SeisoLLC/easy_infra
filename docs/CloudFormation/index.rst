@@ -77,4 +77,4 @@ Resources
 ---------
 
 Checkov allow numerous methods for creating custom policies, such as by writing them in Python or using the Checkov-specific DSL in yml files. These
-options are described in more detail `here <https://www.checkov.io/3.Custom%20Policies/Custom%20Policies%20Overview.html>_`
+options are described in more detail `here <https://www.checkov.io/3.Custom%20Policies/Custom%20Policies%20Overview.html>`_

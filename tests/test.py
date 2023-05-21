@@ -1249,9 +1249,7 @@ def run_terraform(*, image: str, user: str) -> None:
     )
 
     # Running an interactive terraform command
-    test_interactive_container.exec_run(
-        cmd='/bin/bash -ic "terraform init"', tty=True
-    )
+    test_interactive_container.exec_run(cmd='/bin/bash -ic "terraform init"', tty=True)
 
     # An interactive terraform command should still cause the creation of the following files, and should have the same number of logs lines in the
     # fluent bit log regardless of which image is being tested
