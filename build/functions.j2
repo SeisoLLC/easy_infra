@@ -212,7 +212,7 @@ function {{ "scan_" ~ function if scan else function }}() {
     dirs_to_hash=("${dir}")
   {%- if monitor is defined %}
     {%- for env_var in monitor["env_vars"] if monitor["env_vars"] %}
-    if [[ -n {{ '${' }}{{ env_var }}}" ]]; then
+    if [[ -n {{ '${' }}{{ env_var }}} ]]; then
       dirs_to_hash+=("{{ '${' }}{{ env_var }}}")
     fi
     {%- endfor %}
@@ -223,11 +223,11 @@ function {{ "scan_" ~ function if scan else function }}() {
     if [[ -r "${hashfile}" && -n ${hash} && ${hash} == "${previous_hash}" ]]; then
       run_scans="false"
     elif [[ -r "${hashfile}" ]]; then
-      _feedback INFO "The files at ${dirs_to_hash[@]} were changed from ${previous_hash} to ${hash}; reactivating scans..."
+      _feedback INFO "The files at ${dirs_to_hash[*]} were changed from ${previous_hash} to ${hash}; reactivating scans..."
       echo "${hash}" >> "${hashfile}"
       run_scans="true"
     elif [[ -z ${hash} ]]; then
-      _feedback ERROR "Unable to obtain the hash of the files at ${dirs_to_hash[@]}; this should never happen"
+      _feedback ERROR "Unable to obtain the hash of the files at ${dirs_to_hash[*]}; this should never happen"
       exit 1
     else
       # This creates the hashfile
