@@ -225,8 +225,8 @@ function {{ "scan_" ~ function if scan else function }}() {
       previous_hash="$(tail -1 "${hashfile}")"
     fi
     if [[ -r "${hashfile}" && -n ${hash} && ${hash} == "${previous_hash}" ]]; then
-      _feedback DEBUG "Setting run_scans to false because the hashfile already exists and the current hash matches the previous hash"
       run_scans="false"
+      _feedback DEBUG "Setting run_scans to ${run_scans} because the hashfile already exists and the current hash matches the previous hash"
     elif [[ -r "${hashfile}" ]]; then
       _feedback INFO "The files at ${dirs_to_hash[*]} were changed from ${previous_hash} to ${hash}; reactivating scans..."
       echo "${hash}" >> "${hashfile}"
