@@ -902,7 +902,7 @@ def run_terraform(*, image: str, user: str) -> None:
     )
     for autodetect_status in ["true", "false"]:
         disable_security_and_autodetect_environment["AUTODETECT"] = autodetect_status
-        command = "terraform init"
+        command = '/bin/bash -c "terraform init && terraform validate"'
 
         if autodetect_status == "true":
             # Expect exit 1 due to the discovery of terraform/general/invalid/invalid.tf
@@ -1189,7 +1189,7 @@ def run_terraform(*, image: str, user: str) -> None:
         ),
         (
             {"LEARNING_MODE": "tRuE"},
-            "terraform init",
+            '/bin/bash -c "terraform init && terraform validate"',
             0,
         ),
     ]
