@@ -209,6 +209,8 @@ function {{ "scan_" ~ function if scan else function }}() {
     fi
 
     ## Only rerun security tools if (1) it is the first time, or (2) we are able to detect a change
+    bash: /tmp/terraform./iac.hash: No such file or directory
+
     dirs_to_hash=("${dir}")
   {%- if monitor is defined %}
     {%- for env_var in monitor["env_vars"] if monitor["env_vars"] %}
@@ -218,8 +220,12 @@ function {{ "scan_" ~ function if scan else function }}() {
     {%- endfor %}
   {%- endif %}
     hash="$(sha256sum <(find ${dirs_to_hash[@]} -type f -exec sha256sum {} \; | sort) | awk '{print $1}')"
-    hashfile="/tmp/{{ function }}.${dir}.hash"
-    previous_hash="$(tail -1 "${hashfile}")"
+    sanitized_cwd="${dir//\//_}"
+    hashfile="/tmp/{{ function }}.${sanitized_cwd}.hash"
+    previous_hash='empty'
+    if [[ -r "${hashfile}" ]]; then
+      previous_hash="$(tail -1 "${hashfile}")"
+    fi
     if [[ -r "${hashfile}" && -n ${hash} && ${hash} == "${previous_hash}" ]]; then
       run_scans="false"
     elif [[ -r "${hashfile}" ]]; then
