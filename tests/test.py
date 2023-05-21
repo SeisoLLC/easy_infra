@@ -1333,7 +1333,7 @@ def run_terraform(*, image: str, user: str) -> None:
     # Running a non-interactive terraform version (or any other supported
     # "version" argument) should NOT cause the creation of the following files
     test_noninteractive_container.exec_run(
-        cmd='/bin/bash -c "terraform init"', tty=False
+        cmd='/bin/bash -c "terraform version"', tty=False
     )
     files = ["/tmp/checkov_complete"]
     LOG.debug("Testing non-interactive terraform version")
