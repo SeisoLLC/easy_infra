@@ -737,7 +737,7 @@ def run_terraform(*, image: str, user: str) -> None:
     )
 
     # Ensure invalid configurations fail
-    command: str = "terraform plan"
+    command: str = "terraform init"
     LOG.debug("Testing invalid terraform configurations")
     utils.opinionated_docker_run(
         image=image,
@@ -902,7 +902,7 @@ def run_terraform(*, image: str, user: str) -> None:
     )
     for autodetect_status in ["true", "false"]:
         disable_security_and_autodetect_environment["AUTODETECT"] = autodetect_status
-        command = "terraform validate"
+        command = "terraform init"
 
         if autodetect_status == "true":
             # Expect exit 1 due to the discovery of terraform/general/invalid/invalid.tf
@@ -945,7 +945,7 @@ def run_terraform(*, image: str, user: str) -> None:
             )
 
         test_autodetect_disable_security_container.exec_run(
-            cmd='/bin/bash -c "terraform validate || true"', tty=False
+            cmd='/bin/bash -c "terraform init && terraform validate || true"', tty=False
         )
 
         if (
@@ -981,7 +981,7 @@ def run_terraform(*, image: str, user: str) -> None:
         ),  # Previous Terraform Caching example from the README.md
         (
             {},
-            '/usr/bin/env bash -c "terraform validate && terraform plan && terraform validate"',
+            '/usr/bin/env bash -c "terraform init && terraform validate && terraform plan && terraform validate"',
             0,
         ),
         (
@@ -1135,7 +1135,7 @@ def run_terraform(*, image: str, user: str) -> None:
         ),
         (
             {"DISABLE_SECURITY": "true"},
-            "terraform plan || false",
+            "terraform init || false",
             1,
         ),  # Not supported; reproduce "Too many command line arguments. Configuration path expected." error
         #     locally with `docker run -e DISABLE_SECURITY=true -v $(pwd)/tests/terraform/tool/checkov:/iac seiso/easy_infra:latest-terraform terraform plan
@@ -1164,32 +1164,32 @@ def run_terraform(*, image: str, user: str) -> None:
     # Ensure insecure configurations fail properly due to checkov
     # Tests is a list of tuples containing the test environment, command, and expected exit code
     tests: list[tuple[dict, str, int]] = [  # type: ignore
-        ({}, "terraform plan", 1),
+        ({}, "terraform init", 1),
         ({}, "tfenv exec plan", 1),
         ({}, "scan_terraform", 1),
         (
             {},
-            '/usr/bin/env bash -c "terraform plan"',
+            '/usr/bin/env bash -c "terraform init"',
             1,
         ),
         (
             {},
-            '/usr/bin/env bash -c "terraform plan || true"',
+            '/usr/bin/env bash -c "terraform init || true"',
             0,
         ),
         (
             {},
-            '/usr/bin/env bash -c "terraform plan || true && false"',
+            '/usr/bin/env bash -c "terraform init || true && false"',
             1,
         ),
         (
             {"LEARNING_MODE": "tRuE"},
-            '/usr/bin/env bash -c "terraform validate"',
+            '/usr/bin/env bash -c "terraform init && terraform validate"',
             0,
         ),
         (
             {"LEARNING_MODE": "tRuE"},
-            "terraform validate",
+            "terraform init",
             0,
         ),
     ]
@@ -1210,9 +1210,7 @@ def run_terraform(*, image: str, user: str) -> None:
     )
 
     # Running an interactive terraform command
-    test_interactive_container.exec_run(
-        cmd='/bin/bash -ic "terraform validate"', tty=True
-    )
+    test_interactive_container.exec_run(cmd='/bin/bash -ic "terraform init"', tty=True)
 
     # An interactive terraform command should not cause the creation of the following files, and should have the same number of logs lines in the
     # fluent bit log regardless of which image is being tested
@@ -1252,7 +1250,7 @@ def run_terraform(*, image: str, user: str) -> None:
 
     # Running an interactive terraform command
     test_interactive_container.exec_run(
-        cmd='/bin/bash -ic "terraform validate"', tty=True
+        cmd='/bin/bash -ic "terraform init"', tty=True
     )
 
     # An interactive terraform command should still cause the creation of the following files, and should have the same number of logs lines in the
@@ -1293,7 +1291,7 @@ def run_terraform(*, image: str, user: str) -> None:
 
     # Running a non-interactive terraform command
     test_noninteractive_container.exec_run(
-        cmd='/bin/bash -c "terraform validate"', tty=False
+        cmd='/bin/bash -c "terraform init"', tty=False
     )
 
     # A non-interactive terraform command should cause the creation of the following files, and should have the same number of logs lines in the
@@ -1337,7 +1335,7 @@ def run_terraform(*, image: str, user: str) -> None:
     # Running a non-interactive terraform version (or any other supported
     # "version" argument) should NOT cause the creation of the following files
     test_noninteractive_container.exec_run(
-        cmd='/bin/bash -c "terraform version"', tty=False
+        cmd='/bin/bash -c "terraform init"', tty=False
     )
     files = ["/tmp/checkov_complete"]
     LOG.debug("Testing non-interactive terraform version")
