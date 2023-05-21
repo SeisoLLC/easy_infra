@@ -945,7 +945,7 @@ def run_terraform(*, image: str, user: str) -> None:
             )
 
         test_autodetect_disable_security_container.exec_run(
-            cmd='/bin/bash -c "terraform init && terraform validate || true"', tty=False
+            cmd='/bin/bash -c "terraform init"', tty=False
         )
 
         if (
