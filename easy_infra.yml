@@ -96,6 +96,9 @@ packages:
     file_extensions: *id002
     helper:
     - terraform
+    monitor:
+      env_vars:
+        - TF_DATA_DIR
     security: *id003
     version: v3.0.0
     version_argument: --version
