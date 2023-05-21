@@ -10,11 +10,6 @@ _anchors:
         CHECKOV_EXTERNAL_CHECKS_DIR: --external-checks-dir
         CHECKOV_SKIP_CHECK: --skip-check
       description: directory scan
-  validation: &id004
-  - command: terraform init -backend=false
-    description: initialization
-  - command: terraform validate
-    description: validation
 environments:
   aws:
     packages:
@@ -84,8 +79,10 @@ packages:
     version_argument: version
   terraform:
     file_extensions: *id002
+    monitor:
+      env_vars:
+        - TF_DATA_DIR
     security: *id003
-    validation: *id004
     version: 1.4.6
     version_argument: version
   terratag:
@@ -100,6 +97,5 @@ packages:
     helper:
     - terraform
     security: *id003
-    validation: *id004
     version: v3.0.0
     version_argument: --version

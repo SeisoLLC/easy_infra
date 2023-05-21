@@ -9,6 +9,10 @@ environments as Infrastructure as Code (IaC).
 
 ``easy_infra`` uses security tools, such as `Checkov <https://www.checkov.io/>`_, to transparently assess the provided IaC against the defined security policy.
 
+.. warning::
+    ``easy_infra``'s `terraform` images are incompatable with the terraform ``-chdir`` argument as documented `here
+    <https://developer.hashicorp.com/terraform/cli/commands#switching-working-directory-with-chdir>`_.
+
 
 Use Cases
 ---------
