@@ -115,11 +115,11 @@ Monitor
 ^^^^^^^
 
 The ``monitor`` section is how you can specify which additional locations on the filesystem we should monitor for
-changes to determine if we should rerun the security scans for instance, if ``AUTODETECT`` is ``true`` and you're
-running a command in multiple directories, and/or if you're chaining commands which may modify the filesystem. It
-currently only supports a ``env_vars`` key containing a list of strings, which are the names of environment variables
-that the related tool uses to identify alternative locations to store runtime-critical files. This may be expanded in
-the future.
+changes to determine if we should rerun the security scans. For instance, if ``AUTODETECT`` is ``true`` and you're
+running a command in multiple directories, and/or if you're chaining commands which may modify the filesystem.
+
+Monitor currently only supports a ``env_vars`` key containing a list of names of environment variables that the related
+tool uses to identify alternative locations to store runtime-critical files. This may be expanded in the future.
 
 Security
 ^^^^^^^^
