@@ -9,6 +9,10 @@ environments as Infrastructure as Code (IaC).
 
 ``easy_infra`` uses security tools, such as `Checkov <https://www.checkov.io/>`_, to transparently assess the provided IaC against the defined security policy.
 
+.. warning::
+    ``easy_infra``'s `terraform` images are incompatable with the terraform ``-chdir`` argument as documented `here
+    <https://developer.hashicorp.com/terraform/cli/commands#switching-working-directory-with-chdir>`_.
+
 
 Use Cases
 ---------
@@ -115,5 +119,5 @@ command (or series of commands) on all of them without needing to maintain a met
 Resources
 ---------
 
-Checkov allow numerous methods for creating custom policies, such as by writing them in Python or using the Checkov-specific DSL in yaml files. These
-options are described in more detail `here <https://www.checkov.io/3.Custom%20Policies/Custom%20Policies%20Overview.html>_`
+Checkov allow numerous methods for creating custom policies, such as by writing them in Python or using the Checkov-specific DSL in yaml files. These options
+are described in more detail `here <https://www.checkov.io/3.Custom%20Policies/Custom%20Policies%20Overview.html>`_

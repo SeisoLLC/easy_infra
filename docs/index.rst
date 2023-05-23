@@ -5,13 +5,3 @@
 
 
 .. mdinclude:: ../README.md
-
-.. toctree::
-   Home <self>
-   Terraform/index
-   CloudFormation/index
-   Ansible/index
-   Logging/index
-   Hooks/index
-   Cloning/index
-   Technical Details/index

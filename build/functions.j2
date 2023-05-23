@@ -55,6 +55,7 @@ function process_command_exit_status() {
 {%- set allow_filter = packages[package]["allow_filter"] -%}
 {%- set version_argument = packages[package]["version_argument"] -%}
 {%- set validations = packages[package]["validation"] -%}
+{%- set monitor = packages[package]["monitor"] -%}
 
 function {{ "scan_" ~ function if scan else function }}() {
   arguments=("${@}")
@@ -207,10 +208,44 @@ function {{ "scan_" ~ function if scan else function }}() {
       continue
     fi
 
+    ## Only rerun security tools if (1) it is the first time, or (2) we are able to detect a change
+    dirs_to_hash=("${dir}")
+  {%- if monitor is defined %}
+    {%- for env_var in monitor["env_vars"] if monitor["env_vars"] %}
+    if [[ -n {{ '${' }}{{ env_var }}} ]]; then
+      dirs_to_hash+=("{{ '${' }}{{ env_var }}}")
+    fi
+    {%- endfor %}
+  {%- endif %}
+    hash="$(sha256sum <(find ${dirs_to_hash[@]} -type f -exec sha256sum {} \; | sort) | awk '{print $1}')"
+    sanitized_cwd="${dir//\//_}"
+    hashfile="/tmp/{{ function }}.${sanitized_cwd}.hash"
+    previous_hash='empty'
+    if [[ -r "${hashfile}" ]]; then
+      previous_hash="$(tail -1 "${hashfile}")"
+    fi
+    if [[ -r "${hashfile}" && -n ${hash} && ${hash} == "${previous_hash}" ]]; then
+      run_scans="false"
+      _feedback DEBUG "Setting run_scans to ${run_scans} because the hashfile already exists and the current hash matches the previous hash"
+    elif [[ -r "${hashfile}" ]]; then
+      _feedback INFO "The files at ${dirs_to_hash[*]} were changed from ${previous_hash} to ${hash}; reactivating scans..."
+      echo "${hash}" >> "${hashfile}"
+      run_scans="true"
+    elif [[ -z ${hash} ]]; then
+      _feedback ERROR "Unable to obtain the hash of the files at ${dirs_to_hash[*]}; this should never happen"
+      exit 1
+    else
+      _feedback DEBUG "Creating ${hashfile} with the contents ${hash} due to the files at ${dirs_to_hash[*]}"
+      # This creates the hashfile
+      echo "${hash}" >> "${hashfile}"
+      run_scans="true"
+    fi
+
   {%- if validations is defined %}
     ## Validate the input prior to running security tooling
     {%- for validation in validations %}
-    # If the initialization was already run successfully in a non-interactive shell with AUTODETECT not set to true, don't run it again
+    # If the initialization was already run successfully in a non-interactive shell with AUTODETECT not set to true,
+    # don't run it again
     if [[ -r "/tmp/{{ validation.command | replace(" ", "_") }}_complete" && "${AUTODETECT:-false}" != "true" ]]; then
       _feedback INFO "Skipping \`{{ validation.command }}\` because it was already run on $(date -d @"$(cat /tmp/{{ validation.command | replace(" ", "_") }}_complete)")"
     else
@@ -253,10 +288,11 @@ function {{ "scan_" ~ function if scan else function }}() {
     elif [[ "${!{{ security_tool | replace("-", "_") }}_skip_env_var,,}" == "true" ]]; then
       _feedback WARNING "Skipping {{ security_tool }} due to the {{ '${' }}{{ security_tool | replace("-", "_") }}_skip_env_var} environment variable value"
       _log "easy_infra.stdouterr" info unknown "{{ security_tool }}-skipped" "${dir}" string "Skipping {{ security_tool }} due to the {{ '${' }}{{ security_tool | replace("-", "_") }}_skip_env_var} environment variable value"
-    # If the security scan was already run successfully in a non-interactive shell with AUTODETECT not set to true, don't run it again
-    elif [[ -r "/tmp/{{ security_tool | replace("-", "_") }}_complete" && "${AUTODETECT:-false}" != "true" ]]; then
-      _feedback INFO "Skipping {{ security_tool }} because it was already run on $(date -d @"$(cat /tmp/{{ security_tool | replace("-", "_") }}_complete)")"
-      _log "easy_infra.stdouterr" info unknown "{{ security_tool }}-skipped" "${dir}" string "Skipping {{ security_tool }} because it was already run on $(date -d @"$(cat /tmp/{{ security_tool | replace("-", "_") }}_complete)")"
+    # If the security scan was already run successfully in a non-interactive shell and the filesystem hasn't changed
+    # since then, don't run it again
+    elif [[ ${run_scans:-true} == "false" && -r "/tmp/{{ security_tool | replace("-", "_") }}_complete" ]]; then
+      _feedback INFO "Skipping {{ security_tool }} because it was already run on $(date -d @"$(cat /tmp/{{ security_tool | replace("-", "_") }}_complete)") and the filesystem has not changed since then"
+      _log "easy_infra.stdouterr" info unknown "{{ security_tool }}-skipped" "${dir}" string "Skipping {{ security_tool }} because it was already run on $(date -d @"$(cat /tmp/{{ security_tool | replace("-", "_") }}_complete)") and the filesystem has not changed since then"
     # Otherwise, attempt to run the security tool
     else
       if [[ -x $(which {{ security_tool }}) ]]; then
@@ -342,8 +378,6 @@ function {{ "scan_" ~ function if scan else function }}() {
   done
 
   ## Process the exit codes from each directory
-  something_failed="false"
-
   for dir in "${!dir_exit_codes[@]}"; do
     if [[ "${dir_exit_codes[${dir}]}" -gt 0 ]]; then
       feedback_label="ERROR"

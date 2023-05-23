@@ -3,15 +3,15 @@
 ## Background
 
 To learn more about the design and background of this project, as well as some of the naming standards and concepts, see [the
-documentation](https://easy-infra.readthedocs.io/) under the Technical Details section. You may also want to refer to the other parts of the docs to
-learn about the existing features.
+documentation](https://easy-infra.readthedocs.io/) under the Technical Details section. You may also want to refer to the other parts of the docs to learn about
+the existing features.
 
 ## Getting started
 
 To get started with contributing to this project, you first want to ensure that you can build and test the project locally.
 
-First, ensure you have `docker`, `git`, `pipenv`, and `python3` installed locally, and the `docker` daemon is running. Then run `pipenv install
---deploy --ignore-pipfile --dev` to install the dependencies onto your local system.
+First, ensure you have `docker`, `git`, `pipenv`, and `python3` installed locally, and the `docker` daemon is running. Then run `pipenv install --deploy
+--ignore-pipfile --dev` to install the dependencies onto your local system.
 
 If you'd like to [run the test suite](#running-the-tests), you will also need `grype` downloaded and in your `PATH`.
 
@@ -31,8 +31,7 @@ If you only want to build a specific image, you can pass in a tool and/or an env
 pipenv run invoke build --tool=terraform --environment=none
 ```
 
-To see the list of possible tools, run the following command. If you don't specify a tool, `build` will assume that you want to build "all" of the
-tools.
+To see the list of possible tools, run the following command. If you don't specify a tool, `build` will assume that you want to build "all" of the tools.
 
 ```bash
 pipenv run python3 -c \
@@ -40,8 +39,8 @@ pipenv run python3 -c \
   print(list(constants.TOOLS))"
 ```
 
-To see the possible environments, run the following command. If you don't specify a environment, `build` will assume that you want to build "all" of
-the supported environments for the specified tool(s).
+To see the possible environments, run the following command. If you don't specify a environment, `build` will assume that you want to build "all" of the
+supported environments for the specified tool(s).
 
 ```bash
 pipenv run python -c \
@@ -67,8 +66,7 @@ This will add additional troubleshooting tools to the container, and perform som
 
 ### Running the tests
 
-If you are attempting to run the tests locally, consider running the following to ensure that the user from inside the container can write to the
-host:
+If you are attempting to run the tests locally, consider running the following to ensure that the user from inside the container can write to the host:
 
 ```bash
 find tests -mindepth 1 -type d -exec chmod o+w {} \;
@@ -80,11 +78,11 @@ You can now run the tests locally:
 pipenv run invoke test
 ```
 
-You can pass in the `--tool`, `--environment`, and `--user` arguments to test a specific subset of functionality. See
-the build step to see the `tool` and `environment` possible inputs.
+You can pass in the `--tool`, `--environment`, and `--user` arguments to test a specific subset of functionality. See the build step to see the `tool` and
+`environment` possible inputs.
 
-To see the list of supported users, run the following command. If you don't specify a user, `test` will assume that you
-want to test with all of the supported users.
+To see the list of supported users, run the following command. If you don't specify a user, `test` will assume that you want to test with all of the supported
+users.
 
 ```bash
 pipenv run python3 -c \
@@ -100,7 +98,7 @@ If you'd like to generate an SBOM, run the following:
 pipenv run invoke sbom
 ```
 
-You will now see various `sbom.*.json` files in your current directory, and you can pass in the same `--tool` and `--environment` arguments as
+You will now see various `sbom.*.json` files in your current directory, and you can pass in the same `--tool` and `--environment` arguments as `build`ing.
 
 ### Running vulnerability scans
 
@@ -110,5 +108,5 @@ If you'd like to run the vulnerability scans, run the following:
 pipenv run invoke vulnscan
 ```
 
-You will now see various `vulns.*.json` files in your current directory, and you can pass in the same `--tool` and `--environment` arguments as
-outlined in the build instructions above.
+You will now see various `vulns.*.json` files in your current directory, and you can pass in the same `--tool` and `--environment` arguments as outlined in the
+build instructions above.

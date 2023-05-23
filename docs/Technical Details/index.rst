@@ -44,6 +44,9 @@ Here is a fictitious ``easy_infra.yml`` that concisely demonstrates the various 
         file_extensions: *id001
         helper: ["terraform"]
         security: *id002
+        monitor:
+          env_vars:
+            - TF_DATA_DIR
         tool:
           name: customname
           environments:
@@ -107,6 +110,16 @@ File extensions
 
 ``file_extensions`` exist to support the ``AUTODETECT`` function. If a ``package`` doesn't have file extensions defined, the project's autodetect
 logic is unable to detect where files that relate to the command being run exist.
+
+Monitor
+^^^^^^^
+
+The ``monitor`` section is how you can specify which additional locations on the filesystem we should monitor for
+changes to determine if we should rerun the security scans. For instance, if ``AUTODETECT`` is ``true`` and you're
+running a command in multiple directories, and/or if you're chaining commands which may modify the filesystem.
+
+Monitor currently only supports a ``env_vars`` key containing a list of names of environment variables that the related
+tool uses to identify alternative locations to store runtime-critical files. This may be expanded in the future.
 
 Security
 ^^^^^^^^
