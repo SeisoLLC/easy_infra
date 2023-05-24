@@ -881,9 +881,11 @@ def clean(_c, debug=False):
     cleanup_list.extend(list(constants.CWD.glob("**/*.pyc")))
     cleanup_list.extend(list(constants.CWD.glob("**/__pycache__")))
 
-    # easy_infra specific files
+    # easy_infra specific created/generated files
     cleanup_list.extend(list(constants.CWD.glob("sbom.*.json")))
     cleanup_list.extend(list(constants.CWD.glob("vulns.*.json")))
+    cleanup_list.extend(list(constants.CWD.glob("build/functions")))
+    cleanup_list.extend(list(constants.CWD.glob("build/Dockerfile")))
 
     for item in cleanup_list:
         if item.is_dir():
