@@ -58,6 +58,8 @@ RUN groupadd --gid 53150 -r easy_infra \
     >> /home/easy_infra/.ssh/known_hosts \
  && echo "# END preloaded known_hosts as of $(date)" >> /home/easy_infra/.ssh/known_hosts \
  && apt-get remove -y ssh \
+ # The apt-get install ssh generates keys that are unnecessary/unused and get flagged in secrets scans. They aren’t auto cleaned up with an apt-get remove or purge
+ && find /etc/ssh/ -type f -name '*key' -exec rm {} + \
  && mkdir -p /root/.ssh \
  && touch /root/.ssh/known_hosts \
  && cp /home/easy_infra/.ssh/known_hosts /root/.ssh/known_hosts \
