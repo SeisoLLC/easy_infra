@@ -116,7 +116,7 @@ function {{ "scan_" ~ function if scan else function }}() {
     # Dynamically register hooks
     for file in /opt/hooks/bin/*.sh; do
       command=$(awk -F\: '/register_hook/ { gsub(/ /,""); print $2 }' "${file}")
-      if [[ "${command}" == "{{ function }}" ]]; then
+      if [[ "${command}" == "{{ 'scan_' ~ function if scan else function }}" ]]; then
         easy_infra_{{ function | replace("-", "_") }}_hooks+=("${file}")
       fi
     done

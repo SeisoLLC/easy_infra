@@ -243,13 +243,20 @@ Internal naming
   above), as configured in the ``easy_infra.yml`` file used to build the image.
 - Package: The name of a package that can be installed to perform a necessary function. It could be a tool, a security tool, or a generic helper such
   as ``fluent-bit`` or ``envconsul``.
-- Command: A runtime command, following the use of the term by bash (see the "Command Execution" of this documentation). This could be an alias, a
-  package, or some other executable on the user's ``PATH``.
+- Command: A runtime command, following the use of the term by bash (see `this documentation<https://www.ibm.com/docs/en/aix/7.2?topic=c-command-command>`_).
+  This could be an alias, a package, or some other executable on the user's ``PATH``.
 - Alias: An executable file in the easy_infra and root user's ``PATH`` which executes the installed by a package. While ``aws-cli`` would be a package, ``aws``
   would be the associated alias.
 - Environment: A supported destination that a tool (see above) may deploy into, such as a cloud provider. An environment constitutes a bundle of
   packages.
 
+Scan-only functions
+===================
+
+In addition to the Alias and Package functions which are generated, ``scan_`` functions are also created to allow you to run only the security scans (and
+related hooks) for a given Package or Alias. So, for instance, if you have a Package of ``terraform``, the related scan function would be ``scan_terraform``.
+Whereas, if you have a Package of ``ansible`` which has Aliases of ``ansible`` and ``ansible-playbook``, you will get scan functions of ``scan_ansible`` and
+``scan_ansible-playbook``.
 
 High-Level Design of the image build process
 ============================================
@@ -280,9 +287,9 @@ build on top of ``Dockerfile.abc``, and it is both expected that in ``Dockerfrag
 Runtime user support
 ====================
 
-By default, ``easy_infra`` runs as the ``easy_infra`` user and should be fully functional, however we also support the
-``root`` user due to various file system permission issues that often occur in pipelines when running as non-root users.
-Where possible, the ``easy_infra`` user should be used due to the security risks of running containers as ``root``.
+By default, ``easy_infra`` runs as the ``easy_infra`` user and should be fully functional, however we also support the ``root`` user due to various file system
+permission issues that often occur in pipelines when running as non-root users. Where possible, the ``easy_infra`` user should be used due to the security risks
+of running containers as ``root``.
 
 Adding to the project
 =====================

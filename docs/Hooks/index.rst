@@ -15,7 +15,9 @@ like to hook::
     # register_hook: terraform
 
 .. note::
-    Only packages (or their related aliases, where specified) listed in ``easy_infra.yml`` at build time are supported. This means that, if a package has multiple aliases it will need to be registered against each of those aliases.
+    Only packages or their related aliases listed in ``easy_infra.yml`` at build time, or the ``scan_`` functions (which only perform the security scans, i.e.
+    ``scan_terraform`` or ``scan_cloudformation``) are supported. This means that, if a package has multiple aliases, or if you'd like to support the ``scan_``
+    function, you will need to be registered your hook against each of those.
 
 Example
 ^^^^^^^
