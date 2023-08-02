@@ -352,13 +352,23 @@ def exec_tests(
     image: str,
     tests: list[tuple[dict, str, int]],
     user: str = "",
-    volumes: dict,
+    volumes: dict | list[dict],
     network_mode: Union[str, None] = None,
 ) -> int:
     """Execute the provided tests and return a count of tests run"""
     num_tests_ran = 0
-    config_dir = list(volumes.keys())[0]
-    working_dir = volumes[config_dir]["bind"]
+    if isinstance(volumes, dict):
+        config_dir = list(volumes.keys())[0]
+        working_dir = volumes[config_dir]["bind"]
+        final_volumes: dict = volumes
+    elif isinstance(volumes, list):
+        # Use the first dict in the list to extract working dir, etc.
+        config_dir = list(volumes[0].keys())[0]
+        working_dir = volumes[0][config_dir]["bind"]
+        final_volumes: list[str] = []
+        for volume in volumes:
+            for k, v in volume.items():
+                final_volumes.append(k + ":" + v["bind"])
 
     if not user:
         LOG.error("A user must be specified to execute tests!")
@@ -372,7 +382,7 @@ def exec_tests(
             expected_exit=expected_exit,
             image=image,
             user=user,
-            volumes=volumes,
+            volumes=final_volumes,
             working_dir=working_dir,
             network_mode=network_mode,
         )
@@ -708,6 +718,10 @@ def run_terraform(*, image: str, user: str) -> None:
     hooks_config_volumes: dict[Path, dict[str, str]] = {
         hooks_config_dir: {"bind": working_dir, "mode": "rw"}
     }
+    hooks_script_dir: Path = terraform_test_dir.joinpath("test-hooks")
+    hooks_script_volumes: dict[Path, dict[str, str]] = {
+        hooks_script_dir: {"bind": "/opt/hooks/bin/", "mode": "ro"}
+    }
     fluent_bit_config_host: Path = TESTS_PATH.joinpath("fluent-bit.outputs.conf")
     fluent_bit_config_container: str = (
         "/usr/local/etc/fluent-bit/fluent-bit.outputs.conf"
@@ -1000,6 +1014,23 @@ def run_terraform(*, image: str, user: str) -> None:
     num_tests_ran += exec_tests(
         tests=tests, volumes=secure_volumes, image=image, user=user
     )
+
+    # Ensure the scan_ hooks work and that you can provide custom hooks via volume mounting at runtime
+    # Tests is a list of tuples containing the test environment, command, and expected exit code
+    tests: list[tuple[dict, str, int]] = [  # type: ignore
+        (
+            {"DISABLE_SECURITY": "true"},
+            "scan_terraform",
+            230,
+        )  # This tests scan_terraform hook registration; if it runs and finds the unwanted file it should exit 230
+    ]
+
+    LOG.debug("Testing scan_ hooks and custom hooks volume mounted at runtime")
+    volumes: list[dict[Path, dict[str, str]]] = [
+        hooks_config_volumes,
+        hooks_script_volumes,
+    ]
+    num_tests_ran += exec_tests(tests=tests, volumes=volumes, image=image, user=user)
 
     # Ensure the easy_infra hooks work as expected when network access is available
     # Tests is a list of tuples containing the test environment, command, and expected exit code

@@ -89,7 +89,7 @@ def opinionated_docker_run(
     detach: bool = True,
     environment: dict = {},
     user: str = "",
-    volumes: dict = {},
+    volumes: dict | list = {},
     working_dir: str = "/iac/",
     expected_exit: int = 0,
     check_logs: Pattern[str] | None = None,
