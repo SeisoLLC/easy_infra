@@ -718,7 +718,7 @@ def run_terraform(*, image: str, user: str) -> None:
     hooks_config_volumes: dict[Path, dict[str, str]] = {
         hooks_config_dir: {"bind": working_dir, "mode": "rw"}
     }
-    hooks_script_dir: Path = terraform_test_dir.joinpath("test-hooks")
+    hooks_script_dir: Path = TESTS_PATH.joinpath("test-hooks")
     hooks_script_volumes: dict[Path, dict[str, str]] = {
         hooks_script_dir: {"bind": "/opt/hooks/bin/", "mode": "ro"}
     }
