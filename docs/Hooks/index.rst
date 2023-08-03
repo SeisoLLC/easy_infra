@@ -17,7 +17,7 @@ like to hook::
 .. note::
     Only packages or their related aliases listed in ``easy_infra.yml`` at build time, or the ``scan_`` functions (which only perform the security scans, i.e.
     ``scan_terraform`` or ``scan_cloudformation``) are supported. This means that, if a package has multiple aliases, or if you'd like to support the ``scan_``
-    function, you will need to be registered your hook against each of those.
+    function, you will need to register your hook against each of those.
 
 Example
 ^^^^^^^
