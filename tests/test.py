@@ -368,7 +368,7 @@ def exec_tests(
         final_volumes: list[str] = []
         for volume in volumes:
             for k, v in volume.items():
-                final_volumes.append(k + ":" + v["bind"])
+                final_volumes.append(str(k.absolute()) + ":" + v["bind"])
 
     if not user:
         LOG.error("A user must be specified to execute tests!")
