@@ -1,0 +1,180 @@
+---
+# https://taskfile.dev
+
+version: '3'
+
+set:
+  - nounset
+  - errexit
+  - pipefail
+
+includes:
+  py:
+    taskfile: ./goat/Task/python/Taskfile.yml
+    internal: true
+    optional: true
+    vars:
+      IMAGE_NAME: '{{.IMAGE_NAME}}'
+      PROJECT_SLUG: '{{.PROJECT_SLUG}}'
+      PYTHON_VERSION: '{{.PYTHON_VERSION}}'
+      VERSION: '{{.VERSION}}'
+
+vars:
+  IMAGE_NAME: seiso/easy_infra
+  PROJECT_SLUG: easy_infra
+  PYTHON_VERSION: 3.11
+  SUPPORTED_PLATFORMS: 'linux/amd64,linux/arm64'
+  VERSION:
+    sh: pipenv run python -c 'from {{.PROJECT_SLUG}} import __version__; print(__version__)'
+  LOCAL_PLATFORM:
+    # Inspired by https://github.com/containerd/containerd/blob/e0912c068b131b33798ae45fd447a1624a6faf0a/platforms/database.go#L76
+    sh: |
+      os="linux"
+      arch="$(uname -m)"
+
+      case ${arch} in
+        # AMD64
+        x86_64)  echo "${os}/amd64" ;;
+        amd64)   echo "${os}/amd64" ;;
+
+        # ARM64
+        aarch64) echo "${os}/arm64" ;;
+        arm64)   echo "${os}/arm64" ;;
+      esac
+
+silent: true
+
+tasks:
+  init-pipenv:
+    desc: Initializes the pipenv virtual environment if Pipfile.lock changes
+    internal: true
+    sources:
+      - Pipfile.lock
+    cmds:
+      - pipenv install --deploy --ignore-pipfile --dev
+
+  init-submodules:
+    desc: >
+      Initializes git submodules; paved road projects include the Seiso goat 🐐
+      for its shared configs, etc.
+    internal: true
+    status:
+      # don't update submodules if you aren't in a git repository; quote to avoid yaml intrepretering the ! as a node tag
+      # https://yaml.org/spec/1.2.2/#691-node-tags
+      - '! test -d .git'
+    cmds:
+      - git submodule update --init
+
+  init-pre-commit:
+    desc: Install the pre-commit hooks
+    internal: true
+    sources:
+      - .pre-commit-config.yaml
+    status:
+      # Don't install the pre-commit hooks if you aren't in a git repository; quote to avoid yaml intrepretering the ! as a node tag
+      # https://yaml.org/spec/1.2.2/#691-node-tags
+      - '! test -d .git'
+    cmds:
+      # Don't run this in pipelines
+      - '{{if ne .GITHUB_ACTIONS "true"}}pipenv run pre-commit install{{end}}'
+
+  init:
+    desc: Initialize the repo for local use; intended to be run after git clone
+    cmds:
+      - task: init-pipenv
+      - task: init-submodules
+      - task: init-pre-commit
+
+  lint:
+    desc: Run the linter(s); paved road projects use the Seiso goat 🐐
+    cmds:
+      - task: py:lint
+        vars:
+          INPUT_LOG_LEVEL: '{{.CLI_ARGS}}'
+
+  validate:
+    desc: Validate the pre-commit config and hooks files
+    cmds:
+      - task: py:validate
+
+  # TODO
+  build:
+    desc: Build the project; docker images, compiled binaries, etc.
+    vars:
+      TOOL: '{{.TOOL | default "all"}}'
+      ENVIRONMENT: '{{.ENVIRONMENT | default "all"}}'
+      DEBUG: '{{.DEBUG | default "false"}}'
+      TRACE: '{{.TRACE | default "false"}}'
+      DRY_RUN: '{{.DRY_RUN | default "false"}}'
+      PLATFORM: '{{if eq .PLATFORM "all"}}{{.SUPPORTED_PLATFORMS}}{{else if .PLATFORM}}{{.PLATFORM}}{{else}}{{.LOCAL_PLATFORM}}{{end}}'
+    cmds:
+      - task: py:build
+
+  # TODO
+  test:
+    desc: Run the project tests
+    vars:
+      TOOL: '{{.TOOL | default "all"}}'
+      ENVIRONMENT: '{{.ENVIRONMENT | default "all"}}'
+      DEBUG: '{{.DEBUG | default "false"}}'
+      PLATFORM: '{{if eq .PLATFORM "all"}}{{.SUPPORTED_PLATFORMS}}{{else if .PLATFORM}}{{.PLATFORM}}{{else}}{{.LOCAL_PLATFORM}}{{end}}'
+    cmds:
+      - find tests -mindepth 1 -type d -exec chmod o+w {} \;
+      - # TODO: Custom
+
+  update:
+    desc: Update the project dev and runtime dependencies, and other misc components
+    cmds:
+      - task: py:update
+      - pipenv run python -c 'from {{.PROJECT_SLUG}} import utils; utils.update()'
+
+  clean:
+    desc: Clean up build artifacts, cache files/directories, temp files, etc.
+    cmds:
+      - task: py:clean
+      - task: easy_infra_cleanup
+
+  easy_infra_cleanup:
+    desc: Cleanup specific to easy_infra
+    cmds:
+      - find "{{.ROOT_DIR}}" -type f -name 'sbom.*.json' -delete
+      - find "{{.ROOT_DIR}}" -type f -name 'vulns.*.json' -delete
+      - find "{{.ROOT_DIR}}" -type d -name '.terraform' -exec rm -rf {} +
+      - rm -f '{{.ROOT_DIR}}/build/functions'
+      - rm -f '{{.ROOT_DIR}}/build/Dockerfile'
+
+  # TODO
+  release:
+    desc: Cut a project release
+    cmds:
+      - task: py:release
+
+  # TODO
+  publish:
+    desc: Publish the project artifacts; docker images, compiled binaries, etc.
+    vars:
+      TOOL: '{{.TOOL | default "all"}}'
+      ENVIRONMENT: '{{.ENVIRONMENT | default "all"}}'
+      DEBUG: '{{.DEBUG | default "false"}}'
+      PLATFORM: '{{if eq .PLATFORM "all"}}{{.SUPPORTED_PLATFORMS}}{{else if .PLATFORM}}{{.PLATFORM}}{{else}}{{.LOCAL_PLATFORM}}{{end}}'
+    cmds:
+      # We call into the py:publish instead of across to build to simplify centralized policy assessments (i.e. "is the project using a goat-provided task?")
+      - task: py:publish
+
+  sbom:
+    desc: Generate the SBOMs
+    vars:
+      TOOL: '{{.TOOL | default "all"}}'
+      ENVIRONMENT: '{{.ENVIRONMENT | default "all"}}'
+      DEBUG: '{{.DEBUG | default "false"}}'
+    cmds:
+      - pipenv run python -c 'from {{.PROJECT_SLUG}} import utils; utils.sbom(tool="{{.TOOL}}", environment="{{.ENVIRONMENT}}")'
+
+  vulnscan:
+    desc: Vuln scan the SBOMs
+    vars:
+      TOOL: '{{.TOOL | default "all"}}'
+      ENVIRONMENT: '{{.ENVIRONMENT | default "all"}}'
+      DEBUG: '{{.DEBUG | default "false"}}'
+    cmds:
+      - pipenv run python -c 'from {{.PROJECT_SLUG}} import utils; utils.vulnscan(tool="{{.TOOL}}", environment="{{.ENVIRONMENT}}")'
