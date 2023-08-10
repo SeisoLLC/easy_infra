@@ -39,9 +39,6 @@ jobs:
         with:
           path: ~/.local/share/virtualenvs
           key: ${{ runner.os }}-python-${{ env.python_version }}-pipenv-${{ hashFiles('Pipfile.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-python-${{ env.python_version }}-pipenv-
-            ${{ runner.os }}-python-
       - name: Install the dependencies
         run: |
           python -m pip install --upgrade pipenv
@@ -75,9 +72,6 @@ jobs:
         with:
           path: ~/.local/share/virtualenvs
           key: ${{ runner.os }}-python-${{ env.python_version }}-pipenv-${{ hashFiles('Pipfile.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-python-${{ env.python_version }}-pipenv-
-            ${{ runner.os }}-python-
       - name: Install the dependencies
         run: |
           python -m pip install --upgrade pipenv
@@ -132,9 +126,6 @@ jobs:
         with:
           path: ~/.local/share/virtualenvs
           key: ${{ runner.os }}-python-${{ env.python_version }}-pipenv-${{ hashFiles('Pipfile.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-python-${{ env.python_version }}-pipenv-
-            ${{ runner.os }}-python-
       - name: Install the dependencies
         run: |
           python -m pip install --upgrade pipenv
@@ -170,9 +161,6 @@ jobs:
         with:
           path: ~/.local/share/virtualenvs
           key: ${{ runner.os }}-python-${{ env.python_version }}-pipenv-${{ hashFiles('Pipfile.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-python-${{ env.python_version }}-pipenv-
-            ${{ runner.os }}-python-
       - name: Install the dependencies
         run: |
           python -m pip install --upgrade pipenv
@@ -243,9 +231,6 @@ jobs:
         with:
           path: ~/.local/share/virtualenvs
           key: ${{ runner.os }}-python-${{ env.python_version }}-pipenv-${{ hashFiles('Pipfile.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-python-${{ env.python_version }}-pipenv-
-            ${{ runner.os }}-python-
       - name: Install the dependencies
         run: |
           python -m pip install --upgrade pipenv
