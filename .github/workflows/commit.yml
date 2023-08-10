@@ -194,7 +194,8 @@ jobs:
       - name: Run tests
         run: |
           find tests -mindepth 1 -type d -exec chmod o+w {} \;
-          pipenv run invoke test --tool=${{ matrix.tool }} --environment=${{ matrix.environment }} --user=${{ matrix.user }} --debug
+          # We only test with the easy_infra user here; all supported users are tested via the PR workflow
+          pipenv run invoke test --tool=${{ matrix.tool }} --environment=${{ matrix.environment }} --user=easy_infra --debug
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
