@@ -109,6 +109,8 @@ tasks:
       PLATFORM: '{{if eq .PLATFORM "all"}}{{.SUPPORTED_PLATFORMS}}{{else if .PLATFORM}}{{.PLATFORM}}{{else}}{{.LOCAL_PLATFORM}}{{end}}'
     cmds:
       - task: py:build
+        vars:
+          DOCKER_BUILDX_CUSTOM_ARGS: ''
 
   # TODO
   test:
