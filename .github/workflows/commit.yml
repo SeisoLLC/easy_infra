@@ -247,8 +247,8 @@ jobs:
           tag_name: ${{ needs.bump-version.outputs.git_tag }}
           generate_release_notes: true
           files: |
-            Vulns_*/vulns.*.json
-            SBOM_*/sbom.*.json
+            ${{ runner.temp }}/Vulns_*/vulns.*.json
+            ${{ runner.temp }}/SBOM_*/sbom.*.json
           fail_on_unmatched_files: true
           draft: false
           prerelease: false
