@@ -120,28 +120,12 @@ tasks:
       PLATFORM: '{{if eq .PLATFORM "all"}}{{.SUPPORTED_PLATFORMS}}{{else if .PLATFORM}}{{.PLATFORM}}{{else}}{{.LOCAL_PLATFORM}}{{end}}'
     cmds:
       - find tests -mindepth 1 -type d -exec chmod o+w {} \;
-      - # TODO: Custom
 
   update:
     desc: Update the project dev and runtime dependencies, and other misc components
     cmds:
       - task: py:update
       - pipenv run python -c 'from {{.PROJECT_SLUG}} import utils; utils.update()'
-
-  clean:
-    desc: Clean up build artifacts, cache files/directories, temp files, etc.
-    cmds:
-      - task: py:clean
-      - task: easy_infra_cleanup
-
-  easy_infra_cleanup:
-    desc: Cleanup specific to easy_infra
-    cmds:
-      - find "{{.ROOT_DIR}}" -type f -name 'sbom.*.json' -delete
-      - find "{{.ROOT_DIR}}" -type f -name 'vulns.*.json' -delete
-      - find "{{.ROOT_DIR}}" -type d -name '.terraform' -exec rm -rf {} +
-      - rm -f '{{.ROOT_DIR}}/build/functions'
-      - rm -f '{{.ROOT_DIR}}/build/Dockerfile'
 
   # TODO
   release:
@@ -178,3 +162,18 @@ tasks:
       DEBUG: '{{.DEBUG | default "false"}}'
     cmds:
       - pipenv run python -c 'from {{.PROJECT_SLUG}} import utils; utils.vulnscan(tool="{{.TOOL}}", environment="{{.ENVIRONMENT}}")'
+
+  clean:
+    desc: Clean up build artifacts, cache files/directories, temp files, etc.
+    cmds:
+      - task: py:clean
+      - task: easy_infra_cleanup
+
+  easy_infra_cleanup:
+    desc: Cleanup specific to easy_infra
+    cmds:
+      - find "{{.ROOT_DIR}}" -type f -name 'sbom.*.json' -delete
+      - find "{{.ROOT_DIR}}" -type f -name 'vulns.*.json' -delete
+      - find "{{.ROOT_DIR}}" -type d -name '.terraform' -exec rm -rf {} +
+      - rm -f '{{.ROOT_DIR}}/build/functions'
+      - rm -f '{{.ROOT_DIR}}/build/Dockerfile'
