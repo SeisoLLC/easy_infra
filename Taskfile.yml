@@ -106,7 +106,7 @@ tasks:
       DEBUG: '{{.DEBUG | default "false"}}'
       TRACE: '{{.TRACE | default "false"}}'
       DRY_RUN: '{{.DRY_RUN | default "false"}}'
-      PLATFORM: '{{if eq .PLATFORM "all"}}{{.SUPPORTED_PLATFORMS}}{{else if .PLATFORM}}{{.PLATFORM}}{{else}}{{.LOCAL_PLATFORM}}{{end}}'
+      PLATFORM: '{{.PLATFORM | default .LOCAL_PLATFORM}}'
     cmds:
       - task: py:build
         vars:
@@ -119,7 +119,7 @@ tasks:
       TOOL: '{{.TOOL | default "all"}}'
       ENVIRONMENT: '{{.ENVIRONMENT | default "all"}}'
       DEBUG: '{{.DEBUG | default "false"}}'
-      PLATFORM: '{{if eq .PLATFORM "all"}}{{.SUPPORTED_PLATFORMS}}{{else if .PLATFORM}}{{.PLATFORM}}{{else}}{{.LOCAL_PLATFORM}}{{end}}'
+      PLATFORM: '{{.PLATFORM | default .LOCAL_PLATFORM}}'
     cmds:
       - find tests -mindepth 1 -type d -exec chmod o+w {} \;
 
@@ -142,7 +142,7 @@ tasks:
       TOOL: '{{.TOOL | default "all"}}'
       ENVIRONMENT: '{{.ENVIRONMENT | default "all"}}'
       DEBUG: '{{.DEBUG | default "false"}}'
-      PLATFORM: '{{if eq .PLATFORM "all"}}{{.SUPPORTED_PLATFORMS}}{{else if .PLATFORM}}{{.PLATFORM}}{{else}}{{.LOCAL_PLATFORM}}{{end}}'
+      PLATFORM: '{{.PLATFORM | default .LOCAL_PLATFORM}}'
     cmds:
       # We call into the py:publish instead of across to build to simplify centralized policy assessments (i.e. "is the project using a goat-provided task?")
       - task: py:publish
