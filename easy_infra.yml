@@ -84,6 +84,7 @@ packages:
       - TF_DATA_DIR
     security: *id003
     version: 1.5.5
+    allow_update: False
     version_argument: version
   terratag:
     helper:
