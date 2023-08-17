@@ -35,6 +35,11 @@ if [[ -v "VCS_DOMAIN" && -v "CLONE_REPOSITORIES" ]]; then
   _clone "${VCS_DOMAIN}" "${CLONE_REPOSITORIES}" "${CLONE_PROTOCOL:-ssh}" "${CLONE_DIRECTORY:-/iac}"
 fi
 
+# This attempts to detect a .git directory in the work dir and adds it as a safe directory to prevent errors when generating git context for logs.
+export GIT_CONFIG_COUNT=1
+export GIT_CONFIG_KEY_0="safe.directory"
+export GIT_CONFIG_VALUE_0="$(git rev-parse --show-toplevel 2>/dev/null || echo /iac)"
+
 if [[ -x "$(which strace)" ]]; then
   strace -t -o /tmp/strace-fluent-bit -fp "$(pidof fluent-bit)" &
   sleep .2
