@@ -27,7 +27,15 @@ basicConfig(level=constants.LOG_DEFAULT, format=constants.LOG_FORMAT)
 getLogger("urllib3").setLevel(constants.LOG_DEFAULT)
 getLogger("docker").setLevel(constants.LOG_DEFAULT)
 
-PLATFORM = os.getenv("PLATFORM")
+if os.getenv("PLATFORM"):
+    PLATFORM = os.getenv("PLATFORM")
+else:
+    if platform.system().lower() == "darwin":
+        SYSTEM = "linux"
+    else:
+        SYSTEM = platform.system().lower()
+
+    PLATFORM = f"{SYSTEM}/{platform.machine()}"
 
 
 def render_jinja2(
