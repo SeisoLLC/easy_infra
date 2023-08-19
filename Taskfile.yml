@@ -102,30 +102,30 @@ tasks:
     vars:
       TOOL: '{{.TOOL | default "all"}}'
       ENVIRONMENT: '{{.ENVIRONMENT | default "all"}}'
-      DEBUG: '{{.DEBUG | default "false"}}'
-      TRACE: '{{.TRACE | default "false"}}'
-      DRY_RUN: '{{.DRY_RUN | default "false"}}'
+      DEBUG: '{{.DEBUG | default "False"}}'
+      TRACE: '{{.TRACE | default "False"}}'
+      DRY_RUN: '{{.DRY_RUN | default "False"}}'
       PLATFORM: '{{.PLATFORM | default .LOCAL_PLATFORM}}'
     cmds:
       - |
         pipenv run python -c \
-        'import distutils; \
-        debug = bool(distutils.util.strtobool("{{.DEBUG}}")); \
-        trace = bool(distutils.util.strtobool("{{.TRACE}}")); \
-        dry_run = bool(distutils.util.strtobool("{{.DRY_RUN}}")); \
-        from easy_infra import utils; \
-        utils.build(tool="{{.TOOL}}", environment="{{.ENVIRONMENT}}", trace=trace, debug=debug, dry_run=dry_run)'
+        'from easy_infra import utils; \
+        utils.build(tool="{{.TOOL}}", environment="{{.ENVIRONMENT}}", trace={{.TRACE}}, debug={{.DEBUG}}, dry_run={{.DRY_RUN}})'
 
-  # TODO
   test:
     desc: Run the project tests
     vars:
       TOOL: '{{.TOOL | default "all"}}'
       ENVIRONMENT: '{{.ENVIRONMENT | default "all"}}'
-      DEBUG: '{{.DEBUG | default "false"}}'
+      USER: '{{.USER | default "all"}}'
+      DEBUG: '{{.DEBUG | default "False"}}'
       PLATFORM: '{{.PLATFORM | default .LOCAL_PLATFORM}}'
     cmds:
       - find tests -mindepth 1 -type d -exec chmod o+w {} \;
+      - |
+        pipenv run python -c \
+        'from easy_infra import utils; \
+        utils.test(tool="{{.TOOL}}", environment="{{.ENVIRONMENT}}", user="{{.USER}}", debug={{.DEBUG}})'
 
   update:
     desc: Update the project dev and runtime dependencies, and other misc components
@@ -145,7 +145,7 @@ tasks:
     vars:
       TOOL: '{{.TOOL | default "all"}}'
       ENVIRONMENT: '{{.ENVIRONMENT | default "all"}}'
-      DEBUG: '{{.DEBUG | default "false"}}'
+      DEBUG: '{{.DEBUG | default "False"}}'
       PLATFORM: '{{.PLATFORM | default .LOCAL_PLATFORM}}'
     cmds:
       # We call into the py:publish instead of across to build to simplify centralized policy assessments (i.e. "is the project using a goat-provided task?")
