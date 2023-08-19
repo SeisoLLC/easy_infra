@@ -109,7 +109,7 @@ tasks:
     cmds:
       - |
         pipenv run python -c \
-        'from easy_infra import utils; \
+        'from {{.PROJECT_SLUG}} import utils; \
         utils.build(tool="{{.TOOL}}", environment="{{.ENVIRONMENT}}", trace={{.TRACE}}, debug={{.DEBUG}}, dry_run={{.DRY_RUN}})'
 
   test:
@@ -124,50 +124,60 @@ tasks:
       - find tests -mindepth 1 -type d -exec chmod o+w {} \;
       - |
         pipenv run python -c \
-        'from easy_infra import utils; \
+        'from {{.PROJECT_SLUG}} import utils; \
         utils.test(tool="{{.TOOL}}", environment="{{.ENVIRONMENT}}", user="{{.USER}}", debug={{.DEBUG}})'
 
   update:
     desc: Update the project dev and runtime dependencies, and other misc components
+    vars:
+      DEBUG: '{{.DEBUG | default "False"}}'
     cmds:
       - task: py:update
-      - pipenv run python -c 'from {{.PROJECT_SLUG}} import utils; utils.update()'
+      - pipenv run python -c 'from {{.PROJECT_SLUG}} import utils; utils.update(debug={{.DEBUG}})'
 
-  # TODO
   release:
     desc: Cut a project release
     cmds:
       - task: py:release
 
-  # TODO
   publish:
     desc: Publish the project artifacts; docker images, compiled binaries, etc.
     vars:
       TOOL: '{{.TOOL | default "all"}}'
       ENVIRONMENT: '{{.ENVIRONMENT | default "all"}}'
       DEBUG: '{{.DEBUG | default "False"}}'
-      PLATFORM: '{{.PLATFORM | default .LOCAL_PLATFORM}}'
+      DRY_RUN: '{{.DRY_RUN | default "False"}}'
     cmds:
       # We call into the py:publish instead of across to build to simplify centralized policy assessments (i.e. "is the project using a goat-provided task?")
       - task: py:publish
+      - |
+        pipenv run python -c \
+        'from {{.PROJECT_SLUG}} import utils; \
+        utils.test(tool="{{.TOOL}}", environment="{{.ENVIRONMENT}}", debug={{.DEBUG}}, dry_run={{.DRY_RUN}})'
 
   sbom:
     desc: Generate the SBOMs
     vars:
       TOOL: '{{.TOOL | default "all"}}'
       ENVIRONMENT: '{{.ENVIRONMENT | default "all"}}'
-      DEBUG: '{{.DEBUG | default "false"}}'
+      DEBUG: '{{.DEBUG | default "False"}}'
     cmds:
-      - pipenv run python -c 'from {{.PROJECT_SLUG}} import utils; utils.sbom(tool="{{.TOOL}}", environment="{{.ENVIRONMENT}}")'
+      - |
+        pipenv run python -c \
+        'from {{.PROJECT_SLUG}} import utils; \
+        utils.sbom(tool="{{.TOOL}}", environment="{{.ENVIRONMENT}}", debug={{.DEBUG}})'
 
   vulnscan:
     desc: Vuln scan the SBOMs
     vars:
       TOOL: '{{.TOOL | default "all"}}'
       ENVIRONMENT: '{{.ENVIRONMENT | default "all"}}'
-      DEBUG: '{{.DEBUG | default "false"}}'
+      DEBUG: '{{.DEBUG | default "False"}}'
     cmds:
-      - pipenv run python -c 'from {{.PROJECT_SLUG}} import utils; utils.vulnscan(tool="{{.TOOL}}", environment="{{.ENVIRONMENT}}")'
+      - |
+        pipenv run python -c \
+        'from {{.PROJECT_SLUG}} import utils; \
+        utils.vulnscan(tool="{{.TOOL}}", environment="{{.ENVIRONMENT}}", debug={{.DEBUG}})'
 
   clean:
     desc: Clean up build artifacts, cache files/directories, temp files, etc.

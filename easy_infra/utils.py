@@ -477,21 +477,6 @@ def update(debug=False) -> None:
         version = get_latest_release_from_pypi(package=package)
         config.update_config_file(package=package, version=version)
 
-    # Update the CI dependencies
-    image = "python:3.11"
-    working_dir = "/usr/src/app/"
-    volumes = {constants.CWD: {"bind": working_dir, "mode": "rw"}}
-    pull_image(image_and_tag=image)
-    command = '/bin/bash -c "python3 -m pip install --upgrade pipenv &>/dev/null && pipenv update"'
-    opinionated_docker_run(
-        image=image,
-        volumes=volumes,
-        working_dir=working_dir,
-        auto_remove=True,
-        detach=False,
-        command=command,
-    )
-
 
 def filter_config(*, config: str, tools: list[str]) -> dict:
     """Take in a configuration, filter it based on the provided tool, and return the result"""
@@ -1090,38 +1075,6 @@ def vulnscan(tool="all", environment="all", debug=False) -> None:
 
     for tag in tags:
         run_test.run_security(tag=tag)
-
-
-def release(debug=False) -> None:
-    """Make a new release of easy_infra"""
-    if debug:
-        getLogger().setLevel("DEBUG")
-
-    if constants.REPO.head.is_detached:
-        LOG.error("In detached HEAD state, refusing to release")
-        sys.exit(1)
-
-    # Get the current date info
-    date_info = datetime.now().strftime("%Y.%m")
-
-    pattern = re.compile(r"v2[0-1][0-9]{2}.(0[0-9]|1[0-2]).[0-9]{2}")
-
-    # Identify and set the increment
-    for tag in reversed(constants.REPO.tags):
-        if pattern.fullmatch(tag.name):
-            latest_release = tag.name
-            break
-    else:
-        latest_release = None
-
-    if latest_release and date_info == latest_release[1:8]:
-        increment = str(int(latest_release[9:]) + 1).zfill(2)
-    else:
-        increment = "01"
-
-    new_version = f"{date_info}.{increment}"
-
-    bumpversion(["--new-version", new_version, "unusedpart"])
 
 
 def publish(tool="all", environment="all", debug=False, dry_run=False) -> None:
