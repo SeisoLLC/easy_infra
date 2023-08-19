@@ -78,7 +78,6 @@ packages:
     version: v1.7.5
     version_argument: version
   terraform:
-    allow_update: false
     file_extensions: *id002
     monitor:
       env_vars:
