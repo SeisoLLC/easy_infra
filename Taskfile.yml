@@ -97,7 +97,6 @@ tasks:
     cmds:
       - task: py:validate
 
-  # TODO
   build:
     desc: Build the project; docker images, compiled binaries, etc.
     vars:
@@ -108,9 +107,14 @@ tasks:
       DRY_RUN: '{{.DRY_RUN | default "false"}}'
       PLATFORM: '{{.PLATFORM | default .LOCAL_PLATFORM}}'
     cmds:
-      - task: py:build
-        vars:
-          DOCKER_BUILDX_CUSTOM_ARGS: ''
+      - |
+        pipenv run python -c \
+        'import distutils; \
+        debug = bool(distutils.util.strtobool("{{.DEBUG}}")); \
+        trace = bool(distutils.util.strtobool("{{.TRACE}}")); \
+        dry_run = bool(distutils.util.strtobool("{{.DRY_RUN}}")); \
+        from easy_infra import utils; \
+        utils.build(tool="{{.TOOL}}", environment="{{.ENVIRONMENT}}", trace=trace, debug=debug, dry_run=dry_run)'
 
   # TODO
   test:
@@ -174,8 +178,7 @@ tasks:
   easy_infra_cleanup:
     desc: Cleanup specific to easy_infra
     cmds:
-      - find "{{.ROOT_DIR}}" -type f -name 'sbom.*.json' -delete
-      - find "{{.ROOT_DIR}}" -type f -name 'vulns.*.json' -delete
+      - find "{{.ROOT_DIR}}" -type f -name '.terraform.lock.hcl' -delete
       - find "{{.ROOT_DIR}}" -type d -name '.terraform' -exec rm -rf {} +
       - rm -f '{{.ROOT_DIR}}/build/functions'
       - rm -f '{{.ROOT_DIR}}/build/Dockerfile'
