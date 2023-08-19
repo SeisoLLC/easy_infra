@@ -6,14 +6,12 @@ import re
 import shutil
 import subprocess
 import sys
-from datetime import datetime
 from logging import DEBUG, basicConfig, getLogger
 from pathlib import Path
 from typing import Optional, Pattern
 
 import docker
 import requests
-from bumpversion.cli import main as bumpversion
 from jinja2 import Environment, FileSystemLoader
 
 from easy_infra import __project_name__, __version__, config, constants
