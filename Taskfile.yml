@@ -148,14 +148,11 @@ tasks:
       DEBUG: '{{.DEBUG | default "False"}}'
       DRY_RUN: '{{.DRY_RUN | default "False"}}'
     cmds:
-      # We call into the py:publish instead of across to build to simplify centralized policy assessments (i.e. "is the project using a goat-provided task?")
-      - task: py:publish
-        vars:
-          DOCKER_BUILDX_CUSTOM_CONTEXT: 'build/'
+      # At the point of writing this we couldn't use py:publish but ostensibly that could be used in the future with some new adjustments
       - |
         pipenv run python -c \
         'from {{.PROJECT_SLUG}} import utils; \
-        utils.test(tool="{{.TOOL}}", environment="{{.ENVIRONMENT}}", debug={{.DEBUG}}, dry_run={{.DRY_RUN}})'
+        utils.publish(tool="{{.TOOL}}", environment="{{.ENVIRONMENT}}", debug={{.DEBUG}}, dry_run={{.DRY_RUN}})'
 
   sbom:
     desc: Generate the SBOMs
