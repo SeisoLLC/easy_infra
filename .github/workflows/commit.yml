@@ -120,7 +120,7 @@ jobs:
           path: vulns.*.json
           if-no-files-found: error
       - name: Run tests
-        run: task test
+        run: task -v test
         env:
           TOOL: ${{ matrix.tool }}
           ENVIRONMENT: ${{ matrix.environment }}
@@ -225,7 +225,7 @@ jobs:
           path: vulns.*.json
           if-no-files-found: error
       - name: Run tests
-        run: task test
+        run: task -v test
         env:
           TOOL: ${{ matrix.tool }}
           ENVIRONMENT: ${{ matrix.environment }}
