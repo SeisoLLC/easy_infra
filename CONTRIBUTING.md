@@ -10,8 +10,8 @@ the existing features.
 
 To get started with contributing to this project, you first want to ensure that you can build and test the project locally.
 
-First, ensure you have `docker`, `git`, `pipenv`, and `python3` installed locally, and the `docker` daemon is running. Then run `pipenv install --deploy
---ignore-pipfile --dev` to install the dependencies onto your local system.
+First, ensure you have `docker`, `git`, `pipenv`, and `python3` installed locally, and the `docker` daemon is running. Then run `task init` to initialize the
+repository.
 
 If you'd like to [run the test suite](#running-the-tests), you will also need `grype` downloaded and in your `PATH`.
 
@@ -22,13 +22,13 @@ If you'd like to [generate an SBOM](#generating-the-sboms), you will also need `
 To build all of the docker images, run:
 
 ```bash
-pipenv run invoke build
+task build
 ```
 
 If you only want to build a specific image, you can pass in a tool and/or an environment. For example:
 
 ```bash
-pipenv run invoke build --tool=terraform --environment=none
+TOOL=terraform ENVIRONMENT=none task build
 ```
 
 To see the list of possible tools, run the following command. If you don't specify a tool, `build` will assume that you want to build "all" of the tools.
@@ -59,7 +59,7 @@ pri build --environment=azure --dry-run
 If you'd like to build the container locally and allow detailed tracing, run the following:
 
 ```bash
-pipenv run invoke build --trace
+TRACE=true task build
 ```
 
 This will add additional troubleshooting tools to the container, and perform some tracing, putting the details in `/tmp/`.
@@ -75,7 +75,7 @@ find tests -mindepth 1 -type d -exec chmod o+w {} \;
 You can now run the tests locally:
 
 ```bash
-pipenv run invoke test
+task test
 ```
 
 You can pass in the `--tool`, `--environment`, and `--user` arguments to test a specific subset of functionality. See the build step to see the `tool` and
@@ -95,7 +95,7 @@ pipenv run python3 -c \
 If you'd like to generate an SBOM, run the following:
 
 ```bash
-pipenv run invoke sbom
+task sbom
 ```
 
 You will now see various `sbom.*.json` files in your current directory, and you can pass in the same `--tool` and `--environment` arguments as `build`ing.
@@ -105,7 +105,7 @@ You will now see various `sbom.*.json` files in your current directory, and you 
 If you'd like to run the vulnerability scans, run the following:
 
 ```bash
-pipenv run invoke vulnscan
+task vulnscan
 ```
 
 You will now see various `vulns.*.json` files in your current directory, and you can pass in the same `--tool` and `--environment` arguments as outlined in the

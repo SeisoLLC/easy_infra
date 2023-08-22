@@ -1644,7 +1644,7 @@ def run_security(*, tag: str) -> None:
 
     if not sbom_file:
         LOG.error(
-            f"{sbom_file} was not found; security scans require an SBOM. Please run `pipenv run invoke sbom -h`"
+            f"{sbom_file} was not found; security scans require an SBOM. Please run `task sbom`"
         )
 
     # Run a vulnerability scan on the provided SBOM
