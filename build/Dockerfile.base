@@ -33,15 +33,23 @@ RUN groupadd --gid 53150 -r easy_infra \
  && useradd -r -g easy_infra -s "$(which bash)" --create-home --uid 53150 easy_infra \
  && apt-get update \
  && apt-get -y install --no-install-recommends bsdmainutils \
-                                               ca-certificates \
-                                               curl \
                                                gettext \
+                                               ca-certificates \
                                                git \
                                                groff \
                                                jq \
                                                less \
                                                time \
                                                tini \
+                                               curl \
+                                               libz-dev \
+                                               libssl-dev \
+                                               libcurl4-gnutls-dev \
+                                               libexpat1-dev \
+                                               gettext \
+                                               cmake \
+                                               make \
+                                               gcc \
  && apt-get -y upgrade \
  && su - easy_infra -c "mkdir -p /home/easy_infra/.ssh" \
  && su - easy_infra -c "touch /home/easy_infra/.ssh/known_hosts" \
@@ -84,7 +92,24 @@ RUN groupadd --gid 53150 -r easy_infra \
  && cmake ../ && make && make install \
  && cd ../.. \
  && rm -rf fluent-bit \
- && apt-get remove -y cmake build-essential flex bison libssl-dev \
+ # Build a new version of the git binary to support loading environment variables to designate safe directories
+ && cd /tmp \
+ && curl -L https://mirrors.edge.kernel.org/pub/software/scm/git/git-2.38.1.tar.gz -o git.tar.gz \
+ && tar -zxf git.tar.gz \
+ && cd git-* \
+ && make prefix=/usr/local all \
+ && make prefix=/usr/local install \
+ # Remove packages for building the git binary that are no longer needed
+ && apt-get remove -y cmake \
+                      build-essential \
+                      flex \
+                      bison \
+                      libssl-dev \
+                      libz-dev \
+                      libcurl4-gnutls-dev \
+                      libexpat1-dev \
+                      make \
+                      gcc \
  && echo "source /functions" >> /home/easy_infra/.bashrc \
  && echo "source /functions" >> /root/.bashrc \
  && apt-get clean autoclean \
