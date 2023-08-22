@@ -67,7 +67,7 @@ GITHUB_REPOS_RELEASES = {
     "hashicorp/envconsul",
     "tfutils/tfenv",
 }
-GITHUB_REPOS_TAGS = {"aws/aws-cli"}
+GITHUB_REPOS_TAGS = {"aws/aws-cli", "git/git"}
 PYTHON_PACKAGES = {"checkov"}
 HASHICORP_PROJECTS = {"terraform"}
 

@@ -17,6 +17,8 @@ ARG EASY_INFRA_TAG
 ENV EASY_INFRA_TAG="${EASY_INFRA_TAG}"
 ARG EASY_INFRA_VERSION
 ENV EASY_INFRA_VERSION="${EASY_INFRA_VERSION}"
+ARG GIT_VERSION
+ENV GIT_VERSION="${GIT_VERSION}"
 ARG FLUENT_BIT_VERSION
 ENV FLUENT_BIT_VERSION="${FLUENT_BIT_VERSION}"
 ARG CONSUL_TEMPLATE_VERSION
@@ -90,10 +92,9 @@ RUN groupadd --gid 53150 -r easy_infra \
                                                gcc \
  # Build a new version of the git binary to support loading environment variables to designate safe directories
  && cd /tmp \
- && curl -L https://mirrors.edge.kernel.org/pub/software/scm/git/git-2.38.1.tar.gz -o git.tar.gz \
+ && curl -L https://mirrors.edge.kernel.org/pub/software/scm/git/git-{GIT_VERSION#v}.tar.gz -o git.tar.gz \
  && tar -zxf git.tar.gz \
  && cd git-* \
- && make prefix=/usr/local all \
  && make prefix=/usr/local install \
  && cd ../.. \
  && git clone https://github.com/fluent/fluent-bit --depth 1 --branch ${FLUENT_BIT_VERSION} \
