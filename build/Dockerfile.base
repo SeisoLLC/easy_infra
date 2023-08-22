@@ -36,7 +36,6 @@ RUN groupadd --gid 53150 -r easy_infra \
                                                ca-certificates \
                                                curl \
                                                gettext \
-                                               ca-certificates \
                                                groff \
                                                jq \
                                                less \
