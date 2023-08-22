@@ -88,7 +88,7 @@ RUN groupadd --gid 53150 -r easy_infra \
                                                libexpat1-dev \
                                                make \
                                                gcc \
- # Build a new version of the git binary to support loading environment variables to designate safe directories
+ # Build a new version of the git and fluent-bit binaries to support loading environment variables to designate safe directories
  && cd /tmp \
  && curl -L https://mirrors.edge.kernel.org/pub/software/scm/git/git-2.38.1.tar.gz -o git.tar.gz \
  && tar -zxf git.tar.gz \
