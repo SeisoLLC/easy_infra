@@ -31,7 +31,7 @@ packages:
           KICS_EXCLUDE_SEVERITIES: --exclude-severities
           KICS_INCLUDE_QUERIES: --include-queries
         description: directory scan
-    version: 2.9.6+dfsg-1
+    version: 2.10.7+merged+base+2.10.8+dfsg-1
     version_argument: --version
   aws-cli:
     aliases:
@@ -54,7 +54,7 @@ packages:
   azure-cli:
     aliases:
     - az
-    version: 2.51.0-1~focal
+    version: 2.51.0-1~jammy
     version_argument: version
   checkov:
     version: 2.3.360
