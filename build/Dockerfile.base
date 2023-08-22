@@ -33,23 +33,15 @@ RUN groupadd --gid 53150 -r easy_infra \
  && useradd -r -g easy_infra -s "$(which bash)" --create-home --uid 53150 easy_infra \
  && apt-get update \
  && apt-get -y install --no-install-recommends bsdmainutils \
+                                               ca-certificates \
+                                               curl \
                                                gettext \
                                                ca-certificates \
-                                               git \
                                                groff \
                                                jq \
                                                less \
                                                time \
                                                tini \
-                                               curl \
-                                               libz-dev \
-                                               libssl-dev \
-                                               libcurl4-gnutls-dev \
-                                               libexpat1-dev \
-                                               gettext \
-                                               cmake \
-                                               make \
-                                               gcc \
  && apt-get -y upgrade \
  && su - easy_infra -c "mkdir -p /home/easy_infra/.ssh" \
  && su - easy_infra -c "touch /home/easy_infra/.ssh/known_hosts" \
@@ -86,12 +78,17 @@ RUN groupadd --gid 53150 -r easy_infra \
  && rm -f /usr/local/bin/envconsul.zip \
  && chmod 0755 /usr/local/bin/envconsul \
  && apt-get remove -y unzip \
- && apt-get install -y --no-install-recommends cmake build-essential flex bison libyaml-dev libssl-dev \
- && git clone https://github.com/fluent/fluent-bit --depth 1 --branch ${FLUENT_BIT_VERSION} \
- && cd fluent-bit/build \
- && cmake ../ && make && make install \
- && cd ../.. \
- && rm -rf fluent-bit \
+ && apt-get install -y --no-install-recommends cmake \
+                                               build-essential \
+                                               flex \
+                                               bison \
+                                               libyaml-dev \
+                                               libz-dev \
+                                               libssl-dev \
+                                               libcurl4-gnutls-dev \
+                                               libexpat1-dev \
+                                               make \
+                                               gcc \
  # Build a new version of the git binary to support loading environment variables to designate safe directories
  && cd /tmp \
  && curl -L https://mirrors.edge.kernel.org/pub/software/scm/git/git-2.38.1.tar.gz -o git.tar.gz \
@@ -99,6 +96,12 @@ RUN groupadd --gid 53150 -r easy_infra \
  && cd git-* \
  && make prefix=/usr/local all \
  && make prefix=/usr/local install \
+ && cd ../.. \
+ && git clone https://github.com/fluent/fluent-bit --depth 1 --branch ${FLUENT_BIT_VERSION} \
+ && cd fluent-bit/build \
+ && cmake ../ && make && make install \
+ && cd ../.. \
+ && rm -rf fluent-bit \
  # Remove packages for building the git binary that are no longer needed
  && apt-get remove -y cmake \
                       build-essential \
