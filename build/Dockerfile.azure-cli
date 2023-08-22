@@ -2,9 +2,6 @@ ARG EASY_INFRA_TAG
 
 FROM seiso/easy_infra_base:"${EASY_INFRA_TAG}" AS azure-cli
 
-ARG AZURE_CLI_VERSION
-ENV AZURE_CLI_VERSION="${AZURE_CLI_VERSION}"
-
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 USER root
 # hadolint ignore=DL3008
@@ -25,6 +22,8 @@ RUN apt-get update \
  # As of 2022-10-07 "The azure-cli deb package does not support ARM64 architecture"
  && echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ $AZ_REPO main" | tee /etc/apt/sources.list.d/azure-cli.list
 RUN apt-get update \
- && apt-get -y install --no-install-recommends azure-cli=${AZURE_CLI_VERSION} \
+ # Recommended method of azure-cli installation as per:
+ # https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-linux?pivots=apt#option-1-install-with-one-command
+ && curl -sL https://aka.ma/InstallAzureCLIDeb | bash \ 
  && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/cache/debconf/*-old
 USER easy_infra
