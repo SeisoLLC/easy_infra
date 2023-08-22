@@ -108,7 +108,6 @@ RUN groupadd --gid 53150 -r easy_infra \
                       bison \
                       libssl-dev \
                       libz-dev \
-                      libcurl4-gnutls-dev \
                       libexpat1-dev \
                       make \
                       gcc \
