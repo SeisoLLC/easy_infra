@@ -1,6 +1,7 @@
 # Ignore generated files
 functions
 build/Dockerfile
+.task/*
 
 # Ignore .terraform.d, including the plugin cache
 .terraform.d

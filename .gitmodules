@@ -1,0 +1,4 @@
+[submodule "goat"]
+	path = goat
+	url = https://github.com/SeisoLLC/goat
+	branch = main
