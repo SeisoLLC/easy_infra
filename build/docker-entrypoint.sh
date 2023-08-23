@@ -40,9 +40,9 @@ export GIT_CONFIG_COUNT=1
 export GIT_CONFIG_KEY_0="safe.directory"
 GIT_CONFIG_VALUE_0="$(git rev-parse --show-toplevel 2>/dev/null || echo /iac)"
 
-if [[ -n ${INPUT_GIT_CONFIG_VALUE:-} ]]; then
-  # Let INPUT_GIT_CONFIG_VALUE override the default safe directory location
-  GIT_CONFIG_VALUE_0="${INPUT_GIT_CONFIG_VALUE}"
+if [[ -n ${GIT_SAFE_DIRECTORY:-} ]]; then
+  # Let GIT_SAFE_DIRECTORY override the default safe directory location
+  GIT_CONFIG_VALUE_0="${GIT_SAFE_DIRECTORY}"
 fi
 
 export GIT_CONFIG_VALUE_0

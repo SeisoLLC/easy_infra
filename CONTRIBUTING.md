@@ -54,21 +54,6 @@ If you'd like to see what **would** have been done, and which images would have 
 pri build --environment=azure --dry-run
 ```
 
-When mounting a .git folder into the container, the following variables flag it as a safe directory for git:
-
-```bash
-export GIT_CONFIG_COUNT=1
-export GIT_CONFIG_KEY_0="safe.directory"
-GIT_CONFIG_VALUE_0="$(git rev-parse --show-toplevel 2>/dev/null || echo /iac)"
-export GIT_CONFIG_VALUE_0
-```
-
-To customize different safe directories, pass an environment variable with a custom value, for example:
-
-```bash
-docker run -it -v /home/user/git_directory:/custom_dir -e INPUT_GIT_CONFIG_VALUE="/custom_dir" seiso/easy_infra:latest-terraform-aws
-```
-
 #### Building in trace mode
 
 If you'd like to build the container locally and allow detailed tracing, run the following:
