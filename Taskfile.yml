@@ -59,7 +59,7 @@ tasks:
       for its shared configs, etc.
     internal: true
     status:
-      # don't update submodules if you aren't in a git repository; quote to avoid yaml intrepretering the ! as a node tag
+      # Only update submodules if you are in a git repository; quote to avoid yaml intrepretering the ! as a node tag
       # https://yaml.org/spec/1.2.2/#691-node-tags
       - '! test -d .git'
     cmds:
@@ -71,12 +71,12 @@ tasks:
     sources:
       - .pre-commit-config.yaml
     status:
-      # Don't install the pre-commit hooks if you aren't in a git repository; quote to avoid yaml intrepretering the ! as a node tag
+      # Only install the pre-commit hooks if you are in a git repository; quote to avoid yaml intrepretering the ! as a node tag
       # https://yaml.org/spec/1.2.2/#691-node-tags
       - '! test -d .git'
     cmds:
       # Don't run this in pipelines
-      - '{{if ne .GITHUB_ACTIONS "true"}}pipenv run pre-commit install{{end}}'
+      - '{{if ne .GITHUB_ACTIONS "true"}}pipenv run pre-commit install{{else}}echo "Detected a github actions pipeline; skipping the pre-commit install"{{end}}'
 
   init:
     desc: Initialize the repo for local use; intended to be run after git clone
@@ -109,11 +109,11 @@ tasks:
     cmds:
       - |
         pipenv run python -c \
-        'from distutils.util import strtobool; \
-        trace = bool(strtobool("{{.TRACE}}")); \
-        debug = bool(strtobool("{{.DEBUG}}")); \
-        dry_run = bool(strtobool("{{.DRY_RUN}}")); \
-        from {{.PROJECT_SLUG}} import utils; \
+        'from distutils.util import strtobool;
+        trace = bool(strtobool("{{.TRACE}}"));
+        debug = bool(strtobool("{{.DEBUG}}"));
+        dry_run = bool(strtobool("{{.DRY_RUN}}"));
+        from {{.PROJECT_SLUG}} import utils;
         utils.build(tool="{{.TOOL}}", environment="{{.ENVIRONMENT}}", trace=trace, debug=debug, dry_run=dry_run)'
 
   test:
@@ -128,9 +128,9 @@ tasks:
       - find tests -mindepth 1 -type d -exec chmod o+w {} \;
       - |
         pipenv run python -c \
-        'from distutils.util import strtobool; \
-        debug = bool(strtobool("{{.DEBUG}}")); \
-        from {{.PROJECT_SLUG}} import utils; \
+        'from distutils.util import strtobool;
+        debug = bool(strtobool("{{.DEBUG}}"));
+        from {{.PROJECT_SLUG}} import utils;
         utils.test(tool="{{.TOOL}}", environment="{{.ENVIRONMENT}}", user="{{.USER}}", debug=debug)'
 
   update:
@@ -139,10 +139,12 @@ tasks:
       DEBUG: '{{.DEBUG | default "False"}}'
     cmds:
       - task: py:update
-      - pipenv run python -c \
-        'from distutils.util import strtobool; \
-        debug = bool(strtobool("{{.DEBUG}}")); \
-        from {{.PROJECT_SLUG}} import utils; utils.update(debug=debug)'
+      - |
+        pipenv run python -c \
+        'from distutils.util import strtobool;
+        debug = bool(strtobool("{{.DEBUG}}"));
+        from {{.PROJECT_SLUG}} import utils;
+        utils.update(debug=debug)'
 
   release:
     desc: Cut a project release
@@ -160,10 +162,10 @@ tasks:
       # At the point of writing this we couldn't use py:publish but ostensibly that could be used in the future with some new adjustments
       - |
         pipenv run python -c \
-        'from distutils.util import strtobool; \
-        debug = bool(strtobool("{{.DEBUG}}")); \
-        dry_run = bool(strtobool("{{.DRY_RUN}}")); \
-        from {{.PROJECT_SLUG}} import utils; \
+        'from distutils.util import strtobool;
+        debug = bool(strtobool("{{.DEBUG}}"));
+        dry_run = bool(strtobool("{{.DRY_RUN}}"));
+        from {{.PROJECT_SLUG}} import utils;
         utils.publish(tool="{{.TOOL}}", environment="{{.ENVIRONMENT}}", debug=debug, dry_run=dry_run)'
 
   sbom:
@@ -175,9 +177,9 @@ tasks:
     cmds:
       - |
         pipenv run python -c \
-        'from distutils.util import strtobool; \
-        debug = bool(strtobool("{{.DEBUG}}")); \
-        from {{.PROJECT_SLUG}} import utils; \
+        'from distutils.util import strtobool;
+        debug = bool(strtobool("{{.DEBUG}}"));
+        from {{.PROJECT_SLUG}} import utils;
         utils.sbom(tool="{{.TOOL}}", environment="{{.ENVIRONMENT}}", debug=debug)'
 
   vulnscan:
@@ -189,9 +191,9 @@ tasks:
     cmds:
       - |
         pipenv run python -c \
-        'from distutils.util import strtobool; \
-        debug = bool(strtobool("{{.DEBUG}}")); \
-        from {{.PROJECT_SLUG}} import utils; \
+        'from distutils.util import strtobool;
+        debug = bool(strtobool("{{.DEBUG}}"));
+        from {{.PROJECT_SLUG}} import utils;
         utils.vulnscan(tool="{{.TOOL}}", environment="{{.ENVIRONMENT}}", debug=debug)'
 
   clean:

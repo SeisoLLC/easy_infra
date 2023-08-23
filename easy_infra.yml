@@ -57,7 +57,7 @@ packages:
     version: 2.51.0-1~jammy
     version_argument: version
   checkov:
-    version: 2.4.2
+    version: 2.4.6
     version_argument: --version
   consul-template:
     helper:
@@ -80,7 +80,7 @@ packages:
     version: v2.42.0
     version_argument: --version
   kics:
-    version: v1.7.5
+    version: v1.7.6
     version_argument: version
   terraform:
     file_extensions: *id002
