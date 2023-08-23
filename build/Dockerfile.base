@@ -92,11 +92,10 @@ RUN groupadd --gid 53150 -r easy_infra \
                                                gcc \
  # Build a new version of the git binary to support loading environment variables to designate safe directories
  # The minimum required version to support this method is 2.38.0 as per https://github.com/git/git/commit/6061601d9f1f1c95da5f9304c319218f7cc3ec75
- && cd /tmp \
- && mkdir git \
- && curl -L https://mirrors.edge.kernel.org/pub/software/scm/git/git-${GIT_VERSION#v}.tar.gz -o git.tar.gz \
- && tar -zxf git.tar.gz -C /tmp/git --strip-components=1 \
- && cd git \
+ && mkdir /tmp/git \
+ && curl -L https://mirrors.edge.kernel.org/pub/software/scm/git/git-${GIT_VERSION#v}.tar.gz -o /tmp/git.tar.gz \
+ && tar -zxf /tmp/git.tar.gz -C /tmp/git --strip-components=1 \
+ && cd /tmp/git \
  && make prefix=/usr/local install \
  && cd ../.. \
  && git clone https://github.com/fluent/fluent-bit --depth 1 --branch ${FLUENT_BIT_VERSION} \
