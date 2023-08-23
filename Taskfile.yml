@@ -143,7 +143,8 @@ tasks:
         pipenv run python -c \
         'from distutils.util import strtobool;
         debug = bool(strtobool("{{.DEBUG}}"));
-        from {{.PROJECT_SLUG}} import utils; utils.update(debug=debug)'
+        from {{.PROJECT_SLUG}} import utils;
+        utils.update(debug=debug)'
 
   release:
     desc: Cut a project release
