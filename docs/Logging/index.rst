@@ -48,6 +48,7 @@ For more details on the fluent-bit Loki output plugin, see `this page <https://d
 Volume Mounts
 ^^^^^^^^^^^^^
 
+Mounted directories must be considered "safe" by git, in order for logging to function properly.
 When mounting a .git folder into the container, the following variables work together to flag it as a safe directory for git::
 
     export GIT_CONFIG_COUNT=1
