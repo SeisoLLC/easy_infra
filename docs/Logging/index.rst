@@ -45,6 +45,26 @@ The contents of ``fluent-bit.loki_example.conf`` here are as follows::
 
 For more details on the fluent-bit Loki output plugin, see `this page <https://docs.fluentbit.io/manual/pipeline/outputs/loki>`_.
 
+Volume Mounts
+^^^^^^^^^^^^^
+
+When mounting a .git folder into the container, the following variables work together to flag it as a safe directory for git::
+
+    export GIT_CONFIG_COUNT=1
+    export GIT_CONFIG_KEY_0="safe.directory"
+    GIT_CONFIG_VALUE_0="$(git rev-parse --show-toplevel 2>/dev/null || echo /iac)"
+    export GIT_CONFIG_VALUE_0
+
+.. note::
+
+If your mount point and working directory are aligned, you don't need to do anything special; however, if you want to customize 
+and volume mount differently than your working directory, ensure you pass an environment variable named GIT_SAFE_DIRECTORY with 
+a custom value, for example::
+
+    docker run -it -v /home/user/git_directory:/custom_dir -w /some_other_dir -e GIT_SAFE_DIRECTORY="/custom_dir" seiso/easy_infra:latest-terraform-aws
+
+.. note::
+
 CloudWatch example
 ^^^^^^^^^^^^^^^^^^
 

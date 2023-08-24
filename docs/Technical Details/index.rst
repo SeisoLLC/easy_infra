@@ -185,24 +185,6 @@ the ``aws-cli`` package and the ``cloudformation`` tool (which is technically ``
 If your ``tool`` only supports a subset of all the possible environments, you can specify ``environments`` as a sub-key under the optional ``tool``.
 For instance, our ``cloudformation`` images are not relevant to ``azure``.
 
-Volume Mounts
-^^^^^^^^^^^^^
-
-When mounting a .git folder into the container, the following variables work together to flag it as a safe directory for git:
-
-```bash
-export GIT_CONFIG_COUNT=1
-export GIT_CONFIG_KEY_0="safe.directory"
-GIT_CONFIG_VALUE_0="$(git rev-parse --show-toplevel 2>/dev/null || echo /iac)"
-export GIT_CONFIG_VALUE_0
-```
-
-To customize different safe directories, pass an environment variable named GIT_SAFE_DIRECTORY with a custom value, for example:
-
-```bash
-docker run -it -v /home/user/git_directory:/custom_dir -e GIT_SAFE_DIRECTORY="/custom_dir" seiso/easy_infra:latest-terraform-aws
-```
-
 Validation
 ^^^^^^^^^^
 
