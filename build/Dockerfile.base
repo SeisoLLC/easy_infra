@@ -97,7 +97,7 @@ RUN groupadd --gid 53150 -r easy_infra \
  && tar -zxf /tmp/git.tar.gz -C /tmp/git --strip-components=1 \
  && cd /tmp/git \
  && make prefix=/usr/local install \
- && cd ../.. \
+ && cd /tmp \
  && git clone https://github.com/fluent/fluent-bit --depth 1 --branch ${FLUENT_BIT_VERSION} \
  && cd fluent-bit/build \
  && cmake ../ && make && make install \
