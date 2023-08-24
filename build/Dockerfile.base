@@ -1,5 +1,5 @@
 ARG FROM_IMAGE=ubuntu
-ARG FROM_IMAGE_TAG=20.04
+ARG FROM_IMAGE_TAG=22.04
 ARG EASY_INFRA_TAG
 # The following arg is in case we have a {tool}-{environment} specific Dockerfile/frag combo.
 # Dockerfile ARG instructions go out of scope at the end of the build stage where it was defined, so to use it in our multistage scenario it needs to
@@ -17,6 +17,8 @@ ARG EASY_INFRA_TAG
 ENV EASY_INFRA_TAG="${EASY_INFRA_TAG}"
 ARG EASY_INFRA_VERSION
 ENV EASY_INFRA_VERSION="${EASY_INFRA_VERSION}"
+ARG GIT_VERSION
+ENV GIT_VERSION="${GIT_VERSION}"
 ARG FLUENT_BIT_VERSION
 ENV FLUENT_BIT_VERSION="${FLUENT_BIT_VERSION}"
 ARG CONSUL_TEMPLATE_VERSION
@@ -36,7 +38,6 @@ RUN groupadd --gid 53150 -r easy_infra \
                                                ca-certificates \
                                                curl \
                                                gettext \
-                                               git \
                                                groff \
                                                jq \
                                                less \
@@ -78,13 +79,40 @@ RUN groupadd --gid 53150 -r easy_infra \
  && rm -f /usr/local/bin/envconsul.zip \
  && chmod 0755 /usr/local/bin/envconsul \
  && apt-get remove -y unzip \
- && apt-get install -y --no-install-recommends cmake build-essential flex bison libyaml-dev libssl-dev \
+ && apt-get install -y --no-install-recommends cmake \
+                                               build-essential \
+                                               flex \
+                                               bison \
+                                               libyaml-dev \
+                                               libz-dev \
+                                               libssl-dev \
+                                               libcurl4-gnutls-dev \
+                                               libexpat1-dev \
+                                               make \
+                                               gcc \
+ # Build a new version of the git binary to support loading environment variables to designate safe directories
+ # The minimum required version to support this method is 2.38.0 as per https://github.com/git/git/commit/6061601d9f1f1c95da5f9304c319218f7cc3ec75
+ && mkdir /tmp/git \
+ && curl -L https://mirrors.edge.kernel.org/pub/software/scm/git/git-${GIT_VERSION#v}.tar.gz -o /tmp/git.tar.gz \
+ && tar -zxf /tmp/git.tar.gz -C /tmp/git --strip-components=1 \
+ && cd /tmp/git \
+ && make prefix=/usr/local install \
+ && cd /tmp \
  && git clone https://github.com/fluent/fluent-bit --depth 1 --branch ${FLUENT_BIT_VERSION} \
  && cd fluent-bit/build \
  && cmake ../ && make && make install \
  && cd ../.. \
  && rm -rf fluent-bit \
- && apt-get remove -y cmake build-essential flex bison libssl-dev \
+ # Remove packages for building the git and fluent-bit binaries that are no longer needed
+ && apt-get remove -y cmake \
+                      build-essential \
+                      flex \
+                      bison \
+                      libssl-dev \
+                      libz-dev \
+                      libexpat1-dev \
+                      make \
+                      gcc \
  && echo "source /functions" >> /home/easy_infra/.bashrc \
  && echo "source /functions" >> /root/.bashrc \
  && apt-get clean autoclean \

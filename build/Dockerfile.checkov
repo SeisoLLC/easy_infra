@@ -8,6 +8,7 @@ ENV CHECKOV_JSON_REPORT_PATH="/tmp/reports/checkov"
 ENV SKIP_CHECKOV="false"
 ENV VIRTUAL_ENV="/opt/venv"
 ENV PATH="${VIRTUAL_ENV}/bin:${PATH}"
+ARG DEBIAN_FRONTEND="noninteractive"
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 USER root

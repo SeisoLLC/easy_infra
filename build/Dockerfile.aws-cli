@@ -5,6 +5,7 @@ FROM seiso/easy_infra_base:"${EASY_INFRA_TAG}" AS aws-cli
 ARG AWS_CLI_ARCH
 ARG AWS_CLI_VERSION
 ENV AWS_CLI_VERSION="${AWS_CLI_VERSION}"
+ARG DEBIAN_FRONTEND="noninteractive"
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 USER root
