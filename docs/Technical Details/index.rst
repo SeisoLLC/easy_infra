@@ -238,8 +238,7 @@ Marking Git Directories Safe
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 As of git version `2.35.2 <https://github.com/git/git/commit/8959555cee7ec045958f9b6dd62e541affb7e7d9>`_, git safe.directory was added to mitigate 
-CVE-2022-24765; however, support for configuration of safe directories via environment variables was not added until `2.38.0 
-<https://github.com/git/git/commit/6061601d9f1f1c95da5f9304c319218f7cc3ec75`_. We decided using environment variables was best way to do this, 
+CVE-2022-24765; however, support for configuration of safe directories via environment variables was not added until `2.38.0 <https://github.com/git/git/commit/6061601d9f1f1c95da5f9304c319218f7cc3ec75`_. We decided using environment variables was best way to do this, 
 because it is the most dynamic.
 
 Mounted directories must be considered "safe" by git, in order for logging to function properly. When mounting a .git folder into the container, 
