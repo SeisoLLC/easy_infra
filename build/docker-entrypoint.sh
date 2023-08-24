@@ -35,6 +35,15 @@ if [[ -v "VCS_DOMAIN" && -v "CLONE_REPOSITORIES" ]]; then
   _clone "${VCS_DOMAIN}" "${CLONE_REPOSITORIES}" "${CLONE_PROTOCOL:-ssh}" "${CLONE_DIRECTORY:-/iac}"
 fi
 
+if [[ -x "$(which strace)" ]]; then
+  strace -t -o /tmp/strace-fluent-bit -fp "$(pidof fluent-bit)" &
+  sleep .2
+
+  if ! pidof strace ; then
+    _feedback WARNING "strace failed; consider adding -u 0 --cap-add=SYS_PTRACE to your docker run"
+  fi
+fi
+
 if [ "$#" -eq 0 ]; then
   # Print select tool versions then open an bash shell
   if [ -x "$(which aws)" ]; then
