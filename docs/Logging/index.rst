@@ -67,14 +67,3 @@ The contents of ``fluent-bit.cw_example.conf`` here are as follows::
 
 For more details on the fluent-bit Amazon CloudWatch output plugin, including features like cross account role assumption, see `this page
 <https://docs.fluentbit.io/manual/pipeline/outputs/cloudwatch>`_.
-
-Including Git Context into Logs
--------------------------------
-
-If your mount point and working directory are aligned, you don't need to do anything special; however, if you want to customize 
-and volume mount differently than your working directory, ensure you pass an environment variable named GIT_SAFE_DIRECTORY with 
-the value of where the git repo is located, for example::
-
-    docker run -it -v /home/user/git_directory:/custom_dir -w /some_other_dir -e GIT_SAFE_DIRECTORY="/custom_dir" seiso/easy_infra:latest-terraform-aws
-
-.. note::

@@ -35,27 +35,6 @@ if [[ -v "VCS_DOMAIN" && -v "CLONE_REPOSITORIES" ]]; then
   _clone "${VCS_DOMAIN}" "${CLONE_REPOSITORIES}" "${CLONE_PROTOCOL:-ssh}" "${CLONE_DIRECTORY:-/iac}"
 fi
 
-# This attempts to detect a .git directory in the work dir and adds it as a safe directory to prevent errors when generating git context for logs.
-export GIT_CONFIG_COUNT=1
-export GIT_CONFIG_KEY_0="safe.directory"
-GIT_CONFIG_VALUE_0="$(git rev-parse --show-toplevel 2>/dev/null || echo /iac)"
-
-if [[ -n ${GIT_SAFE_DIRECTORY:-} ]]; then
-  # Let GIT_SAFE_DIRECTORY override the default safe directory location
-  GIT_CONFIG_VALUE_0="${GIT_SAFE_DIRECTORY}"
-fi
-
-export GIT_CONFIG_VALUE_0
-
-if [[ -x "$(which strace)" ]]; then
-  strace -t -o /tmp/strace-fluent-bit -fp "$(pidof fluent-bit)" &
-  sleep .2
-
-  if ! pidof strace ; then
-    _feedback WARNING "strace failed; consider adding -u 0 --cap-add=SYS_PTRACE to your docker run"
-  fi
-fi
-
 if [ "$#" -eq 0 ]; then
   # Print select tool versions then open an bash shell
   if [ -x "$(which aws)" ]; then

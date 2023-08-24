@@ -234,6 +234,27 @@ Ultimately, this means that when you run ``terraform`` (or some other properly d
 actually run the function "terraform", which will run the security scans, hooks, and logging, and only after evaluating the precursor logic will it
 run ``command terraform`` which runs the ``terraform`` binary from the ``PATH``.
 
+Marking Git Directories Safe
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+As of git version `2.35.2 <https://github.com/git/git/commit/8959555cee7ec045958f9b6dd62e541affb7e7d9>`_, git safe.directory was added to mitigate 
+CVE-2022-24765; however, support for configuration of safe directories via environment variables was not added until `2.38.0 
+<https://github.com/git/git/commit/6061601d9f1f1c95da5f9304c319218f7cc3ec75`_. We decided using environment variables was best way to do this, 
+because it is the most dynamic.
+
+Mounted directories must be considered "safe" by git, in order for logging to function properly. When mounting a .git folder into the container, 
+the following variables work together to flag it as a safe directory for git::
+
+    export GIT_CONFIG_COUNT=1
+    export GIT_CONFIG_KEY_0="safe.directory"
+    GIT_CONFIG_VALUE_0="$(git rev-parse --show-toplevel 2>/dev/null || echo /iac)"
+    export GIT_CONFIG_VALUE_0
+
+.. note::
+
+We set all of these vars once immediately after setting the hooks and then refresh the GIT_CONFIG_VALUE_0 for each iteration of the dirs loop 
+to accommodate ``AUTODETECT=True``.
+
 Internal naming
 ===============
 
@@ -243,7 +264,7 @@ Internal naming
   above), as configured in the ``easy_infra.yml`` file used to build the image.
 - Package: The name of a package that can be installed to perform a necessary function. It could be a tool, a security tool, or a generic helper such
   as ``fluent-bit`` or ``envconsul``.
-- Command: A runtime command, following the use of the term by bash (see `this documentation<https://www.ibm.com/docs/en/aix/7.2?topic=c-command-command>`_).
+- Command: A runtime command, following the use of the term by bash (see `this documentation <https://www.ibm.com/docs/en/aix/7.2?topic=c-command-command>`_).
   This could be an alias, a package, or some other executable on the user's ``PATH``.
 - Alias: An executable file in the easy_infra and root user's ``PATH`` which executes the installed by a package. While ``aws-cli`` would be a package, ``aws``
   would be the associated alias.
