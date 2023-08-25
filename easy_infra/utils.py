@@ -1066,6 +1066,7 @@ def test(tool="all", environment="all", user="all", debug=False) -> None:
                 )
                 LOG.info(
                     f"stdout: {error.stdout.decode('UTF-8')}, stderr: {error.stderr.decode('UTF-8')}"
+                    )
             except subprocess.CalledProcessError as error:
                 LOG.error(
                     f"stdout: {error.stdout.decode('UTF-8')}, stderr: {error.stderr.decode('UTF-8')}"
