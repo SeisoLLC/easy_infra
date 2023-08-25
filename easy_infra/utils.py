@@ -1057,6 +1057,19 @@ def test(tool="all", environment="all", user="all", debug=False) -> None:
                 user=user,
             )
 
+            # Cleanup after test runs
+            try:
+                subprocess.run(
+                    ["task", "-v", "clean"],
+                    capture_output=True,
+                    check=True,
+                )
+            except subprocess.CalledProcessError as error:
+                LOG.error(
+                    f"stdout: {error.stdout.decode('UTF-8')}, stderr: {error.stderr.decode('UTF-8')}"
+                )
+                sys.exit(1)
+
 
 def vulnscan(tool="all", environment="all", debug=False) -> None:
     """Scan easy_infra for vulns"""
