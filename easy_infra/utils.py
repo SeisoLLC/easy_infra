@@ -1059,14 +1059,14 @@ def test(tool="all", environment="all", user="all", debug=False) -> None:
 
             # Cleanup after test runs
             try:
-                subprocess.run(
+                out = subprocess.run(
                     ["find", ".", "-ls"],
                     capture_output=True,
                     check=True,
                 )
                 LOG.info(
-                    f"stdout: {error.stdout.decode('UTF-8')}, stderr: {error.stderr.decode('UTF-8')}"
-                    )
+                    f"stdout: {out.stdout.decode('UTF-8')}, stderr: {out.stderr.decode('UTF-8')}"
+                )
             except subprocess.CalledProcessError as error:
                 LOG.error(
                     f"stdout: {error.stdout.decode('UTF-8')}, stderr: {error.stderr.decode('UTF-8')}"
