@@ -1060,7 +1060,7 @@ def test(tool="all", environment="all", user="all", debug=False) -> None:
             # Cleanup after test runs
             try:
                 subprocess.run(
-                    ["task", "-v", "clean"],
+                    ["find", ".", "-ls"],
                     capture_output=True,
                     check=True,
                 )
