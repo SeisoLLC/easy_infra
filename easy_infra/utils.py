@@ -1079,6 +1079,8 @@ def test(tool="all", environment="all", user="all", debug=False) -> None:
                         "\;",
                     ],
                     ["find", ".", "-ls"],
+                    ["task", "-v", "clean"],
+                    ["find", ".", "-ls"],
                 ]
                 for command in commands:
                     out = subprocess.run(
