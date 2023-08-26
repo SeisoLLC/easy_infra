@@ -1076,7 +1076,7 @@ def test(tool="all", environment="all", user="all", debug=False) -> None:
                         "chown",
                         "runner:docker",
                         "{}",
-                        "\;",
+                        ";",
                     ],
                     ["find", ".", "-ls"],
                     ["task", "-v", "clean"],
