@@ -1086,7 +1086,7 @@ def test(tool="all", environment="all", user="all", debug=False) -> None:
             }
 
             ls_command: str = "find . -ls"
-            install_task: str = 'sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b ~/.local/bin'
+            install_task: str = 'sh -c \\"$(curl --location https://taskfile.dev/install.sh)\\" -- -d -b ~/.local/bin'
             chown_command: str = (
                 "find . -type f -nogroup -nouser -exec chown runner:docker {} +"
             )
