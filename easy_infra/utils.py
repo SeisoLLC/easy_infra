@@ -1062,40 +1062,26 @@ def test(tool="all", environment="all", user="all", debug=False) -> None:
                 continue
 
             # Cleanup after test runs in a pipeline
-            try:
-                commands: list[list[str]] = [
-                    ["find", ".", "-ls"],
-                    [
-                        "find",
-                        ".",
-                        "-type",
-                        "f",
-                        "-nogroup",
-                        "-nouser",
-                        "-exec",
-                        "chown",
-                        "runner:docker",
-                        "{}",
-                        "+",
-                    ],
-                    ["find", ".", "-ls"],
-                    ["task", "-v", "clean"],
-                    ["find", ".", "-ls"],
-                ]
-                for command in commands:
-                    out = subprocess.run(
-                        command,
-                        capture_output=True,
-                        check=True,
-                    )
-                    LOG.info(
-                        f"stdout: {out.stdout.decode('UTF-8')}, stderr: {out.stderr.decode('UTF-8')}"
-                    )
-            except subprocess.CalledProcessError as error:
-                LOG.error(
-                    f"stdout: {error.stdout.decode('UTF-8')}, stderr: {error.stderr.decode('UTF-8')}"
-                )
-                sys.exit(1)
+            repo_dir: Path = constants.CWD
+            working_dir: str = "/iac/"
+            volumes: dict[Path, dict[str, str]] = {
+                repo_dir: {"bind": working_dir, "mode": "rw"}
+            }
+
+            ls_command: str = "find . -ls"
+            install_task: str = 'sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b ~/.local/bin'
+            chown_command: str = (
+                "find . -type f -nogroup -nouser -exec chown runner:docker {} +"
+            )
+            clean_command: str = "task -v clean"
+            commands: str = f"{ls_command} && {chown_command} && {ls_command} && {install_task} && {ls_command} && {clean_command} && {ls_command}"
+
+            opinionated_docker_run(
+                command=commands,
+                image=image_and_versioned_tag,
+                user=user,
+                volumes=volumes,
+            )
 
 
 def vulnscan(tool="all", environment="all", debug=False) -> None:
