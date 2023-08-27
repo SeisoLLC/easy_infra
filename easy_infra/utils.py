@@ -1086,15 +1086,15 @@ def test(tool="all", environment="all", user="all", debug=False) -> None:
             }
 
             ls_command: str = "find . -ls"
-            install_task: str = 'sh -c \\"$(curl --location https://taskfile.dev/install.sh)\\" -- -d -b ~/.local/bin'
+            install_task: str = 'sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b ~/.local/bin'
             chown_command: str = (
                 "find . -type f -nogroup -nouser -exec chown runner:docker {} +"
             )
             clean_command: str = "task -v clean"
             commands: str = (
-                f'/bin/bash -c "{ls_command} && {chown_command} '
-                + f"&& {ls_command} && {install_task} && {ls_command} "
-                + f'&& {clean_command} && {ls_command}"'
+                f"/bin/bash -c '{ls_command} && {install_task} && {ls_command} "
+                + f"&& {ls_command} && {chown_command} && {ls_command} "
+                + f"&& {clean_command} && {ls_command}'"
             )
 
             opinionated_docker_run(
