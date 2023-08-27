@@ -1072,6 +1072,7 @@ def test(tool="all", environment="all", user="all", debug=False) -> None:
                 continue
 
             # Cleanup after test runs in a pipeline
+            # Notes
             # I would have prefered another approach like doing userns remapping at runtime, but GitHub actions
             # Also, https://github.com/actions/runner/issues/434 is still open even though it has some workarounds like RUNNER_ALLOW_RUNASROOT=1
             # or you could try a service container
@@ -1079,30 +1080,26 @@ def test(tool="all", environment="all", user="all", debug=False) -> None:
             # options https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idcontaineroptions something that `docker
             # create` supports https://docs.docker.com/engine/reference/commandline/create/#options such as --user or --userns whose docs are weak but
             # https://github.com/docker/docker-ce/blob/44a430f4c43e61c95d4e9e9fd6a0573fa113a119/components/engine/api/types/container/host_config.go#L171-L193
-            repo_dir: Path = constants.CWD
-            working_dir: str = "/iac/"
-            volumes: dict[Path, dict[str, str]] = {
-                repo_dir: {"bind": working_dir, "mode": "rw"}
-            }
-
-            ls_command: str = "find . -ls"
-            install_task: str = 'sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b ~/.local/bin'
-            chown_command: str = (
-                "find . -type f -nogroup -nouser -exec chown runner:docker {} +"
-            )
-            clean_command: str = "task -v clean"
-            commands: str = (
-                f"/bin/bash -c '{ls_command} && {install_task} && {ls_command} "
-                + f"&& {ls_command} && {chown_command} && {ls_command} "
-                + f"&& {clean_command} && {ls_command}'"
-            )
-
-            opinionated_docker_run(
-                command=commands,
-                image=image_and_versioned_tag,
-                user=user,
-                volumes=volumes,
-            )
+            try:
+                commands: list[list[str]] = [
+                    ["find", ".", "-ls"],
+                    ["sudo", "task", "-v", "clean"],
+                    ["find", ".", "-ls"],
+                ]
+                for command in commands:
+                    out = subprocess.run(
+                        command,
+                        capture_output=True,
+                        check=True,
+                    )
+                    LOG.info(
+                        f"stdout: {out.stdout.decode('UTF-8')}, stderr: {out.stderr.decode('UTF-8')}"
+                    )
+            except subprocess.CalledProcessError as error:
+                LOG.error(
+                    f"stdout: {error.stdout.decode('UTF-8')}, stderr: {error.stderr.decode('UTF-8')}"
+                )
+                sys.exit(1)
 
 
 def vulnscan(tool="all", environment="all", debug=False) -> None:
