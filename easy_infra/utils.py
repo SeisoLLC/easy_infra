@@ -33,8 +33,17 @@ else:
     else:
         SYSTEM = platform.system().lower()
 
-    # TODO fix: map x86_64 to amd64
-    PLATFORM = f"{SYSTEM}/{platform.machine()}"
+    # Inspired by https://github.com/containerd/containerd/blob/e0912c068b131b33798ae45fd447a1624a6faf0a/platforms/database.go#L76
+    match platform.machine():
+        case "x86_64" | "amd64":
+            MACHINE = "amd64"
+        case "aarch64" | "arm64":
+            MACHINE = "arm64"
+        case _:
+            # Default to amd64
+            MACHINE = "amd64"
+
+    PLATFORM = f"{SYSTEM}/{MACHINE}"
 
 
 def render_jinja2(
@@ -1081,7 +1090,11 @@ def test(tool="all", environment="all", user="all", debug=False) -> None:
                 "find . -type f -nogroup -nouser -exec chown runner:docker {} +"
             )
             clean_command: str = "task -v clean"
-            commands: str = f'/bin/bash -c "{ls_command} && {chown_command} && {ls_command} && {install_task} && {ls_command} && {clean_command} && {ls_command}"'
+            commands: str = (
+                f'/bin/bash -c "{ls_command} && {chown_command} '
+                + f"&& {ls_command} && {install_task} && {ls_command} "
+                + f'&& {clean_command} && {ls_command}"'
+            )
 
             opinionated_docker_run(
                 command=commands,
