@@ -168,6 +168,7 @@ def opinionated_docker_run(
         response["logs"] = container.logs().decode("utf-8").strip().replace("\n", "  ")
         container.remove()
         if not is_status_expected(expected=expected_exit, response=response):
+            LOG.error(f'Encountered an unexpected error; logs were: {response["logs"]}')
             LOG.error(
                 f'Received an exit code of {response["StatusCode"]} when {expected_exit} was expected '
                 + "when invoking CLIENT.containers.run() with the following arguments: "
