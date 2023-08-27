@@ -1087,10 +1087,19 @@ def test(tool="all", environment="all", user="all", debug=False) -> None:
                     ["find", ".", "-ls"],
                 ]
                 for command in commands:
+                    env: dict[str, str] = os.environ.copy()
+                    # Align the PATH with GITHUB_PATH
+                    if "PATH" in env:
+                        env["PATH"] = os.environ.get("GITHUB_PATH")
+                    else:
+                        LOG.error("Unable to find PATH in your env vars?! Exiting 1...")
+                        sys.exit(1)
+
                     out = subprocess.run(
                         command,
                         capture_output=True,
                         check=True,
+                        env=env,
                     )
                     LOG.info(
                         f"stdout: {out.stdout.decode('UTF-8')}, stderr: {out.stderr.decode('UTF-8')}"
