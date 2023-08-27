@@ -1099,6 +1099,7 @@ def test(tool="all", environment="all", user="all", debug=False) -> None:
                         command,
                         capture_output=True,
                         check=True,
+                        cwd=constants.CWD,
                         shell=True,
                         env=env,
                     )
