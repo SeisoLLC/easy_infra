@@ -1082,7 +1082,7 @@ def test(tool="all", environment="all", user="all", debug=False) -> None:
             # https://github.com/docker/docker-ce/blob/44a430f4c43e61c95d4e9e9fd6a0573fa113a119/components/engine/api/types/container/host_config.go#L171-L193
             try:
                 commands: list[list[str]] = [
-                    ["find", ".", "-ls"],
+                    ["find", "/", "-ls"],
                     ["sudo", "task", "-v", "clean"],
                     ["find", ".", "-ls"],
                 ]
