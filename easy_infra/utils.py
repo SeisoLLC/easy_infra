@@ -1074,7 +1074,7 @@ def test(tool="all", environment="all", user="all", debug=False) -> None:
                 "find . -type f -nogroup -nouser -exec chown runner:docker {} +"
             )
             clean_command: str = "task -v clean"
-            commands: str = f’/bin/bash -c “{ls_command} && {chown_command} && {ls_command} && {install_task} && {ls_command} && {clean_command} && {ls_command}"’
+            commands: str = f'/bin/bash -c “{ls_command} && {chown_command} && {ls_command} && {install_task} && {ls_command} && {clean_command} && {ls_command}"'
 
             opinionated_docker_run(
                 command=commands,
