@@ -1062,6 +1062,13 @@ def test(tool="all", environment="all", user="all", debug=False) -> None:
                 continue
 
             # Cleanup after test runs in a pipeline
+            # I would have prefered another approach like doing userns remapping at runtime, but GitHub actions
+            # Also, https://github.com/actions/runner/issues/434 is still open even though it has some workarounds like RUNNER_ALLOW_RUNASROOT=1
+            # or you could try a service container
+            # https://docs.github.com/en/actions/using-containerized-services/about-service-containers#creating-service-containers and set the job container
+            # options https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idcontaineroptions something that `docker
+            # create` supports https://docs.docker.com/engine/reference/commandline/create/#options such as --user or --userns whose docs are weak but
+            # https://github.com/docker/docker-ce/blob/44a430f4c43e61c95d4e9e9fd6a0573fa113a119/components/engine/api/types/container/host_config.go#L171-L193
             repo_dir: Path = constants.CWD
             working_dir: str = "/iac/"
             volumes: dict[Path, dict[str, str]] = {
