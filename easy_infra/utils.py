@@ -1059,25 +1059,20 @@ def test(tool="all", environment="all", user="all", debug=False) -> None:
     for image_and_versioned_tag in image_and_versioned_tags:
         for user in users:
             try:
+                if (task_absolute_path := shutil.which("task")) is None:
+                    LOG.error("Unable to find task in your PATH")
+                    sys.exit(1)
+
                 commands: list[list[str]] = [
-                    ["which", "task"],
                     ["find", "/", "-ls"],
-                    ["sudo", "task", "-v", "clean"],
+                    ["sudo", task_absolute_path, "-v", "clean"],
                     ["find", "/", "-ls"],
                 ]
                 for command in commands:
-                    env: dict[str, str] = os.environ.copy()
-                    LOG.info(f"Before {env=}")
-                    # Add the GITHUB_PATH to the beginning of the PATH when it exists
-                    if "GITHUB_PATH" in env:
-                        env["PATH"] = env["GITHUB_PATH"] + ":" + env["PATH"]
-                    LOG.info(f"After {env=}")
-
                     out = subprocess.run(
                         command,
                         capture_output=True,
                         check=True,
-                        env=env,
                     )
                     LOG.info(
                         f"stdout: {out.stdout.decode('UTF-8')}, stderr: {out.stderr.decode('UTF-8')}"
