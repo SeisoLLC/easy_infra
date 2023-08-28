@@ -1059,13 +1059,9 @@ def test(tool="all", environment="all", user="all", debug=False) -> None:
     for image_and_versioned_tag in image_and_versioned_tags:
         for user in users:
             try:
-                if (task_absolute_path := shutil.which("task")) is None:
-                    LOG.error("Unable to find task in your PATH")
-                    sys.exit(1)
-
                 commands: list[list[str]] = [
                     ["find", ".", "-ls"],
-                    ["sudo", "--preserve-env", task_absolute_path, "-v", "clean"],
+                    ["sudo", "--preserve-env", "task", "-v", "clean"],
                     ["find", ".", "-ls"],
                 ]
                 env: dict[str, str] = os.environ.copy()
