@@ -1058,6 +1058,34 @@ def test(tool="all", environment="all", user="all", debug=False) -> None:
     # Only test using the versioned tag
     for image_and_versioned_tag in image_and_versioned_tags:
         for user in users:
+            try:
+                commands: list[list[str]] = [
+                    ["which", "task"],
+                    ["find", "/", "-ls"],
+                    ["sudo", "task", "-v", "clean"],
+                    ["find", "/", "-ls"],
+                ]
+                for command in commands:
+                    env: dict[str, str] = os.environ.copy()
+                    # Add the GITHUB_PATH to the beginning of the PATH when it exists
+                    if "GITHUB_PATH" in env:
+                        env["PATH"] = env["GITHUB_PATH"] + ":" + env["PATH"]
+
+                    out = subprocess.run(
+                        command,
+                        capture_output=True,
+                        check=True,
+                        env=env,
+                    )
+                    LOG.info(
+                        f"stdout: {out.stdout.decode('UTF-8')}, stderr: {out.stderr.decode('UTF-8')}"
+                    )
+            except subprocess.CalledProcessError as error:
+                LOG.error(
+                    f"stdout: {error.stdout.decode('UTF-8')}, stderr: {error.stderr.decode('UTF-8')}"
+                )
+                sys.exit(1)
+
             LOG.info(
                 f"Testing {image_and_versioned_tag} for platform {PLATFORM} with user {user}..."
             )
@@ -1082,9 +1110,10 @@ def test(tool="all", environment="all", user="all", debug=False) -> None:
             # https://github.com/docker/docker-ce/blob/44a430f4c43e61c95d4e9e9fd6a0573fa113a119/components/engine/api/types/container/host_config.go#L171-L193
             try:
                 commands: list[list[str]] = [
+                    ["which", "task"],
                     ["find", "/", "-ls"],
                     ["sudo", "task", "-v", "clean"],
-                    ["find", ".", "-ls"],
+                    ["find", "/", "-ls"],
                 ]
                 for command in commands:
                     env: dict[str, str] = os.environ.copy()
