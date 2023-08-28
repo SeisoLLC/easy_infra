@@ -1067,9 +1067,11 @@ def test(tool="all", environment="all", user="all", debug=False) -> None:
                 ]
                 for command in commands:
                     env: dict[str, str] = os.environ.copy()
+                    LOG.info(f"Before {env=}")
                     # Add the GITHUB_PATH to the beginning of the PATH when it exists
                     if "GITHUB_PATH" in env:
                         env["PATH"] = env["GITHUB_PATH"] + ":" + env["PATH"]
+                    LOG.info(f"After {env=}")
 
                     out = subprocess.run(
                         command,
