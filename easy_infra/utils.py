@@ -1085,6 +1085,42 @@ def test(tool="all", environment="all", user="all", debug=False) -> None:
                     "clean",
                 ]
                 env: dict[str, str] = os.environ.copy()
+                LOG.info(f"{env=}")
+                out = subprocess.run(
+                    command,
+                    capture_output=True,
+                    check=True,
+                    env=env,
+                )
+                command: list[str] = ["find", ".", "-name", "pipenv"]
+                env: dict[str, str] = os.environ.copy()
+                LOG.info(f"{env=}")
+                out = subprocess.run(
+                    command,
+                    capture_output=True,
+                    check=True,
+                    env=env,
+                )
+                command: list[str] = [
+                    "which",
+                    "pipenv",
+                ]
+                env: dict[str, str] = os.environ.copy()
+                LOG.info(f"{env=}")
+                out = subprocess.run(
+                    command,
+                    capture_output=True,
+                    check=True,
+                    env=env,
+                )
+                command: list[str] = [
+                    "sudo",
+                    "--preserve-env",
+                    "which",
+                    "pipenv",
+                ]
+                env: dict[str, str] = os.environ.copy()
+                LOG.info(f"{env=}")
                 out = subprocess.run(
                     command,
                     capture_output=True,
