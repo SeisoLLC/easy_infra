@@ -1071,9 +1071,19 @@ def test(tool="all", environment="all", user="all", debug=False) -> None:
             if os.getenv("GITHUB_ACTIONS") != "true":
                 continue
 
+            if (task_absolute_path := shutil.which("task")) is None:
+                LOG.error("Unable to find task in your PATH")
+                sys.exit(1)
+
             # Cleanup after test runs in a pipeline
             try:
-                command: list[str] = ["sudo", "--preserve-env", "task", "-v", "clean"]
+                command: list[str] = [
+                    "sudo",
+                    "--preserve-env",
+                    task_absolute_path,
+                    "-v",
+                    "clean",
+                ]
                 env: dict[str, str] = os.environ.copy()
                 out = subprocess.run(
                     command,
