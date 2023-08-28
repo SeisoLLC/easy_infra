@@ -1068,11 +1068,13 @@ def test(tool="all", environment="all", user="all", debug=False) -> None:
                     ["sudo", task_absolute_path, "-v", "clean"],
                     ["find", ".", "-ls"],
                 ]
+                env: dict[str, str] = os.environ.copy()
                 for command in commands:
                     out = subprocess.run(
                         command,
                         capture_output=True,
                         check=True,
+                        env=env,
                     )
                     LOG.info(
                         f"stdout: {out.stdout.decode('UTF-8')}, stderr: {out.stderr.decode('UTF-8')}"
