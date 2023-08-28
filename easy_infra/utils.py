@@ -1065,7 +1065,7 @@ def test(tool="all", environment="all", user="all", debug=False) -> None:
 
                 commands: list[list[str]] = [
                     ["find", ".", "-ls"],
-                    ["sudo", task_absolute_path, "-v", "clean"],
+                    ["sudo", "--preserve-env", task_absolute_path, "-v", "clean"],
                     ["find", ".", "-ls"],
                 ]
                 env: dict[str, str] = os.environ.copy()
