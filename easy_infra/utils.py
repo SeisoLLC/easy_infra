@@ -1058,29 +1058,6 @@ def test(tool="all", environment="all", user="all", debug=False) -> None:
     # Only test using the versioned tag
     for image_and_versioned_tag in image_and_versioned_tags:
         for user in users:
-            try:
-                commands: list[list[str]] = [
-                    ["find", ".", "-ls"],
-                    ["sudo", "--preserve-env", "task", "-v", "clean"],
-                    ["find", ".", "-ls"],
-                ]
-                env: dict[str, str] = os.environ.copy()
-                for command in commands:
-                    out = subprocess.run(
-                        command,
-                        capture_output=True,
-                        check=True,
-                        env=env,
-                    )
-                    LOG.info(
-                        f"stdout: {out.stdout.decode('UTF-8')}, stderr: {out.stderr.decode('UTF-8')}"
-                    )
-            except subprocess.CalledProcessError as error:
-                LOG.error(
-                    f"stdout: {error.stdout.decode('UTF-8')}, stderr: {error.stderr.decode('UTF-8')}"
-                )
-                sys.exit(1)
-
             LOG.info(
                 f"Testing {image_and_versioned_tag} for platform {PLATFORM} with user {user}..."
             )
@@ -1095,36 +1072,18 @@ def test(tool="all", environment="all", user="all", debug=False) -> None:
                 continue
 
             # Cleanup after test runs in a pipeline
-            # Notes
-            # I would have prefered another approach like doing userns remapping at runtime, but GitHub actions
-            # Also, https://github.com/actions/runner/issues/434 is still open even though it has some workarounds like RUNNER_ALLOW_RUNASROOT=1
-            # or you could try a service container
-            # https://docs.github.com/en/actions/using-containerized-services/about-service-containers#creating-service-containers and set the job container
-            # options https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idcontaineroptions something that `docker
-            # create` supports https://docs.docker.com/engine/reference/commandline/create/#options such as --user or --userns whose docs are weak but
-            # https://github.com/docker/docker-ce/blob/44a430f4c43e61c95d4e9e9fd6a0573fa113a119/components/engine/api/types/container/host_config.go#L171-L193
             try:
-                commands: list[list[str]] = [
-                    ["which", "task"],
-                    ["find", "/", "-ls"],
-                    ["sudo", "task", "-v", "clean"],
-                    ["find", "/", "-ls"],
-                ]
-                for command in commands:
-                    env: dict[str, str] = os.environ.copy()
-                    # Add the GITHUB_PATH to the beginning of the PATH when it exists
-                    if "GITHUB_PATH" in env:
-                        env["PATH"] = env["GITHUB_PATH"] + ":" + env["PATH"]
-
-                    out = subprocess.run(
-                        command,
-                        capture_output=True,
-                        check=True,
-                        env=env,
-                    )
-                    LOG.info(
-                        f"stdout: {out.stdout.decode('UTF-8')}, stderr: {out.stderr.decode('UTF-8')}"
-                    )
+                command: list[str] = ["sudo", "--preserve-env", "task", "-v", "clean"]
+                env: dict[str, str] = os.environ.copy()
+                out = subprocess.run(
+                    command,
+                    capture_output=True,
+                    check=True,
+                    env=env,
+                )
+                LOG.debug(
+                    f"stdout: {out.stdout.decode('UTF-8')}, stderr: {out.stderr.decode('UTF-8')}"
+                )
             except subprocess.CalledProcessError as error:
                 LOG.error(
                     f"stdout: {error.stdout.decode('UTF-8')}, stderr: {error.stderr.decode('UTF-8')}"
