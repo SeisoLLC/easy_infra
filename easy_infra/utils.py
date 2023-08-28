@@ -1064,9 +1064,9 @@ def test(tool="all", environment="all", user="all", debug=False) -> None:
                     sys.exit(1)
 
                 commands: list[list[str]] = [
-                    ["find", "/", "-ls"],
+                    ["find", ".", "-ls"],
                     ["sudo", task_absolute_path, "-v", "clean"],
-                    ["find", "/", "-ls"],
+                    ["find", ".", "-ls"],
                 ]
                 for command in commands:
                     out = subprocess.run(
