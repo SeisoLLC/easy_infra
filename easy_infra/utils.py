@@ -1100,7 +1100,7 @@ def test(tool="all", environment="all", user="all", debug=False) -> None:
                 )
                 command: list[str] = [
                     "sudo",
-                    "--preserve-env",
+                    "-E",
                     "which",
                     "pipenv",
                 ]
