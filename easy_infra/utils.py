@@ -1077,41 +1077,6 @@ def test(tool="all", environment="all", user="all", debug=False) -> None:
 
             # Cleanup after test runs in a pipeline
             try:
-                command: list[str] = ["find", ".", "-name", "pipenv"]
-                env: dict[str, str] = os.environ.copy()
-                LOG.info(f"{env=}")
-                out = subprocess.run(
-                    command,
-                    capture_output=True,
-                    check=False,
-                    env=env,
-                )
-                command: list[str] = [
-                    "which",
-                    "pipenv",
-                ]
-                env: dict[str, str] = os.environ.copy()
-                LOG.info(f"{env=}")
-                out = subprocess.run(
-                    command,
-                    capture_output=True,
-                    check=False,
-                    env=env,
-                )
-                command: list[str] = [
-                    "sudo",
-                    "-E",
-                    "which",
-                    "pipenv",
-                ]
-                env: dict[str, str] = os.environ.copy()
-                LOG.info(f"{env=}")
-                out = subprocess.run(
-                    command,
-                    capture_output=True,
-                    check=False,
-                    env=env,
-                )
                 command: list[str] = [
                     "sudo",
                     "-E",
