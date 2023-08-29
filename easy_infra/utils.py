@@ -1071,26 +1071,29 @@ def test(tool="all", environment="all", user="all", debug=False) -> None:
             if os.getenv("GITHUB_ACTIONS") != "true":
                 continue
 
+            # See the warning under https://docs.python.org/3/library/subprocess.html#popen-constructor and some additional context in
+            # https://github.com/python/cpython/issues/105889
             if (task_absolute_path := shutil.which("task")) is None:
                 LOG.error("Unable to find task in your PATH")
                 sys.exit(1)
 
             # Cleanup after test runs in a pipeline
             try:
+                env: dict[str, str] = os.environ.copy()
+                LOG.debug(f"{env=}")
+                # https://unix.stackexchange.com/a/83194/28597
                 command: list[str] = [
                     "sudo",
-                    "-E",
+                    "env",
+                    f"PATH='{env['PATH']}'",
                     task_absolute_path,
                     "-v",
                     "clean",
                 ]
-                env: dict[str, str] = os.environ.copy()
-                LOG.info(f"{env=}")
                 out = subprocess.run(
                     command,
                     capture_output=True,
                     check=True,
-                    env=env,
                     shell=True,
                 )
                 LOG.debug(
