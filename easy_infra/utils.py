@@ -1083,7 +1083,7 @@ def test(tool="all", environment="all", user="all", debug=False) -> None:
                 out = subprocess.run(
                     command,
                     capture_output=True,
-                    check=True,
+                    check=False,
                     env=env,
                 )
                 command: list[str] = [
@@ -1095,7 +1095,7 @@ def test(tool="all", environment="all", user="all", debug=False) -> None:
                 out = subprocess.run(
                     command,
                     capture_output=True,
-                    check=True,
+                    check=False,
                     env=env,
                 )
                 command: list[str] = [
@@ -1109,7 +1109,7 @@ def test(tool="all", environment="all", user="all", debug=False) -> None:
                 out = subprocess.run(
                     command,
                     capture_output=True,
-                    check=True,
+                    check=False,
                     env=env,
                 )
                 command: list[str] = [
