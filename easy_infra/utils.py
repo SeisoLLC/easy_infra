@@ -1068,39 +1068,6 @@ def test(tool="all", environment="all", user="all", debug=False) -> None:
                 user=user,
             )
 
-            if os.getenv("GITHUB_ACTIONS") != "true":
-                continue
-
-            # See the warning under https://docs.python.org/3/library/subprocess.html#popen-constructor and some additional context in
-            # https://github.com/python/cpython/issues/105889
-            if (task_absolute_path := shutil.which("task")) is None:
-                LOG.error("Unable to find task in your PATH")
-                sys.exit(1)
-
-            # Cleanup after test runs in a pipeline
-            try:
-                env: dict[str, str] = os.environ.copy()
-                LOG.debug(f"{env=}")
-                # https://unix.stackexchange.com/a/83194/28597 and https://manpages.ubuntu.com/manpages/focal/en/man8/sudo.8.html#environment are good
-                # references
-                command: str = (
-                    f"sudo env PATH='{env['PATH']}' {task_absolute_path} -v clean"
-                )
-                out = subprocess.run(
-                    command,
-                    capture_output=True,
-                    check=True,
-                    shell=True,
-                )
-                LOG.debug(
-                    f"stdout: {out.stdout.decode('UTF-8')}, stderr: {out.stderr.decode('UTF-8')}"
-                )
-            except subprocess.CalledProcessError as error:
-                LOG.error(
-                    f"stdout: {error.stdout.decode('UTF-8')}, stderr: {error.stderr.decode('UTF-8')}"
-                )
-                sys.exit(1)
-
 
 def vulnscan(tool="all", environment="all", debug=False) -> None:
     """Scan easy_infra for vulns"""
@@ -1116,7 +1083,7 @@ def vulnscan(tool="all", environment="all", debug=False) -> None:
     )
 
     for tag in tags:
-        run_test.run_security(tag=tag)
+        run_test.run_security(tool=tool, environment=environment, tag=tag)
 
 
 def publish(tool="all", environment="all", debug=False, dry_run=False) -> None:
