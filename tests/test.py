@@ -4,7 +4,9 @@ Test Functions
 """
 
 import copy
+import os
 import re
+import shutil
 import subprocess
 import sys
 import time
@@ -412,7 +414,38 @@ def run_tests(*, image: str, user: str, tool: str, environment: str | None) -> N
     # TODO: Fix typing issue here with environment; None vs str
     global_tests(tool=tool, environment=environment, user=user)
     # No need to supply a user to the security scans as they are container-global
-    run_security(tag=tag)
+    run_security(tool=tool, environment=environment, tag=tag)
+
+    if os.getenv("GITHUB_ACTIONS") != "true":
+        return
+
+    # See the warning under https://docs.python.org/3/library/subprocess.html#popen-constructor and some additional context in
+    # https://github.com/python/cpython/issues/105889
+    if (task_absolute_path := shutil.which("task")) is None:
+        LOG.error("Unable to find task in your PATH")
+        sys.exit(1)
+
+    # Cleanup after test runs in a pipeline
+    try:
+        env: dict[str, str] = os.environ.copy()
+        LOG.debug(f"{env=}")
+        # https://unix.stackexchange.com/a/83194/28597 and https://manpages.ubuntu.com/manpages/focal/en/man8/sudo.8.html#environment are good
+        # references
+        command: str = f"sudo env PATH='{env['PATH']}' {task_absolute_path} -v clean"
+        out = subprocess.run(
+            command,
+            capture_output=True,
+            check=True,
+            shell=True,
+        )
+        LOG.debug(
+            f"stdout: {out.stdout.decode('UTF-8')}, stderr: {out.stderr.decode('UTF-8')}"
+        )
+    except subprocess.CalledProcessError as error:
+        LOG.error(
+            f"stdout: {error.stdout.decode('UTF-8')}, stderr: {error.stderr.decode('UTF-8')}"
+        )
+        sys.exit(1)
 
 
 def run_cloudformation(*, image: str, user: str) -> None:
@@ -1638,14 +1671,13 @@ def run_aws(*, image: str, user: str) -> None:
     LOG.info(f"{image} passed {num_tests_ran} integration tests as {user}")
 
 
-def run_security(*, tag: str) -> None:
+def run_security(*, tool: str, environment: str, tag: str) -> None:
     """Run the security tests"""
-    sbom_file = Path(f"sbom.{tag}.json")
+    sbom_file: Path = Path(f"sbom.{tag}.json")
 
     if not sbom_file:
-        LOG.error(
-            f"{sbom_file} was not found; security scans require an SBOM. Please run `task sbom`"
-        )
+        LOG.debug("Generating an SBOM...")
+        utils.sbom(tool=tool, environment=environment)
 
     # Run a vulnerability scan on the provided SBOM
     try:
@@ -1668,5 +1700,5 @@ def run_security(*, tag: str) -> None:
         )
         sys.exit(1)
 
-    image_and_tag = f"{constants.IMAGE}:{tag}"
+    image_and_tag: str = f"{constants.IMAGE}:{tag}"
     LOG.info(f"{image_and_tag} passed the security tests")
