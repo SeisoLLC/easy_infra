@@ -202,13 +202,6 @@ jobs:
         env:
           TOOL: ${{ matrix.tool }}
           ENVIRONMENT: ${{ matrix.environment }}
-      - name: Run tests
-        run: task -v test
-        env:
-          TOOL: ${{ matrix.tool }}
-          ENVIRONMENT: ${{ matrix.environment }}
-          USER: ${{ matrix.user }}
-          DEBUG: "True"
       - name: Generate the SBOM
         run: task -v sbom
         env:
@@ -231,6 +224,13 @@ jobs:
           name: Vulns_${{ matrix.tool }}_${{ matrix.environment }}
           path: vulns.*.json
           if-no-files-found: error
+      - name: Run tests
+        run: task -v test
+        env:
+          TOOL: ${{ matrix.tool }}
+          ENVIRONMENT: ${{ matrix.environment }}
+          USER: ${{ matrix.user }}
+          DEBUG: "True"
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
