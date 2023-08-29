@@ -33,7 +33,17 @@ else:
     else:
         SYSTEM = platform.system().lower()
 
-    PLATFORM = f"{SYSTEM}/{platform.machine()}"
+    # Inspired by https://github.com/containerd/containerd/blob/e0912c068b131b33798ae45fd447a1624a6faf0a/platforms/database.go#L76
+    match platform.machine():
+        case "x86_64" | "amd64":
+            MACHINE = "amd64"
+        case "aarch64" | "arm64":
+            MACHINE = "arm64"
+        case _:
+            # Default to amd64
+            MACHINE = "amd64"
+
+    PLATFORM = f"{SYSTEM}/{MACHINE}"
 
 
 def render_jinja2(
@@ -158,6 +168,7 @@ def opinionated_docker_run(
         response["logs"] = container.logs().decode("utf-8").strip().replace("\n", "  ")
         container.remove()
         if not is_status_expected(expected=expected_exit, response=response):
+            LOG.error(f'Encountered an unexpected error; logs were: {response["logs"]}')
             LOG.error(
                 f'Received an exit code of {response["StatusCode"]} when {expected_exit} was expected '
                 + "when invoking CLIENT.containers.run() with the following arguments: "
@@ -1056,6 +1067,39 @@ def test(tool="all", environment="all", user="all", debug=False) -> None:
                 environment=environment,
                 user=user,
             )
+
+            if os.getenv("GITHUB_ACTIONS") != "true":
+                continue
+
+            # See the warning under https://docs.python.org/3/library/subprocess.html#popen-constructor and some additional context in
+            # https://github.com/python/cpython/issues/105889
+            if (task_absolute_path := shutil.which("task")) is None:
+                LOG.error("Unable to find task in your PATH")
+                sys.exit(1)
+
+            # Cleanup after test runs in a pipeline
+            try:
+                env: dict[str, str] = os.environ.copy()
+                LOG.debug(f"{env=}")
+                # https://unix.stackexchange.com/a/83194/28597 and https://manpages.ubuntu.com/manpages/focal/en/man8/sudo.8.html#environment are good
+                # references
+                command: str = (
+                    f"sudo env PATH='{env['PATH']}' {task_absolute_path} -v clean"
+                )
+                out = subprocess.run(
+                    command,
+                    capture_output=True,
+                    check=True,
+                    shell=True,
+                )
+                LOG.debug(
+                    f"stdout: {out.stdout.decode('UTF-8')}, stderr: {out.stderr.decode('UTF-8')}"
+                )
+            except subprocess.CalledProcessError as error:
+                LOG.error(
+                    f"stdout: {error.stdout.decode('UTF-8')}, stderr: {error.stderr.decode('UTF-8')}"
+                )
+                sys.exit(1)
 
 
 def vulnscan(tool="all", environment="all", debug=False) -> None:
