@@ -1125,6 +1125,7 @@ def test(tool="all", environment="all", user="all", debug=False) -> None:
                     command,
                     capture_output=True,
                     check=True,
+                    env=env,
                     shell=True,
                 )
                 LOG.debug(
