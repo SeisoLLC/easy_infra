@@ -1081,12 +1081,6 @@ def test(tool="all", environment="all", user="all", debug=False) -> None:
             try:
                 env: dict[str, str] = os.environ.copy()
                 LOG.debug(f"{env=}")
-                command: str = "find ."
-                out = subprocess.run(
-                    command,
-                    capture_output=True,
-                    check=False,
-                )
                 # https://unix.stackexchange.com/a/83194/28597 and https://manpages.ubuntu.com/manpages/focal/en/man8/sudo.8.html#environment are good
                 # references
                 command: str = (
@@ -1097,12 +1091,6 @@ def test(tool="all", environment="all", user="all", debug=False) -> None:
                     capture_output=True,
                     check=True,
                     shell=True,
-                )
-                command: str = "find ."
-                out = subprocess.run(
-                    command,
-                    capture_output=True,
-                    check=False,
                 )
                 LOG.debug(
                     f"stdout: {out.stdout.decode('UTF-8')}, stderr: {out.stderr.decode('UTF-8')}"
