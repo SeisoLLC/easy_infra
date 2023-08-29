@@ -1081,15 +1081,11 @@ def test(tool="all", environment="all", user="all", debug=False) -> None:
             try:
                 env: dict[str, str] = os.environ.copy()
                 LOG.debug(f"{env=}")
-                # https://unix.stackexchange.com/a/83194/28597
-                command: list[str] = [
-                    "sudo",
-                    "env",
-                    f"PATH='{env['PATH']}'",
-                    task_absolute_path,
-                    "-v",
-                    "clean",
-                ]
+                # https://unix.stackexchange.com/a/83194/28597 and https://manpages.ubuntu.com/manpages/focal/en/man8/sudo.8.html#environment are good
+                # references
+                command: str = (
+                    f"sudo env PATH='{env['PATH']}' {task_absolute_path} -v clean"
+                )
                 out = subprocess.run(
                     command,
                     capture_output=True,
