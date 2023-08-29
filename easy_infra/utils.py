@@ -1126,6 +1126,7 @@ def test(tool="all", environment="all", user="all", debug=False) -> None:
                     capture_output=True,
                     check=True,
                     env=env,
+                    shell=True,
                 )
                 LOG.debug(
                     f"stdout: {out.stdout.decode('UTF-8')}, stderr: {out.stderr.decode('UTF-8')}"
