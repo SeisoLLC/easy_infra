@@ -1675,7 +1675,7 @@ def run_security(*, tool: str, environment: str, tag: str) -> None:
     """Run the security tests"""
     sbom_file: Path = Path(f"sbom.{tag}.json")
 
-    if not sbom_file:
+    if not sbom_file.is_file():
         LOG.debug("Generating an SBOM...")
         utils.sbom(tool=tool, environment=environment)
 
