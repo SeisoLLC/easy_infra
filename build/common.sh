@@ -151,7 +151,7 @@ function _log() {
 
 
 function _feedback() {
-  if [[ "${SILENT}" == "true" ]]; then
+  if [[ "${SILENT,,}" == "true" ]]; then
     return
   fi
 
