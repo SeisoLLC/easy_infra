@@ -53,7 +53,7 @@ If you'd like to run ``terraform validate`` on terraform stored in your current 
 ``AWS_ACCESS_KEY_ID``, ``AWS_SECRET_ACCESS_KEY``, and any other AWS environment variables (including ``AWS_SESSION_TOKEN`` if you are assuming a role)
 environment variables as defined `here<https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html>_` and run the following::
 
-    docker run --env-file <(env | grep -E '^CW_|^AWS_') -v $(pwd)/fluent-bit.cw_example.conf:/usr/local/etc/fluent-bit/fluent-bit.outputs.conf seiso/easy_infra:latest terraform validate
+    docker run --env-file <(env | grep -E '^CW_|^AWS_') -v $(pwd)/fluent-bit.cw_example.conf:/usr/local/etc/fluent-bit/fluent-bit.outputs.conf seiso/easy_infra:latest-terraform terraform validate
 
 The contents of ``fluent-bit.cw_example.conf`` here are as follows::
 
@@ -67,3 +67,11 @@ The contents of ``fluent-bit.cw_example.conf`` here are as follows::
 
 For more details on the fluent-bit Amazon CloudWatch output plugin, including features like cross account role assumption, see `this page
 <https://docs.fluentbit.io/manual/pipeline/outputs/cloudwatch>`_.
+
+easy_infra output
+-----------------
+
+``easy_infra`` sends some contextual information to stdout/stderr. If you want to disable this output, pass in the environment variable ``SILENT`` with a value
+of ``true``, for instance:
+
+    docker run -e SILENT=true seiso/easy_infra:latest-terraform /bin/bash -c "terraform output | jq .example.value"

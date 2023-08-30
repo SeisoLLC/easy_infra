@@ -19,6 +19,11 @@ includes:
       PYTHON_VERSION: '{{.PYTHON_VERSION}}'
       VERSION: '{{.VERSION}}'
 
+  terraform:
+    taskfile: ./goat/Task/terraform/Taskfile.yml
+    internal: true
+    optional: true
+
 vars:
   IMAGE_NAME: seiso/easy_infra
   PROJECT_SLUG: easy_infra
@@ -200,12 +205,11 @@ tasks:
     desc: Clean up build artifacts, cache files/directories, temp files, etc.
     cmds:
       - task: py:clean
+      - task: terraform:clean
       - task: easy_infra_cleanup
 
   easy_infra_cleanup:
     desc: Cleanup specific to easy_infra
     cmds:
-      - find "{{.ROOT_DIR}}" -type f -name '.terraform.lock.hcl' -delete
-      - find "{{.ROOT_DIR}}" -type d -name '.terraform' -exec rm -rf {} +
       - rm -f '{{.ROOT_DIR}}/build/functions'
       - rm -f '{{.ROOT_DIR}}/build/Dockerfile'

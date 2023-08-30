@@ -237,11 +237,11 @@ run ``command terraform`` which runs the ``terraform`` binary from the ``PATH``.
 Marking Git Directories Safe
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-As of git version `2.35.2 <https://github.com/git/git/commit/8959555cee7ec045958f9b6dd62e541affb7e7d9>`_, git safe.directory was added to mitigate 
-CVE-2022-24765; however, support for configuration of safe directories via environment variables was not added until `2.38.0 <https://github.com/git/git/commit/6061601d9f1f1c95da5f9304c319218f7cc3ec75>`_. 
+As of git version `2.35.2 <https://github.com/git/git/commit/8959555cee7ec045958f9b6dd62e541affb7e7d9>`_, git safe.directory was added to mitigate
+CVE-2022-24765; however, support for configuration of safe directories via environment variables was not added until `2.38.0 <https://github.com/git/git/commit/6061601d9f1f1c95da5f9304c319218f7cc3ec75>`_.
 We decided using environment variables was best way to do this, because it is the most dynamic.
 
-Mounted directories must be considered "safe" by git, in order for logging to function properly. When mounting a .git folder into the container, 
+Mounted directories must be considered "safe" by git, in order for logging to function properly. When mounting a .git folder into the container,
 the following variables work together to flag it as a safe directory for git::
 
     export GIT_CONFIG_COUNT=1
@@ -251,7 +251,7 @@ the following variables work together to flag it as a safe directory for git::
 
 .. note::
 
-We set all of these vars once immediately after setting the hooks and then refresh the GIT_CONFIG_VALUE_0 for each iteration of the dirs loop 
+We set all of these vars once immediately after setting the hooks and then refresh the GIT_CONFIG_VALUE_0 for each iteration of the dirs loop
 to accommodate ``AUTODETECT=True``.
 
 Internal naming

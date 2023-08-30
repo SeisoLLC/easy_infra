@@ -151,6 +151,10 @@ function _log() {
 
 
 function _feedback() {
+  if [[ "${SILENT}" == "true" ]]; then
+    return
+  fi
+
   local timestamp
   timestamp="$(date --iso-8601=seconds --utc)"
   # Use the provided color code label
