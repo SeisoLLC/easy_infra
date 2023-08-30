@@ -74,4 +74,4 @@ easy_infra output
 ``easy_infra`` sends some contextual information to stdout/stderr. If you want to disable this output, pass in the environment variable ``SILENT`` with a value
 of ``true``, for instance:
 
-    docker run -e SILENT=true seiso/easy_infra:latest-terraform /bin/bash -c "terraform output | jq .example.value"
+    docker run -e SILENT=true seiso/easy_infra:latest-terraform /bin/bash -c "terraform output | jq -r '.example.value'"
