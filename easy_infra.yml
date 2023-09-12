@@ -105,6 +105,14 @@ packages:
   kics:
     version: v1.7.11
     version_argument: version
+  opentf:
+    file_extensions: *id002
+    monitor:
+      env_vars:
+      - TF_DATA_DIR
+    security: *id003
+    version: 1.0.0 # TODO
+    version_argument: version
   terraform:
     file_extensions: *id003
     monitor:
