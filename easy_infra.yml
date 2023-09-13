@@ -4,7 +4,7 @@ _anchors:
   security: &id003
     checkov:
       command: checkov -d . --download-external-modules True --framework terraform
-        --skip-download --output json --output-file-path ${CHECKOV_JSON_REPORT_PATH}/checkov.json,
+        --skip-download --output cli --output json --output-file-path console,${CHECKOV_JSON_REPORT_PATH}/checkov.json
       customizations: &id001
         CHECKOV_BASELINE: --baseline
         CHECKOV_EXTERNAL_CHECKS_DIR: --external-checks-dir
@@ -41,8 +41,8 @@ packages:
       position: 0
     security:
       checkov:
-        command: checkov -d . --framework cloudformation --skip-download --output
-          json --output-file-path ${CHECKOV_JSON_REPORT_PATH}/checkov.json,
+        command: checkov -d . --framework cloudformation --skip-download --output cli
+          --output json --output-file-path console,${CHECKOV_JSON_REPORT_PATH}/checkov.json
         customizations: *id001
         description: directory scan
     tool:
