@@ -123,9 +123,10 @@ function {{ "scan_" ~ function if scan else function }}() {
   fi
 
   # This attempts to detect a .git directory in the work dir and adds it as a safe directory to prevent errors when generating git context for logs.
+  rootdir=$(pwd -P)
   export GIT_CONFIG_COUNT=1
   export GIT_CONFIG_KEY_0="safe.directory"
-  GIT_CONFIG_VALUE_0="$(git rev-parse --show-toplevel 2>/dev/null || echo /iac)"
+  GIT_CONFIG_VALUE_0="$(git rev-parse --show-toplevel 2>/dev/null || echo ${rootdir})"
   export GIT_CONFIG_VALUE_0
 
   # Methods to skip **all** security tools for {{ function }}{% for filter in allow_filter if allow_filter is defined %} {{ filter['match'] }}{% endfor %}
@@ -156,7 +157,7 @@ function {{ "scan_" ~ function if scan else function }}() {
     pushd "${dir}" > /dev/null
 
     # Keep the git config value aligned with the current directory
-    GIT_CONFIG_VALUE_0="$(git rev-parse --show-toplevel 2>/dev/null || echo /iac)"
+    GIT_CONFIG_VALUE_0="$(git rev-parse --show-toplevel 2>/dev/null || echo ${rootdir})"
 
     # Export variables to be used in the hooks
     export dir
