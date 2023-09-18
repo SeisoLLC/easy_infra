@@ -458,6 +458,9 @@ def run_cloudformation(*, image: str, user: str) -> None:
     secure_volumes: dict[Path, dict[str, str]] = {
         secure_test_dir: {"bind": working_dir, "mode": "rw"}
     }
+    alt_working_dir: str = "/alt_working_dir/"
+    alt_bind_secure_volumes = copy.deepcopy(secure_volumes)
+    alt_bind_secure_volumes[secure_test_dir]["bind"] = alt_working_dir
     checkov_test_dir: Path = cloudformation_test_dir.joinpath("tool/checkov")
     checkov_volumes: dict[Path, dict[str, str]] = {
         checkov_test_dir: {"bind": working_dir, "mode": "rw"}
@@ -477,6 +480,22 @@ def run_cloudformation(*, image: str, user: str) -> None:
     report_base_dir: Path = Path("/tmp/reports")
     checkov_output_file: Path = report_base_dir.joinpath("checkov").joinpath(
         "checkov.json"
+    )
+
+    # Test alternative working directories/binds
+    # Tests is a list of tuples containing the test environment, command, and expected exit code
+    tests: list[tuple[dict, str, int]] = [  # type: ignore
+        (
+            {"AWS_DEFAULT_REGION": "ap-northeast-1"},
+            "aws cloudformation validate-template --template-body file://./secure.yml",
+            253,
+        ),
+        ({}, "scan_cloudformation", 0),
+    ]
+
+    LOG.debug("Testing alternative working dirs/binds with the cloudformation image")
+    num_tests_ran += exec_tests(
+        tests=tests, volumes=alt_bind_secure_volumes, image=image, user=user
     )
 
     # Ensure secure configurations pass
@@ -743,6 +762,9 @@ def run_terraform(*, image: str, user: str) -> None:
     secure_volumes: dict[Path, dict[str, str]] = {
         secure_config_dir: {"bind": working_dir, "mode": "rw"}
     }
+    alt_working_dir: str = "/alt_working_dir/"
+    alt_bind_secure_volumes = copy.deepcopy(secure_volumes)
+    alt_bind_secure_volumes[secure_config_dir]["bind"] = alt_working_dir
     general_test_dir: Path = terraform_test_dir.joinpath("general")
     general_test_volumes: dict[Path, dict[str, str]] = {
         general_test_dir: {"bind": working_dir, "mode": "rw"}
@@ -1008,6 +1030,28 @@ def run_terraform(*, image: str, user: str) -> None:
         test_autodetect_disable_security_container.kill()
 
         num_tests_ran += num_successful_tests
+
+    # Test alternative working directories/binds
+    # Tests is a list of tuples containing the test environment, command, and expected exit code
+    tests: list[tuple[dict, str, int]] = [  # type: ignore
+        ({}, "terraform init", 0),
+        ({}, "tfenv exec init", 0),
+        (
+            {},
+            '/usr/bin/env bash -c "terraform init && false"',
+            1,
+        ),
+        (
+            {},
+            '/usr/bin/env bash -c "tfenv exec init && false"',
+            1,
+        ),
+    ]
+
+    LOG.debug("Testing alternative working dirs/binds with the terraform image")
+    num_tests_ran += exec_tests(
+        tests=tests, volumes=alt_bind_secure_volumes, image=image, user=user
+    )
 
     # Ensure secure configurations pass
     # Tests is a list of tuples containing the test environment, command, and expected exit code
@@ -1424,12 +1468,27 @@ def run_ansible(*, image: str, user: str) -> None:
     secure_config_dir = TESTS_PATH.joinpath("ansible/general/secure")
     secure_volumes = {secure_config_dir: {"bind": working_dir, "mode": "rw"}}
     secure_volumes_with_log_config = copy.deepcopy(secure_volumes)
+    alt_working_dir: str = "/alt_working_dir/"
+    alt_bind_secure_volumes = copy.deepcopy(secure_volumes)
+    alt_bind_secure_volumes[secure_config_dir]["bind"] = alt_working_dir
     fluent_bit_config_host = TESTS_PATH.joinpath("fluent-bit.outputs.conf")
     fluent_bit_config_container = "/usr/local/etc/fluent-bit/fluent-bit.outputs.conf"
     secure_volumes_with_log_config[fluent_bit_config_host] = {
         "bind": fluent_bit_config_container,
         "mode": "ro",
     }
+
+    # Test alternative working directories/binds
+    # Tests is a list of tuples containing the test environment, command, and expected exit code
+    tests: list[tuple[dict, str, int]] = [  # type: ignore
+        ({}, "ansible-playbook secure.yml --syntax-check", 0),
+        ({}, '/bin/bash -c "ansible-playbook secure.yml --syntax-check && false"', 1),
+    ]
+
+    LOG.debug("Testing alternative working dirs/binds with the ansible image")
+    num_tests_ran += exec_tests(
+        tests=tests, volumes=alt_bind_secure_volumes, image=image, user=user
+    )
 
     # Ensure insecure configurations fail due to kics
     # Tests is a list of tuples containing the test environment, command, and
