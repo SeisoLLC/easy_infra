@@ -58,6 +58,7 @@ function process_command_exit_status() {
 {%- set monitor = packages[package]["monitor"] -%}
 
 function {{ "scan_" ~ function if scan else function }}() {
+  _feedback DEBUGGING "Entering the ${FUNCNAME[0]} function..."
   arguments=("${@}")
   easy_infra_{{ function | replace("-", "_") }}_security_tools=({% for security_tool in security_tools %}{{ security_tool | replace("-", "_") }}{% if not loop.last %} {% endif %}{% endfor %})
 
@@ -117,25 +118,32 @@ function {{ "scan_" ~ function if scan else function }}() {
     for file in /opt/hooks/bin/*.sh; do
       command=$(awk -F\: '/register_hook/ { gsub(/ /,""); print $2 }' "${file}")
       if [[ "${command}" == "{{ 'scan_' ~ function if scan else function }}" ]]; then
+        _feedback DEBUGGING "Registering ${file} to the ${FUNCNAME[0]} hooks"
         easy_infra_{{ function | replace("-", "_") }}_hooks+=("${file}")
       fi
     done
   fi
 
-  # This attempts to detect a .git directory in the work dir and adds it as a safe directory to prevent errors when generating git context for logs.
+  # Adds the detected git toplevel as a safe directory to prevent errors when generating git context for logs.
+  current_dir=$(pwd -P)
   export GIT_CONFIG_COUNT=1
+  _feedback DEBUGGING "Set GIT_CONFIG_COUNT to ${GIT_CONFIG_COUNT}"
   export GIT_CONFIG_KEY_0="safe.directory"
-  GIT_CONFIG_VALUE_0="$(git rev-parse --show-toplevel 2>/dev/null || echo /iac)"
+  _feedback DEBUGGING "Set GIT_CONFIG_KEY_0 to ${GIT_CONFIG_KEY_0}"
+  GIT_CONFIG_VALUE_0="$(git rev-parse --show-toplevel 2>/dev/null || echo ${current_dir})"
   export GIT_CONFIG_VALUE_0
+  _feedback DEBUGGING "Set GIT_CONFIG_VALUE_0 to ${GIT_CONFIG_VALUE_0}"
 
   # Methods to skip **all** security tools for {{ function }}{% for filter in allow_filter if allow_filter is defined %} {{ filter['match'] }}{% endfor %}
   DISABLE_SECURITY="${DISABLE_SECURITY:-false}"
   dirs=()
+  _feedback DEBUGGING "AUTODETECT is ${AUTODETECT:-not set}"
   if [[ "${AUTODETECT:-false}" == "true" ]]; then
 {%- if file_extensions is defined %}
 {%- for file_extension in file_extensions %}
     files=$(find . -iname "*.{{ file_extension }}" -type f)
     if [[ "${files}" ]]; then
+      _feedback DEBUGGING "Adding to the dirs loop due to detecting files with the {{ file_extension }} extension: ${files}"
       dirs+=($(for file in ${files}; do dirname ${file}; done | sort -u | xargs readlink --canonicalize))
     fi
 {%- endfor %}
@@ -151,12 +159,18 @@ function {{ "scan_" ~ function if scan else function }}() {
 
   declare -A dir_exit_codes
 
+  if [ "{{ '${' }}#dirs[@]}" -eq 0 ]; then
+    _feedback WARNING "The function ${FUNCNAME[0]} has no directories to iterate through; did you run ${FUNCNAME[0]} with AUTODETECT=true but with no matching files in any subdirectories?"
+  else
+    _feedback DEBUGGING "The final dirs array is ${dirs[*]:-empty}"
+  fi
+
   for dir in "${dirs[@]}"; do
     _feedback INFO "Changing into the ${dir} directory..."
     pushd "${dir}" > /dev/null
 
     # Keep the git config value aligned with the current directory
-    GIT_CONFIG_VALUE_0="$(git rev-parse --show-toplevel 2>/dev/null || echo /iac)"
+    GIT_CONFIG_VALUE_0="$(git rev-parse --show-toplevel 2>/dev/null || echo ${current_dir})"
 
     # Export variables to be used in the hooks
     export dir
