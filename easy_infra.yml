@@ -1,17 +1,17 @@
 _anchors:
-  file_extensions: &id002
+  file_extensions: &id003
   - tf
-  security: &id003
+  security: &id004
     checkov:
-      command: checkov -d . --download-external-modules True --framework terraform
-        --skip-download --output cli --output json --output-file-path console,${CHECKOV_JSON_REPORT_PATH}/checkov.json
       arg_customizations: &id001
         CHECKOV_BASELINE: --baseline
         CHECKOV_EXTERNAL_CHECKS_DIR: --external-checks-dir
         CHECKOV_SKIP_CHECK: --skip-check
-      env_customizations: &id004
-        CHECKOV_LOG_LEVEL: LOG_LEVEL
+      command: checkov -d . --download-external-modules True --framework terraform
+        --skip-download --output cli --output json --output-file-path console,${CHECKOV_JSON_REPORT_PATH}/checkov.json
       description: directory scan
+      env_customizations: &id002
+        CHECKOV_LOG_LEVEL: LOG_LEVEL
 environments:
   aws:
     packages:
@@ -26,12 +26,12 @@ packages:
     - ansible-playbook
     security:
       kics:
-        command: kics scan --type Ansible --no-progress --queries-path ${KICS_INCLUDE_QUERIES_PATH}
-          --libraries-path ${KICS_LIBRARY_PATH} --report-formats json --output-path
-          ${KICS_REPORTS} --output-name kics --path .
         arg_customizations:
           KICS_EXCLUDE_SEVERITIES: --exclude-severities
           KICS_INCLUDE_QUERIES: --include-queries
+        command: kics scan --type Ansible --no-progress --queries-path ${KICS_INCLUDE_QUERIES_PATH}
+          --libraries-path ${KICS_LIBRARY_PATH} --report-formats json --output-path
+          ${KICS_REPORTS} --output-name kics --path .
         description: directory scan
     version: 2.10.7+merged+base+2.10.8+dfsg-1
     version_argument: --version
@@ -43,16 +43,16 @@ packages:
       position: 0
     security:
       checkov:
+        arg_customizations: *id001
         command: checkov -d . --framework cloudformation --skip-download --output
           cli --output json --output-file-path console,${CHECKOV_JSON_REPORT_PATH}/checkov.json
-        arg_customizations: *id001
-        env_customizations: *id004
         description: directory scan
+        env_customizations: *id002
     tool:
       environments:
       - none
       name: cloudformation
-    version: 2.13.17
+    version: 2.13.19
     version_argument: --version
   azure-cli:
     aliases:
@@ -60,7 +60,7 @@ packages:
     version: 2.52.0-1~jammy
     version_argument: version
   checkov:
-    version: 2.4.35
+    version: 2.4.42
     version_argument: --version
   consul-template:
     helper:
@@ -83,14 +83,14 @@ packages:
     version: v2.42.0
     version_argument: --version
   kics:
-    version: v1.7.7
+    version: v1.7.8
     version_argument: version
   terraform:
-    file_extensions: *id002
+    file_extensions: *id003
     monitor:
       env_vars:
       - TF_DATA_DIR
-    security: *id003
+    security: *id004
     version: 1.5.7
     version_argument: version
   terratag:
@@ -101,12 +101,12 @@ packages:
     allow_filter:
     - match: exec
       position: 0
-    file_extensions: *id002
+    file_extensions: *id003
     helper:
     - terraform
     monitor:
       env_vars:
       - TF_DATA_DIR
-    security: *id003
+    security: *id004
     version: v3.0.0
     version_argument: --version
