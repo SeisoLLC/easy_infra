@@ -1486,7 +1486,7 @@ def run_ansible(*, image: str, user: str) -> None:
             "ansible-playbook secure.yml --syntax-check",
             4,
         ),  # Exits 4 because secure.yml is not a valid Play
-        ({}, '/bin/bash -c "ansible-playbook secure.yml --syntax-check && false"', 1),
+        ({}, '/bin/bash -c "ansible-playbook secure.yml --syntax-check || false"', 1),
     ]
 
     LOG.debug("Testing alternative working dirs/binds with the ansible image")
