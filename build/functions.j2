@@ -156,9 +156,14 @@ function {{ "scan_" ~ function if scan else function }}() {
   else
     dirs+=($(pwd -P))
   fi
-  _feedback DEBUGGING "The final dirs array is ${dirs[*]:-empty}"
 
   declare -A dir_exit_codes
+
+  if [ ${#dirs[@]} -eq 0 ]; then
+    _feedback WARNING "No directories to iterate through; did you set AUTODETECT=true on a repo with no matching file extensions?"
+  else
+    _feedback DEBUGGING "The final dirs array is ${dirs[*]:-empty}"
+  fi
 
   for dir in "${dirs[@]}"; do
     _feedback INFO "Changing into the ${dir} directory..."
