@@ -159,8 +159,8 @@ function {{ "scan_" ~ function if scan else function }}() {
 
   declare -A dir_exit_codes
 
-  if [ ${#dirs[@]} -eq 0 ]; then
-    _feedback WARNING "No directories to iterate through; did you set AUTODETECT=true on a repo with no matching file extensions?"
+  if [ "{{ '${' }}#dirs[@]}" -eq 0 ]; then
+    _feedback WARNING "The function ${FUNCNAME[0]} has no directories to iterate through; did you run ${FUNCNAME[0]} with AUTODETECT=true but with no matching files in any subdirectories?"
   else
     _feedback DEBUGGING "The final dirs array is ${dirs[*]:-empty}"
   fi
