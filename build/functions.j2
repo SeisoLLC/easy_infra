@@ -320,12 +320,21 @@ function {{ "scan_" ~ function if scan else function }}() {
     else
       if [[ -x $(which {{ security_tool }}) ]]; then
         security_tool_command='{{ security_tools[security_tool].command }}'
-        {%- if security_tools[security_tool]["customizations"] is defined %}
-        {%- for env_var, argument in security_tools[security_tool]["customizations"].items() %}
+        {%- if security_tools[security_tool]["arg_customizations"] is defined %}
+        {%- for env_var, argument in security_tools[security_tool]["arg_customizations"].items() %}
         if [[ -v {{ env_var }} ]]; then
-          addition=' {{ argument }} "{{ '${' }}{{ env_var }}{{ '}' }}"'
-          security_tool_command+="${addition}"
-          _feedback DEBUGGING "Adding '${addition}' to the {{ security_tool }} command"
+          append=' {{ argument }} "{{ '${' }}{{ env_var }}{{ '}' }}"'
+          security_tool_command+="${append}"
+          _feedback DEBUGGING "Adding '${append}' to the end of the {{ security_tool }} command"
+        fi
+        {%- endfor %}
+        {%- endif %}
+        {%- if security_tools[security_tool]["env_customizations"] is defined %}
+        {%- for config_env_var, security_tool_env in security_tools[security_tool]["env_customizations"].items() %}
+        if [[ -v {{ config_env_var }} ]]; then
+          prefix="{{ security_tool_env }}={{ '${' }}{{ config_env_var }}{{ '}' }}"
+          security_tool_command="${prefix} ${security_tool_command}"
+          _feedback DEBUGGING "Adding '${prefix}' to the beginning of the {{ security_tool }} command"
         fi
         {%- endfor %}
         {%- endif %}

@@ -18,8 +18,10 @@ Here is a fictitious ``easy_infra.yml`` that concisely demonstrates the various 
         checkov:
           command: checkov -d . --download-external-modules True --skip-download --output
             json --output-file-path ${CHECKOV_JSON_REPORT_PATH}/checkov.json,
-          customizations:
+          arg_customizations:
             CHECKOV_BASELINE: --baseline
+          env_customizations:
+            CHECKOV_LOG_LEVEL: LOG_LEVEL
           description: directory scan
       validation: &id003
       - command: terraform init -backend=false
@@ -146,16 +148,18 @@ every time the related command is run. An alternative ``easy_infra.yml`` would l
           checkov:
             command: checkov -d . --download-external-modules True --skip-download --output
               json --output-file-path ${CHECKOV_JSON_REPORT_PATH}/checkov.json,
-            customizations:
+            arg_customizations:
               CHECKOV_BASELINE: --baseline
               CHECKOV_EXTERNAL_CHECKS_DIR: --external-checks-dir
               CHECKOV_SKIP_CHECK: --skip-check
+            env_customizations:
+              CHECKOV_LOG_LEVEL: LOG_LEVEL
             description: directory scan
           kics:
             command: kics scan --type Terraform --no-progress --queries-path ${KICS_INCLUDE_QUERIES_PATH}
               --libraries-path ${KICS_LIBRARY_PATH} --report-formats json --output-path
               ${KICS_JSON_REPORT_PATH} --output-name kics --path .
-            customizations:
+            arg_customizations:
               KICS_EXCLUDE_SEVERITIES: --exclude-severities
               KICS_INCLUDE_QUERIES: --include-queries
             description: directory scan
@@ -163,8 +167,9 @@ every time the related command is run. An alternative ``easy_infra.yml`` would l
         version_argument: --version
 
 After building ``easy_infra`` with this configuration, you should be able to expect that when you run ``tfenv exec init`` inside of an ``easy_infra`` container,
-then it would run both the ``kics`` and ``checkov`` security tools as described under ``kics: command: ...`` and ``checkov: command: ...``, with additional
-customizations as defined under ``kics: customizations: ...`` and ``checkov: customizations: ...`` when the associated environment variables are set.
+then it would run both the ``kics`` and ``checkov`` security tools as described under ``kics: command: ...`` and ``checkov: command: ...``, with additional arg_
+or env_ customizations as defined under ``security_tool: arg_customizations: ...`` or ``security_tool: env_customizations: ...``, when the associated
+environment variables are set.
 
 As an example, if you ran ``tfenv exec init`` and also had the ``CHECKOV_BASELINE`` environment variable set to ``/iac/.checkov.baseline`` then the
 actual checkov command that would be run would be::

@@ -520,7 +520,8 @@ def run_cloudformation(*, image: str, user: str) -> None:
             {"CHECKOV_SKIP_CHECK": "CKV_AWS_20"},
             "scan_cloudformation",
             0,
-        ),  # This tests "customizations" features from easy_infra.yml and functions.j2
+        ),  # This tests "arg_customizations" features from easy_infra.yml and functions.j2
+        # TODO: Test env_customizations
     ]
 
     LOG.debug("Testing secure cloudformation templates")
@@ -566,7 +567,8 @@ def run_cloudformation(*, image: str, user: str) -> None:
             },
             "scan_cloudformation",
             0,
-        ),  # This tests the "customizations" idea from easy_infra.yml and functions.j2
+        ),  # This tests the "arg_customizations" idea from easy_infra.yml and functions.j2
+        # TODO: Test env_customizations
     ]
 
     LOG.debug("Testing scan_cloudformation with security disabled")
@@ -1084,7 +1086,8 @@ def run_terraform(*, image: str, user: str) -> None:
             {"CHECKOV_SKIP_CHECK": "CKV_AWS_8"},
             "terraform init",
             0,
-        ),  # This tests "customizations" features from easy_infra.yml and functions.j2
+        ),  # This tests "arg_customizations" features from easy_infra.yml and functions.j2
+        # TODO: Test env_customizations
     ]
 
     LOG.debug("Testing secure terraform configurations")
@@ -1261,7 +1264,8 @@ def run_terraform(*, image: str, user: str) -> None:
             },
             "terraform init",
             0,
-        ),  # This tests the "customizations" idea from easy_infra.yml and functions.j2
+        ),  # This tests the "arg_customizations" idea from easy_infra.yml and functions.j2
+        # TODO: Test env_customizations
     ]
 
     LOG.debug("Testing terraform with security disabled")
@@ -1534,12 +1538,12 @@ def run_ansible(*, image: str, user: str) -> None:
             "ansible-playbook insecure.yml --syntax-check",
             4,
         ),  # Exits with 4 because insecure.yml is not a valid Play, and the provided insecure playbook does not apply to the included queries.
-        # This tests the "customizations" idea from easy_infra.yml and functions.j2
+        # This tests the "arg_customizations" idea from easy_infra.yml and functions.j2
         (
             {"KICS_INCLUDE_QUERIES": "7dfb316c-a6c2-454d-b8a2-97f147b0c0ff"},
             "ansible-playbook insecure.yml --syntax-check",
             50,
-        ),  # This tests the "customizations" idea from easy_infra.yml and functions.j2
+        ),  # This tests the "arg_customizations" idea from easy_infra.yml and functions.j2
         (
             {
                 "KICS_EXCLUDE_SEVERITIES": "info,low",
@@ -1547,7 +1551,7 @@ def run_ansible(*, image: str, user: str) -> None:
             "ansible-playbook insecure.yml --syntax-check",
             50,
         ),  # Doesn't exclude high or medium.
-        # This tests the "customizations" idea from easy_infra.yml and functions.j2
+        # This tests the "arg_customizations" idea from easy_infra.yml and functions.j2
         (
             {
                 "KICS_EXCLUDE_SEVERITIES": "high,medium,low",
@@ -1555,13 +1559,14 @@ def run_ansible(*, image: str, user: str) -> None:
             "ansible-playbook insecure.yml --syntax-check",
             4,
         ),  # Excludes all the relevant severities, exits 4 because insecure.yml is not a valid Play.
-        # This tests the "customizations" idea from easy_infra.yml and functions.j2
+        # This tests the "arg_customizations" idea from easy_infra.yml and functions.j2
         (
             {},
             '/usr/bin/env bash -c "KICS_EXCLUDE_SEVERITIES=info,low,medium,high ansible-playbook insecure.yml --syntax-check"',
             4,
         ),  # Excludes all the severities, exits 4 because insecure.yml is not a valid Play.
-        # This tests the "customizations" idea from easy_infra.yml and functions.j2
+        # This tests the "arg_customizations" idea from easy_infra.yml and functions.j2
+        # TODO: Test env_customizations
     ]
 
     num_tests_ran += exec_tests(
