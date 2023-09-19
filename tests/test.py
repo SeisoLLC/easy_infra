@@ -502,6 +502,7 @@ def run_cloudformation(*, image: str, user: str) -> None:
             "scan_cloudformation",
             0,
         ),  # This tests "arg_customizations" features from easy_infra.yml and functions.j2
+        # TODO: Test env_customizations
     ]
 
     LOG.debug("Testing secure cloudformation templates")
@@ -548,6 +549,7 @@ def run_cloudformation(*, image: str, user: str) -> None:
             "scan_cloudformation",
             0,
         ),  # This tests the "arg_customizations" idea from easy_infra.yml and functions.j2
+        # TODO: Test env_customizations
     ]
 
     LOG.debug("Testing scan_cloudformation with security disabled")
@@ -1041,6 +1043,7 @@ def run_terraform(*, image: str, user: str) -> None:
             "terraform init",
             0,
         ),  # This tests "arg_customizations" features from easy_infra.yml and functions.j2
+        # TODO: Test env_customizations
     ]
 
     LOG.debug("Testing secure terraform configurations")
@@ -1218,6 +1221,7 @@ def run_terraform(*, image: str, user: str) -> None:
             "terraform init",
             0,
         ),  # This tests the "arg_customizations" idea from easy_infra.yml and functions.j2
+        # TODO: Test env_customizations
     ]
 
     LOG.debug("Testing terraform with security disabled")
@@ -1499,6 +1503,7 @@ def run_ansible(*, image: str, user: str) -> None:
             4,
         ),  # Excludes all the severities, exits 4 because insecure.yml is not a valid Play.
         # This tests the "arg_customizations" idea from easy_infra.yml and functions.j2
+        # TODO: Test env_customizations
     ]
 
     num_tests_ran += exec_tests(
