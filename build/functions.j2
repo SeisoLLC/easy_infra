@@ -318,8 +318,8 @@ function {{ "scan_" ~ function if scan else function }}() {
         {%- if security_tools[security_tool]["env_customizations"] is defined %}
         {%- for config_env_var, security_tool_env in security_tools[security_tool]["env_customizations"].items() %}
         if [[ -v {{ config_env_var }} ]]; then
-          prefix="$(awk '{print "{{ security_tool_env }}={{ '${' }}{{ config_env_var }}{{ '}' }}"$0}' <<< "${string}")"
-          security_tool_command+="${prefix}"
+          prefix="{{ security_tool_env }}={{ '${' }}{{ config_env_var }}{{ '}' }}"
+          security_tool_command="${prefix} ${security_tool_command}"
           _feedback DEBUGGING "Adding '${prefix}' to the beginning of the {{ security_tool }} command"
         fi
         {%- endfor %}
