@@ -7,6 +7,7 @@ _anchors:
         CHECKOV_BASELINE: --baseline
         CHECKOV_EXTERNAL_CHECKS_DIR: --external-checks-dir
         CHECKOV_SKIP_CHECK: --skip-check
+        CHECKOV_CHECK: --check
       command: checkov -d . --download-external-modules True --framework terraform
         --skip-download --output cli --output json --output-file-path console,${CHECKOV_JSON_REPORT_PATH}/checkov.json
       description: directory scan
