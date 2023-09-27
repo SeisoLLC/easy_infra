@@ -5,9 +5,28 @@ _anchors:
     checkov:
       arg_customizations: &id001
         CHECKOV_BASELINE: --baseline
-        CHECKOV_EXTERNAL_CHECKS_DIR: --external-checks-dir
-        CHECKOV_SKIP_CHECK: --skip-check
+        CHECKOV_BC_API_KEY: --bc-api-key
+        CHECKOV_BLOCK_LIST_SECRET_SCAN: --block-list-secret-scan
+        CHECKOV_CA_CERTIFICATE: --ca-certificate
         CHECKOV_CHECK: --check
+        CHECKOV_CREATE_CONFIG: --create-config
+        CHECKOV_DOWNLOAD_EXTERNAL_MODULES: --download-external-modules
+        CHECKOV_EVALUATE_VARIABLES: --evaluate-variables
+        CHECKOV_EXTERNAL_CHECKS_DIR: --external-checks-dir
+        CHECKOV_EXTERNAL_CHECKS_GIT: --external-checks-git
+        CHECKOV_EXTERNAL_MODULES_DOWNLOAD_PATH: --external-modules-download-path
+        CHECKOV_HARD_FAIL_ON: --hard-fail-on
+        CHECKOV_OPENAI_API_KEY: --openai-api-key
+        CHECKOV_POLICY_METADATA_FILTER: --policy-metadata-filter
+        CHECKOV_PRISMA_API_URL: --prisma-api-url
+        CHECKOV_REPO_ID: --repo-id
+        CHECKOV_REPO_ROOT_FOR_PLAN_ENRICHMENT: --repo-root-for-plan-enrichment
+        CHECKOV_SECRETS_HISTORY_TIMEOUT: --secrets-history-timeout
+        CHECKOV_SECRETS_SCAN_FILE_TYPE: --secrets-scan-file-type
+        CHECKOV_SKIP_CHECK: --skip-check
+        CHECKOV_SKIP_CVE_PACKAGE: --skip-cve-package
+        CHECKOV_SOFT_FAIL_ON: --soft-fail-on
+        CHECKOV_VAR_FILE: --var-file
       command: checkov -d . --download-external-modules True --framework terraform
         --skip-download --output cli --output json --output-file-path console,${CHECKOV_JSON_REPORT_PATH}/checkov.json
       description: directory scan

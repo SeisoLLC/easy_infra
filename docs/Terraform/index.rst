@@ -4,7 +4,7 @@ Terraform
 
 `Terraform <https://github.com/hashicorp/terraform>`_ enables you to safely and predictably create, change, and improve infrastructure.
 
-The ``easy_infra`` project includes and secures Terraform as a component due to its popularity and versitility in provisioning and updating
+The ``easy_infra`` project includes and secures Terraform as a component due to its popularity and versatility in provisioning and updating
 environments as Infrastructure as Code (IaC).
 
 ``easy_infra`` uses security tools, such as `Checkov <https://www.checkov.io/>`_, to transparently assess the provided IaC against the defined security policy.
@@ -30,23 +30,60 @@ You can also use easy_infra to deploy your infrastructure using ``terraform plan
 Customizing Checkov
 ^^^^^^^^^^^^^^^^^^^
 
-+---------------------------------+-----------------------------------------------+----------------------------+
-| Environment Variable            | Result                                        | Example                    |
-+=================================+===============================================+============================+
-| ``CHECKOV_BASELINE``            | Passes the value to ``--baseline``            | ``/iac/.checkov.baseline`` |
-+---------------------------------+-----------------------------------------------+----------------------------+
-| ``CHECKOV_EXTERNAL_CHECKS_DIR`` | Passes the value to ``--external-checks-dir`` | ``/iac/checkov_rules/``    |
-+---------------------------------+-----------------------------------------------+----------------------------+
-| ``CHECKOV_SKIP_CHECK``          | Passes the value to ``--skip-check``          | ``CKV_AWS_20``             |
-+---------------------------------+-----------------------------------------------+----------------------------+
+Many of the ``checkov`` command line parameters can be customized or configured at runtime by setting the below environment variables. By setting these
+environment variables starting with ``CHECKOV_``, ``easy_infra`` will dynamically add the related arguments to the ``checkov`` security scanning command, and
+pass the value of the environment variable to the argument.
 
+For more details regarding how these parameters work, see `the checkov documentation <https://www.checkov.io/2.Basics/CLI%20Command%20Reference.html>`_.
 
-::
++--------------------------------------------+--------------------------------------+
+| Environment Variable                       | CLI Argument                         |
++============================================+======================================+
+| ``CHECKOV_BASELINE``                       | ``--baseline``                       |
+| ``CHECKOV_BC_API_KEY``                     | ``--bc-api-key``                     |
+| ``CHECKOV_BLOCK_LIST_SECRET_SCAN``         | ``--block-list-secret-scan``         |
+| ``CHECKOV_CA_CERTIFICATE``                 | ``--ca-certificate``                 |
+| ``CHECKOV_CHECK``                          | ``--check``                          |
+| ``CHECKOV_CREATE_CONFIG``                  | ``--create-config``                  |
+| ``CHECKOV_DOWNLOAD_EXTERNAL_MODULES``      | ``--download-external-modules``      |
+| ``CHECKOV_EVALUATE_VARIABLES``             | ``--evaluate-variables``             |
+| ``CHECKOV_EXTERNAL_CHECKS_DIR``            | ``--external-checks-dir``            |
+| ``CHECKOV_EXTERNAL_CHECKS_GIT``            | ``--external-checks-git``            |
+| ``CHECKOV_EXTERNAL_MODULES_DOWNLOAD_PATH`` | ``--external-modules-download-path`` |
+| ``CHECKOV_HARD_FAIL_ON``                   | ``--hard-fail-on``                   |
+| ``CHECKOV_OPENAI_API_KEY``                 | ``--openai-api-key``                 |
+| ``CHECKOV_POLICY_METADATA_FILTER``         | ``--policy-metadata-filter``         |
+| ``CHECKOV_PRISMA_API_URL``                 | ``--prisma-api-url``                 |
+| ``CHECKOV_REPO_ID``                        | ``--repo-id``                        |
+| ``CHECKOV_REPO_ROOT_FOR_PLAN_ENRICHMENT``  | ``--repo-root-for-plan-enrichment``  |
+| ``CHECKOV_SECRETS_HISTORY_TIMEOUT``        | ``--secrets-history-timeout``        |
+| ``CHECKOV_SECRETS_SCAN_FILE_TYPE``         | ``--secrets-scan-file-type``         |
+| ``CHECKOV_SKIP_CHECK``                     | ``--skip-check``                     |
+| ``CHECKOV_SKIP_CVE_PACKAGE``               | ``--skip-cve-package``               |
+| ``CHECKOV_SOFT_FAIL_ON``                   | ``--soft-fail-on``                   |
+| ``CHECKOV_VAR_FILE``                       | ``--var-file``                       |
++--------------------------------------------+--------------------------------------+
+
+For instance::
 
     CHECKOV_BASELINE=/iac/.checkov.baseline
     CHECKOV_EXTERNAL_CHECKS_DIR=/iac/checkov_rules/
     CHECKOV_SKIP_CHECK=CKV_AWS_20
     docker run --env-file <(env | grep ^CHECKOV_) -v $(pwd):/iac easy_infra:latest-terraform terraform validate
+
+In addition, you can customize some ``checkov``-specific environment variables at runtime for different effects. By setting these environment variables, you are
+customizing the ``checkov`` environment **only** while it is running.
+
++-----------------------+---------------------+
+| Environment Variable  | Checkov Environment |
++=======================+=====================+
+| ``CHECKOV_LOG_LEVEL`` | ``LOG_LEVEL``       |
++---------------------------------------------+
+
+For instance, the following command will run with ``checkov`` in debug mode (which is separate from running ``easy_infra`` in debug mode)::
+
+    CHECKOV_LOG_LEVEL=DEBUG
+    docker run --env CHECKOV_LOG_LEVEL -v $(pwd):/iac easy_infra:latest-terraform terraform validate
 
 
 Preinstalled Hooks
