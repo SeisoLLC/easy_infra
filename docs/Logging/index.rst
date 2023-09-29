@@ -27,7 +27,7 @@ Loki example
 If you'd like to run ``terraform validate`` on terraform stored in your current working directory and log the outputs of it to Loki, set the
 ``LOKI_USER``, ``LOKI_PASSWD``, ``LOKI_TENANT_ID``, and ``LOKI_HOST`` variables appropriately on your host and run the following::
 
-    docker run --env-file <(env | grep ^LOKI_) -v $(pwd)/fluent-bit.loki_example.conf:/usr/local/etc/fluent-bit/fluent-bit.outputs.conf seiso/easy_infra:latest-terraform terraform validate
+    docker run --env-file <(env | grep ^LOKI_) -v "$(pwd)/fluent-bit.loki_example.conf:/usr/local/etc/fluent-bit/fluent-bit.outputs.conf" seiso/easy_infra:latest-terraform terraform validate
 
 The contents of ``fluent-bit.loki_example.conf`` here are as follows::
 
@@ -53,7 +53,7 @@ If you'd like to run ``terraform validate`` on terraform stored in your current 
 ``AWS_ACCESS_KEY_ID``, ``AWS_SECRET_ACCESS_KEY``, and any other AWS environment variables (including ``AWS_SESSION_TOKEN`` if you are assuming a role)
 environment variables as defined `here<https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html>_` and run the following::
 
-    docker run --env-file <(env | grep -E '^CW_|^AWS_') -v $(pwd)/fluent-bit.cw_example.conf:/usr/local/etc/fluent-bit/fluent-bit.outputs.conf seiso/easy_infra:latest-terraform terraform validate
+    docker run --env-file <(env | grep -E '^CW_|^AWS_') -v "$(pwd)/fluent-bit.cw_example.conf:/usr/local/etc/fluent-bit/fluent-bit.outputs.conf" seiso/easy_infra:latest-terraform terraform validate
 
 The contents of ``fluent-bit.cw_example.conf`` here are as follows::
 
