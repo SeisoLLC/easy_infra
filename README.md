@@ -12,13 +12,13 @@ supports three main use cases:
 In order to run your infrastructure code from within the container, volume mount your files into `/iac` and pass it your command, for example:
 
 ```bash
-docker run -v $(pwd):/iac seiso/easy_infra:latest-terraform terraform validate
+docker run -v .:/iac seiso/easy_infra:latest-terraform terraform validate
 ```
 
 You can simplify your workflow further by using aliases. For instance, consider putting something like the following in your `.zshrc`, `.bashrc`, or similar:
 
 ```bash
-alias terraform="docker run -v $(pwd):/iac seiso/easy_infra:latest-terraform terraform"
+alias terraform="docker run -v .:/iac seiso/easy_infra:latest-terraform terraform"
 ```
 
 This will allow you to run simple `terraform` commands at the command-line, which will run transparently in easy_infra:
@@ -36,7 +36,7 @@ To learn more, check out [our documentation](https://easy-infra.readthedocs.io/)
 This container provides security features by default.  Deploying an environment using terraform would likely look something like this:
 
 ```bash
-docker run -v $(pwd):/iac seiso/easy_infra:latest-terraform /bin/bash -c "terraform init && terraform apply -auto-approve"
+docker run -v .:/iac seiso/easy_infra:latest-terraform /bin/bash -c "terraform init && terraform apply -auto-approve"
 ```
 
 What `easy_infra` does in this case is:
@@ -52,7 +52,7 @@ The learning mode suppresses the exit codes of any injected validation or securi
 setting the `LEARNING_MODE` environment variable to `true`, for instance:
 
 ```bash
-docker run -e LEARNING_MODE=true -v $(pwd):/iac seiso/easy_infra:latest-terraform terraform apply -auto-approve
+docker run -e LEARNING_MODE=true -v .:/iac seiso/easy_infra:latest-terraform terraform apply -auto-approve
 ```
 
 ### Debugging
@@ -60,5 +60,5 @@ docker run -e LEARNING_MODE=true -v $(pwd):/iac seiso/easy_infra:latest-terrafor
 If you'd like to enable debug logs at runtime, pass an environment variable of `LOG_LEVEL` with a value of `DEBUG`, such as:
 
 ```bash
-docker run -e LOG_LEVEL=DEBUG -v $(pwd):/iac seiso/easy_infra:latest-terraform terraform validate
+docker run -e LOG_LEVEL=DEBUG -v .:/iac seiso/easy_infra:latest-terraform terraform validate
 ```
