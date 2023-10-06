@@ -1,13 +1,14 @@
 ARG EASY_INFRA_TAG
 
-FROM seiso/easy_infra_base:"${EASY_INFRA_TAG}" AS opentf
+FROM seiso/easy_infra_base:"${EASY_INFRA_TAG}" AS opentofu
 
 ARG BUILDARCH
-ARG OPENTF_VERSION
-ENV OPENTF_VERSION="${OPENTF_VERSION}"
+ARG OPENTOFU_VERSION
+ENV OPENTOFU_VERSION="${OPENTOFU_VERSION}"
 ARG TERRATAG_VERSION
 ENV TERRATAG_VERSION="${TERRATAG_VERSION}"
-ARG TFENV_VERSION
+# Remove ARG default when pr merged
+ARG TFENV_VERSION="add-opentofu-support"
 ENV TFENV_VERSION="${TFENV_VERSION}"
 ARG DEBIAN_FRONTEND="noninteractive"
 
@@ -25,14 +26,15 @@ RUN curl -L https://github.com/env0/terratag/releases/download/${TERRATAG_VERSIO
  && rm -f /usr/local/bin/terratag.tar.gz \
  && chmod 0755 /usr/local/bin/terratag \
  && chown root: /usr/local/bin/terratag \
- && su easy_infra -c "git clone https://github.com/tfutils/tfenv.git /home/easy_infra/.tfenv --depth 1 --branch ${TFENV_VERSION}" \
+ # Replace opentofu github org when PR merges
+ && su easy_infra -c "git clone https://github.com/opentofu/tfenv.git /home/easy_infra/.tfenv --depth 1 --branch ${TFENV_VERSION}" \
  && rm -rf /home/easy_infra/.tfenv/.git \
  && su easy_infra -c "mkdir -p /home/easy_infra/.terraform.d/plugin-cache" \
  && mkdir -p /home/easy_infra/.terraform.d/plugin-cache \
  && mkdir -p /home/easy_infra/.local/bin/ \
  && ln -s /home/easy_infra/.tfenv/bin/* /home/easy_infra/.local/bin \
- && su - easy_infra -c "tfenv install ${OPENTF_VERSION}" \
- && su - easy_infra -c "tfenv use ${OPENTF_VERSION}" \
- && command opentf -install-autocomplete \
+ && su - easy_infra -c "tfenv install ${OPENTOFU_VERSION}" \
+ && su - easy_infra -c "tfenv use ${OPENTOFU_VERSION}" \
+ && command opentofu -install-autocomplete \
  && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/cache/debconf/*-old
 USER easy_infra
