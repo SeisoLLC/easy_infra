@@ -106,11 +106,11 @@ packages:
     version: v1.7.11
     version_argument: version
   opentofu:
-    file_extensions: *id002
+    file_extensions: *id003
     monitor:
       env_vars:
       - TF_DATA_DIR
-    security: *id003
+    security: *id004
     version: 1.0.0 # TODO
     version_argument: version
   terraform:
