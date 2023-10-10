@@ -124,6 +124,7 @@ packages:
   terratag:
     helper:
     - terraform
+    - opentofu
     version: v0.2.4
   tfenv:
     allow_filter:
@@ -132,6 +133,7 @@ packages:
     file_extensions: *id003
     helper:
     - terraform
+    - opentofu
     monitor:
       env_vars:
       - TF_DATA_DIR
