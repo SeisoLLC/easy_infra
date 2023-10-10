@@ -138,5 +138,6 @@ packages:
       env_vars:
       - TF_DATA_DIR
     security: *id004
-    version: v3.0.0
+    # TODO: Revert after merge
+    version: add-opentofu-support
     version_argument: --version
