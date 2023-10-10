@@ -106,6 +106,8 @@ packages:
     version: v1.7.10
     version_argument: version
   opentofu:
+    aliases:
+    - tofu
     file_extensions: *id003
     monitor:
       env_vars:
