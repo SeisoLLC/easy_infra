@@ -36,6 +36,6 @@ RUN curl -L https://github.com/env0/terratag/releases/download/${TERRATAG_VERSIO
  && ln -s /home/easy_infra/.tfenv/bin/* /home/easy_infra/.local/bin \
  && su - easy_infra -c "TFENV_ENGINE=${TFENV_ENGINE} tfenv install ${OPENTOFU_VERSION}" \
  && su - easy_infra -c "TFENV_ENGINE=${TFENV_ENGINE} tfenv use ${OPENTOFU_VERSION}" \
- && command opentofu -install-autocomplete \
+ && command tofu -install-autocomplete \
  && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/cache/debconf/*-old
 USER easy_infra

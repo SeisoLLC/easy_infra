@@ -18,5 +18,5 @@ RUN apt-get update \
  # unzip is required for the built-in opentofu hooks at runtime
  && apt-get install -y --no-install-recommends unzip \
  && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/cache/debconf/*-old \
- && command opentofu -install-autocomplete
+ && command tofu -install-autocomplete
 USER easy_infra
