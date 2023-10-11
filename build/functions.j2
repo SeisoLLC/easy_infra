@@ -184,13 +184,24 @@ function {{ "scan_" ~ function if scan else function }}() {
         bash "${hook}"
         return=$?
         if [[ "${return:-1}" != 0 ]]; then
-          popd > /dev/null
-          if [[ "${FAIL_FAST:-false}" == "true" ]]; then
-            _feedback INFO "FAIL_FAST is set to ${FAIL_FAST}; returning the exit code of ${return} immediately"
-            return "${return}"
+          message="${hook} failed to execute properly"
+
+          if [[ "${LEARNING_MODE,,}" != "true" ]]; then
+            # easy_infra denied running the hook because the script failed
+            _log "easy_infra.stdouterr" denied failure "easy_infra" "${dir}" string "${message}"
+            _feedback DEBUGGING "${hook} exited ${return}; learning mode was ${LEARNING_MODE:-null or unset}. Returning ${return}"
+            popd > /dev/null
+            if [[ "${FAIL_FAST:-false}" == "true" ]]; then
+              _feedback INFO "FAIL_FAST is set to ${FAIL_FAST}; returning the exit code of ${return} immediately"
+              return "${return}"
+            else
+              dir_exit_codes["${dir}"]="${return}"
+              continue
+            fi
           else
-            dir_exit_codes["${dir}"]="${return}"
-            continue
+            # easy_infra allowed the hook due to learning mode, but the script failed
+            _log "easy_infra.stdouterr" allowed failure "easy_infra" "${dir}" string "${message}"
+            _feedback DEBUGGING "${hook} exited ${return}, but suppressing it due to learning mode"
           fi
         fi
       done

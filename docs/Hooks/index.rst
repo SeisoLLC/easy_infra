@@ -45,10 +45,14 @@ If you want to overwrite all of the built-in hooks with your own folder of hooks
 Configuring Hooks
 -----------------
 
-If you'd like to disable hooks, set the environment variable ``DISABLE_HOOKS`` to ``true``.
+If you'd like to disable hooks, set the environment variable ``DISABLE_HOOKS`` to ``true``.  
+``LEARNING_MODE`` is also available for hooks. Setting this environment variable to ``true`` will suppress the exit codes of hooks that fail to execute and
+allow easy_infra to complete its tasks.
 
-+----------------------+-----------+----------------------------------------+
-| Environment variable | Default   | Result                                 |
-+======================+===========+========================================+
-| ``DISABLE_HOOKS``    | ``false`` | Disable all hooks when set to ``true`` |
-+----------------------+-----------+----------------------------------------+
++----------------------+-----------+------------------------------------------------------+
+| Environment variable | Default   | Result                                               |
++======================+===========+======================================================+
+| ``DISABLE_HOOKS``    | ``false`` | Disable all hooks when set to ``true``               |
++----------------------+-----------+------------------------------------------------------+
+| ``LEARNING_MODE``    | ``false`` | Suppress failed hook exit codes when set to ``true`` |
++----------------------+-----------+------------------------------------------------------+

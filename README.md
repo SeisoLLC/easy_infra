@@ -48,8 +48,8 @@ What `easy_infra` does in this case is:
 
 ### Learning mode
 
-The learning mode suppresses the exit codes of any injected validation or security tooling, ensuring the provided commands will run.  This can be configured by
-setting the `LEARNING_MODE` environment variable to `true`, for instance:
+The learning mode suppresses the exit codes of any injected validation, hook, or security tooling, ensuring the provided commands will run.  
+This can be configured by setting the `LEARNING_MODE` environment variable to `true`, for instance:
 
 ```bash
 docker run -e LEARNING_MODE=true -v .:/iac seiso/easy_infra:latest-terraform terraform apply -auto-approve
