@@ -46,8 +46,7 @@ Configuring Hooks
 -----------------
 
 If you'd like to disable hooks, set the environment variable ``DISABLE_HOOKS`` to ``true``.  
-``LEARNING_MODE`` is also available for hooks. Setting this environment variable to ``true`` will suppress the exit codes of hooks that fail to execute and
-allow easy_infra to complete its tasks.
+``LEARNING_MODE`` also applies to hooks; setting this environment variable to ``true`` suppresses all of the hook's exit codes.
 
 +----------------------+-----------+------------------------------------------------------+
 | Environment variable | Default   | Result                                               |

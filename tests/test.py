@@ -1146,7 +1146,6 @@ def run_terraform(*, image: str, user: str) -> None:
         (
             {
                 "DISABLE_HOOKS": "false",
-                "AUTODETECT": "true",
                 "DISABLE_SECURITY": "true",
                 "FAIL_FAST": "true",
                 "LEARNING_MODE": "true",
@@ -1154,6 +1153,27 @@ def run_terraform(*, image: str, user: str) -> None:
             '/bin/bash -c "scan_terraform"',
             0,
         ),  # This tests that the failed script does not fail easy_infra when LM is enabled
+        (
+            {
+                "DISABLE_HOOKS": "false",
+                "DISABLE_SECURITY": "true",
+                "FAIL_FAST": "true",
+                "LEARNING_MODE": "false",
+            },
+            '/bin/bash -c "scan_terraform"',
+            230,
+        ),  # This tests the hook script for a non-zero exit code that would result in easy_infra failing when LM is disabled
+        (
+            {
+                "DISABLE_HOOKS": "false",
+                "DISABLE_SECURITY": "true",
+                "FAIL_FAST": "false",
+                "LEARNING_MODE": "false",
+            },
+            '/bin/bash -c "scan_terraform"',
+            230,
+        ),  # This tests the hook script for a non-zero exit code with FAIL_FAST and LEARNING_MODE both disabled to ensure the
+        # failed hook gets added to the dir_exit_codes array
     ]
 
     LOG.debug("Testing Learning Mode for custom hooks volume mounted at runtime")
