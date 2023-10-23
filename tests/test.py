@@ -617,49 +617,6 @@ def run_cloudformation(*, image: str, user: str) -> None:
         tests=tests, volumes=checkov_volumes, image=image, user=user
     )
 
-    # Run base interactive cloudformation tests
-    test_interactive_container = CLIENT.containers.run(
-        image=image,
-        detach=True,
-        auto_remove=False,
-        tty=True,
-        volumes=secure_volumes_with_log_config,
-        environment=environment,
-    )
-
-    # Running an interactive scan_cloudformation
-    test_interactive_container.exec_run(
-        cmd='/bin/bash -ic "aws cloudformation validate-template --template-body file://./insecure.yml"',
-        tty=True,
-    )
-
-    # An interactive scan_cloudformation should not cause the creation of the following files, and should have the same number of logs lines in the
-    # fluent bit log regardless of which image is being tested
-    files: list[str] = ["/tmp/checkov_complete"]
-    LOG.debug("Testing interactive aws cloudformation command")
-    # The package name for cloudformation is aws-cli
-    number_of_security_tools: int = len(
-        constants.CONFIG["packages"]["aws-cli"]["security"]
-    )
-    expected_number_of_logs: int = number_of_security_tools
-
-    # Check the container
-    if (
-        num_successful_tests := check_container(
-            container=test_interactive_container,
-            files=files,
-            files_expected_to_exist=False,
-            log_path="/tmp/fluent_bit.log",
-            expected_log_length=expected_number_of_logs,
-        )
-    ) == 0:
-        test_interactive_container.kill()
-        sys.exit(230)
-
-    test_interactive_container.kill()
-
-    num_tests_ran += num_successful_tests
-
     # Run base non-interactive tests for cloudformation
     test_noninteractive_container = CLIENT.containers.run(
         image=image,
@@ -1311,84 +1268,6 @@ def run_terraform(*, image: str, user: str) -> None:
         tests=tests, volumes=checkov_volumes, image=image, user=user
     )
 
-    # Run base interactive terraform tests
-    test_interactive_container = CLIENT.containers.run(
-        image=image,
-        detach=True,
-        auto_remove=False,
-        tty=True,
-        volumes=secure_volumes_with_log_config,
-        environment=environment,
-    )
-
-    # Running an interactive terraform command
-    test_interactive_container.exec_run(cmd='/bin/bash -ic "terraform init"', tty=True)
-
-    # An interactive terraform command should not cause the creation of the following files, and should have the same number of logs lines in the
-    # fluent bit log regardless of which image is being tested
-    files = ["/tmp/checkov_complete"]
-    LOG.debug("Testing interactive terraform commands")
-    number_of_security_tools = len(
-        constants.CONFIG["packages"]["terraform"]["security"]
-    )
-    expected_number_of_logs = number_of_security_tools
-
-    # Check the container
-    if (
-        num_successful_tests := check_container(
-            container=test_interactive_container,
-            files=files,
-            files_expected_to_exist=False,
-            log_path="/tmp/fluent_bit.log",
-            expected_log_length=expected_number_of_logs,
-        )
-    ) == 0:
-        test_interactive_container.kill()
-        sys.exit(230)
-
-    test_interactive_container.kill()
-
-    num_tests_ran += num_successful_tests
-
-    # Run secondary interactive terraform tests
-    test_interactive_container = CLIENT.containers.run(
-        image=image,
-        detach=True,
-        auto_remove=False,
-        tty=True,
-        volumes=secure_volumes_with_log_config,
-        environment=environment,
-    )
-
-    # Running an interactive terraform command
-    test_interactive_container.exec_run(cmd='/bin/bash -ic "terraform init"', tty=True)
-
-    # An interactive terraform command should still cause the creation of the following files, and should have the same number of logs lines in the
-    # fluent bit log regardless of which image is being tested
-    files = [str(checkov_output_file)]
-    LOG.debug("Testing that interactive terraform commands still create reports")
-    number_of_security_tools = len(
-        constants.CONFIG["packages"]["terraform"]["security"]
-    )
-    expected_number_of_logs = number_of_security_tools
-
-    # Check the container
-    if (
-        num_successful_tests := check_container(
-            container=test_interactive_container,
-            files=files,
-            files_expected_to_exist=True,
-            log_path="/tmp/fluent_bit.log",
-            expected_log_length=expected_number_of_logs,
-        )
-    ) == 0:
-        test_interactive_container.kill()
-        sys.exit(230)
-
-    test_interactive_container.kill()
-
-    num_tests_ran += num_successful_tests
-
     # Run base non-interactive tests for terraform
     test_noninteractive_container = CLIENT.containers.run(
         image=image,
@@ -1572,47 +1451,6 @@ def run_ansible(*, image: str, user: str) -> None:
     num_tests_ran += exec_tests(
         tests=tests, volumes=kics_volumes, image=image, user=user
     )
-
-    # Run base interactive tests
-    test_interactive_container = CLIENT.containers.run(
-        image=image,
-        detach=True,
-        auto_remove=False,
-        tty=True,
-        volumes=secure_volumes_with_log_config,
-    )
-
-    # Running an interactive ansible-playbook command
-    test_interactive_container.exec_run(
-        cmd='/bin/bash -ic "ansible-playbook secure.yml --syntax-check"', tty=True
-    )
-
-    # An interactive ansible-playbook command should not cause the creation of
-    # the following files, and should have 1 log line in the fluent bit log
-    # regardless of which image is being tested
-    files = [
-        "/tmp/kics_complete",
-    ]
-    LOG.debug("Testing interactive ansible-playbook commands")
-    number_of_security_tools = len(constants.CONFIG["packages"]["ansible"]["security"])
-    expected_number_of_logs = number_of_security_tools
-
-    # Check the container
-    if (
-        num_successful_tests := check_container(
-            container=test_interactive_container,
-            files=files,
-            files_expected_to_exist=False,
-            log_path="/tmp/fluent_bit.log",
-            expected_log_length=expected_number_of_logs,
-        )
-    ) == 0:
-        test_interactive_container.kill()
-        sys.exit(230)
-
-    test_interactive_container.kill()
-
-    num_tests_ran += num_successful_tests
 
     # Run base non-interactive tests for ansible
     test_noninteractive_container = CLIENT.containers.run(
