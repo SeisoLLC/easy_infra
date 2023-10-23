@@ -38,11 +38,8 @@ function process_command_exit_status() {
     _feedback INFO "Passed ${command} ${description}"
   fi
 
-  # If the shell is not interactive ("i" is not in the $- variable), skip multiple runs of the provided command by timestamping the touch file
-  if [[ ! "${-}" =~ .*i.* ]]; then
-    # If there are any spaces in the provided command, replace them with _s
-    date +%s > "/tmp/${command// /_}_complete"
-  fi
+  # Catalog when the last run was completed
+  date +%s > "/tmp/${command// /_}_complete"
 
   return "${exit_status}"
 }
@@ -267,28 +264,22 @@ function {{ "scan_" ~ function if scan else function }}() {
   {%- if validations is defined %}
     ## Validate the input prior to running security tooling
     {%- for validation in validations %}
-    # If the initialization was already run successfully in a non-interactive shell with AUTODETECT not set to true,
-    # don't run it again
-    if [[ -r "/tmp/{{ validation.command | replace(" ", "_") }}_complete" && "${AUTODETECT:-false}" != "true" ]]; then
-      _feedback INFO "Skipping \`{{ validation.command }}\` because it was already run on $(date -d @"$(cat /tmp/{{ validation.command | replace(" ", "_") }}_complete)")"
-    else
-      command {{ validation.command }} &>/tmp/{{ validation.command | replace(" ", "_") }}_stdouterr
-      process_command_exit_status "$?" "{{ validation.command }}" "{{ validation.description }}"
-      return=$?
-      if [[ "${return:-1}" != 0 ]]; then
-        cat /tmp/{{ validation.command | replace(" ", "_") }}_stdouterr
-        if [[ "${LEARNING_MODE,,}" != "true" ]]; then
-          popd > /dev/null
-          if [[ "${FAIL_FAST:-false}" == "true" ]]; then
-            _feedback INFO "FAIL_FAST is set to ${FAIL_FAST}; returning the exit code of ${return} immediately"
-            return "${return}"
-          else
-            dir_exit_codes["${dir}"]="${return}"
-            continue
-          fi
+    command {{ validation.command }} &>/tmp/{{ validation.command | replace(" ", "_") }}_stdouterr
+    process_command_exit_status "$?" "{{ validation.command }}" "{{ validation.description }}"
+    return=$?
+    if [[ "${return:-1}" != 0 ]]; then
+      cat /tmp/{{ validation.command | replace(" ", "_") }}_stdouterr
+      if [[ "${LEARNING_MODE,,}" != "true" ]]; then
+        popd > /dev/null
+        if [[ "${FAIL_FAST:-false}" == "true" ]]; then
+          _feedback INFO "FAIL_FAST is set to ${FAIL_FAST}; returning the exit code of ${return} immediately"
+          return "${return}"
         else
-          _feedback DEBUGGING "Learning mode enabled, not returning {{ validation.command }}'s exit code of ${return}"
+          dir_exit_codes["${dir}"]="${return}"
+          continue
         fi
+      else
+        _feedback DEBUGGING "Learning mode enabled, not returning {{ validation.command }}'s exit code of ${return}"
       fi
     fi
     {%- endfor -%}
@@ -311,8 +302,7 @@ function {{ "scan_" ~ function if scan else function }}() {
     elif [[ "${!{{ security_tool | replace("-", "_") }}_skip_env_var,,}" == "true" ]]; then
       _feedback WARNING "Skipping {{ security_tool }} due to the {{ '${' }}{{ security_tool | replace("-", "_") }}_skip_env_var} environment variable value"
       _log "easy_infra.stdouterr" info unknown "{{ security_tool }}-skipped" "${dir}" string "Skipping {{ security_tool }} due to the {{ '${' }}{{ security_tool | replace("-", "_") }}_skip_env_var} environment variable value"
-    # If the security scan was already run successfully in a non-interactive shell and the filesystem hasn't changed
-    # since then, don't run it again
+    # If the security scan was already run and the filesystem hasn't changed since then, don't run it again
     elif [[ ${run_scans:-true} == "false" && -r "/tmp/{{ security_tool | replace("-", "_") }}_complete" ]]; then
       _feedback INFO "Skipping {{ security_tool }} because it was already run on $(date -d @"$(cat /tmp/{{ security_tool | replace("-", "_") }}_complete)") and the filesystem has not changed since then"
       _log "easy_infra.stdouterr" info unknown "{{ security_tool }}-skipped" "${dir}" string "Skipping {{ security_tool }} because it was already run on $(date -d @"$(cat /tmp/{{ security_tool | replace("-", "_") }}_complete)") and the filesystem has not changed since then"
