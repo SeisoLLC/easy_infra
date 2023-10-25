@@ -181,27 +181,24 @@ function {{ "scan_" ~ function if scan else function }}() {
         bash "${hook}"
         return=$?
         if [[ "${return:-1}" != 0 ]]; then
-          if [[ "${LEARNING_MODE,,}" != "true" ]]; then
+          if [[ "${LEARNING_MODE,,}" == "true" ]]; then
+            message="${hook} exited non-zero but learning mode was ${learning_mode} so suppressing the failure"
+            _log "easy_infra.stdouterr" allowed failure "easy_infra" "${dir}" string "${message}"
+            _feedback DEBUGGING "${message}"
+          else
             popd > /dev/null
             if [[ "${FAIL_FAST:-false}" == "true" ]]; then
-              # easy_infra denied running the hook because the script failed
               message="${hook} exited non-zero and fail_fast is set to ${FAIL_FAST}; returning the exit code of ${return}"
               _log "easy_infra.stdouterr" denied failure "easy_infra" "${dir}" string "${message}" 
               _feedback DEBUGGING "${message}"
               return "${return}"
             else
-              # easy_infra captured the non-zero exit code, but did not immediately exit because FAIL_FAST was not true
               message="${hook} exited non-zero and fail_fast is set to ${FAIL_FAST:-null or unset}; capturing the exit code of ${return}"
               _log "easy_infra.stdouterr" denied failure "easy_infra" "${dir}" string "${message}"
               _feedback DEBUGGING "${messsage}"
               dir_exit_codes["${dir}"]="${return}"
               continue
             fi
-          else
-            # easy_infra allowed the hook due to learning mode, but the script failed
-            message="${hook} exited non-zero but learning mode was ${learning_mode} so suppressing the failure"
-            _log "easy_infra.stdouterr" allowed failure "easy_infra" "${dir}" string "${message}"
-            _feedback DEBUGGING "${message}"
           fi
         else
           # Intentionally no _log or _feedback when the return code is 0; we expect those messages are in the hook themselves
@@ -281,22 +278,28 @@ function {{ "scan_" ~ function if scan else function }}() {
   {%- if validations is defined %}
     ## Validate the input prior to running security tooling
     {%- for validation in validations %}
-    command {{ validation.command }} &>/tmp/{{ validation.command | replace(" ", "_") }}_stdouterr
-    process_command_exit_status "$?" "{{ validation.command }}" "{{ validation.description }}"
-    return=$?
-    if [[ "${return:-1}" != 0 ]]; then
-      cat /tmp/{{ validation.command | replace(" ", "_") }}_stdouterr
-      if [[ "${LEARNING_MODE,,}" != "true" ]]; then
-        popd > /dev/null
-        if [[ "${FAIL_FAST:-false}" == "true" ]]; then
-          _feedback INFO "FAIL_FAST is set to ${FAIL_FAST}; returning the exit code of ${return} immediately"
-          return "${return}"
+    # If the initialization was already run successfully in a non-interactive shell with AUTODETECT not set to true,
+    # don't run it again
+    if [[ -r "/tmp/{{ validation.command | replace(" ", "_") }}_complete" && "${AUTODETECT:-false}" != "true" ]]; then
+      _feedback INFO "Skipping \`{{ validation.command }}\` because it was already run on $(date -d @"$(cat /tmp/{{ validation.command | replace(" ", "_") }}_complete)")"
+    else
+      command {{ validation.command }} &>/tmp/{{ validation.command | replace(" ", "_") }}_stdouterr
+      process_command_exit_status "$?" "{{ validation.command }}" "{{ validation.description }}"
+      return=$?
+      if [[ "${return:-1}" != 0 ]]; then
+        cat /tmp/{{ validation.command | replace(" ", "_") }}_stdouterr
+        if [[ "${LEARNING_MODE,,}" == "true" ]]; then
+          _feedback DEBUGGING "Learning mode enabled, not returning {{ validation.command }}'s exit code of ${return}"
         else
-          dir_exit_codes["${dir}"]="${return}"
-          continue
+          popd > /dev/null
+          if [[ "${FAIL_FAST:-false}" == "true" ]]; then
+            _feedback INFO "FAIL_FAST is set to ${FAIL_FAST}; returning the exit code of ${return} immediately"
+            return "${return}"
+          else
+            dir_exit_codes["${dir}"]="${return}"
+            continue
+          fi
         fi
-      else
-        _feedback DEBUGGING "Learning mode enabled, not returning {{ validation.command }}'s exit code of ${return}"
       fi
     fi
     {%- endfor -%}
@@ -368,8 +371,10 @@ function {{ "scan_" ~ function if scan else function }}() {
         if [[ "${return:-1}" != 0 ]]; then
           cat /tmp/{{ security_tool | replace("-", "_") }}_stdouterr
 
-          if [[ "${LEARNING_MODE,,}" != "true" ]]; then
-            # easy_infra denied the command because the security tool failed
+          if [[ "${LEARNING_MODE,,}" == "true" ]]; then
+            _log "{{ security_tool }}.stdouterr" allowed failure "${interpolated_security_tool_command}" "${dir}" "${message_type}" "${message_file_path}"
+            _feedback DEBUGGING "{{ security_tool }} running from the ${dir} folder exited ${return}, but suppressing it due to learning mode"
+          else
             _log "{{ security_tool }}.stdouterr" denied failure "${interpolated_security_tool_command}" "${dir}" "${message_type}" "${message_file_path}"
             _feedback DEBUGGING "{{ security_tool }} running from the ${dir} folder exited ${return}; learning mode was ${LEARNING_MODE:-null or unset}. Returning ${return}"
             popd > /dev/null
@@ -380,10 +385,6 @@ function {{ "scan_" ~ function if scan else function }}() {
               dir_exit_codes["${dir}"]="${return}"
               continue
             fi
-          else
-            # easy_infra allowed the command due to learning mode, but the security tool failed
-            _log "{{ security_tool }}.stdouterr" allowed failure "${interpolated_security_tool_command}" "${dir}" "${message_type}" "${message_file_path}"
-            _feedback DEBUGGING "{{ security_tool }} running from the ${dir} folder exited ${return}, but suppressing it due to learning mode"
           fi
         else
           # easy_infra allowed the command and the security tool succeeded
