@@ -275,7 +275,7 @@ function {{ "scan_" ~ function if scan else function }}() {
       run_scans="true"
     fi
 
-    {%- if validations is defined %}
+  {%- if validations is defined %}
     ## Validate the input prior to running security tooling
     {%- for validation in validations %}
     command {{ validation.command }} &>/tmp/{{ validation.command | replace(" ", "_") }}_stdouterr
