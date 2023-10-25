@@ -181,14 +181,28 @@ function {{ "scan_" ~ function if scan else function }}() {
         bash "${hook}"
         return=$?
         if [[ "${return:-1}" != 0 ]]; then
-          popd > /dev/null
-          if [[ "${FAIL_FAST:-false}" == "true" ]]; then
-            _feedback INFO "FAIL_FAST is set to ${FAIL_FAST}; returning the exit code of ${return} immediately"
-            return "${return}"
+          if [[ "${LEARNING_MODE,,}" == "true" ]]; then
+            message="${hook} exited non-zero but learning mode was ${learning_mode} so suppressing the failure"
+            _log "easy_infra.stdouterr" allowed failure "easy_infra" "${dir}" string "${message}"
+            _feedback DEBUGGING "${message}"
           else
-            dir_exit_codes["${dir}"]="${return}"
-            continue
+            popd > /dev/null
+            if [[ "${FAIL_FAST:-false}" == "true" ]]; then
+              message="${hook} exited non-zero and fail_fast is set to ${FAIL_FAST}; returning the exit code of ${return}"
+              _log "easy_infra.stdouterr" denied failure "easy_infra" "${dir}" string "${message}" 
+              _feedback DEBUGGING "${message}"
+              return "${return}"
+            else
+              message="${hook} exited non-zero and fail_fast is set to ${FAIL_FAST:-null or unset}; capturing the exit code of ${return}"
+              _log "easy_infra.stdouterr" denied failure "easy_infra" "${dir}" string "${message}"
+              _feedback DEBUGGING "${messsage}"
+              dir_exit_codes["${dir}"]="${return}"
+              continue
+            fi
           fi
+        else
+          # Intentionally no _log or _feedback when the return code is 0; we expect those messages are in the hook themselves
+          :
         fi
       done
     fi
@@ -269,7 +283,9 @@ function {{ "scan_" ~ function if scan else function }}() {
     return=$?
     if [[ "${return:-1}" != 0 ]]; then
       cat /tmp/{{ validation.command | replace(" ", "_") }}_stdouterr
-      if [[ "${LEARNING_MODE,,}" != "true" ]]; then
+      if [[ "${LEARNING_MODE,,}" == "true" ]]; then
+        _feedback DEBUGGING "Learning mode enabled, not returning {{ validation.command }}'s exit code of ${return}"
+      else
         popd > /dev/null
         if [[ "${FAIL_FAST:-false}" == "true" ]]; then
           _feedback INFO "FAIL_FAST is set to ${FAIL_FAST}; returning the exit code of ${return} immediately"
@@ -278,8 +294,6 @@ function {{ "scan_" ~ function if scan else function }}() {
           dir_exit_codes["${dir}"]="${return}"
           continue
         fi
-      else
-        _feedback DEBUGGING "Learning mode enabled, not returning {{ validation.command }}'s exit code of ${return}"
       fi
     fi
     {%- endfor -%}
@@ -351,8 +365,10 @@ function {{ "scan_" ~ function if scan else function }}() {
         if [[ "${return:-1}" != 0 ]]; then
           cat /tmp/{{ security_tool | replace("-", "_") }}_stdouterr
 
-          if [[ "${LEARNING_MODE,,}" != "true" ]]; then
-            # easy_infra denied the command because the security tool failed
+          if [[ "${LEARNING_MODE,,}" == "true" ]]; then
+            _log "{{ security_tool }}.stdouterr" allowed failure "${interpolated_security_tool_command}" "${dir}" "${message_type}" "${message_file_path}"
+            _feedback DEBUGGING "{{ security_tool }} running from the ${dir} folder exited ${return}, but suppressing it due to learning mode"
+          else
             _log "{{ security_tool }}.stdouterr" denied failure "${interpolated_security_tool_command}" "${dir}" "${message_type}" "${message_file_path}"
             _feedback DEBUGGING "{{ security_tool }} running from the ${dir} folder exited ${return}; learning mode was ${LEARNING_MODE:-null or unset}. Returning ${return}"
             popd > /dev/null
@@ -363,10 +379,6 @@ function {{ "scan_" ~ function if scan else function }}() {
               dir_exit_codes["${dir}"]="${return}"
               continue
             fi
-          else
-            # easy_infra allowed the command due to learning mode, but the security tool failed
-            _log "{{ security_tool }}.stdouterr" allowed failure "${interpolated_security_tool_command}" "${dir}" "${message_type}" "${message_file_path}"
-            _feedback DEBUGGING "{{ security_tool }} running from the ${dir} folder exited ${return}, but suppressing it due to learning mode"
           fi
         else
           # easy_infra allowed the command and the security tool succeeded

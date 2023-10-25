@@ -1091,9 +1091,51 @@ def run_terraform(*, image: str, user: str) -> None:
             1,
         ),  # This tests DISABLE_HOOKS; it fails because the terraform version used is incorrect
     ]
+
     LOG.debug("Testing the easy_infra hooks against various terraform configurations")
     num_tests_ran += exec_tests(
         tests=tests, volumes=hooks_config_volumes, image=image, user=user
+    )
+
+    # Ensure the easy_infra hooks honor Learning Mode by not failing on hook script errors
+    # Tests is a list of tuples containing the test environment, command, and expected exit code
+    tests: list[tuple[dict, str, int]] = [  # type: ignore
+        (
+            {
+                "DISABLE_HOOKS": "false",
+                "DISABLE_SECURITY": "true",
+                "FAIL_FAST": "true",
+                "LEARNING_MODE": "true",
+            },
+            '/bin/bash -c "scan_terraform"',
+            0,
+        ),  # This tests that the failed script does not fail easy_infra when LM is enabled
+        (
+            {
+                "DISABLE_HOOKS": "false",
+                "DISABLE_SECURITY": "true",
+                "FAIL_FAST": "true",
+                "LEARNING_MODE": "false",
+            },
+            '/bin/bash -c "scan_terraform"',
+            230,
+        ),  # This tests the hook script for a non-zero exit code that would result in easy_infra failing when LM is disabled
+        (
+            {
+                "DISABLE_HOOKS": "false",
+                "DISABLE_SECURITY": "true",
+                "FAIL_FAST": "false",
+                "LEARNING_MODE": "false",
+            },
+            '/bin/bash -c "scan_terraform"',
+            230,
+        ),  # This tests the hook script for a non-zero exit code with FAIL_FAST and LEARNING_MODE both disabled to ensure the
+        # failed hook gets added to the dir_exit_codes array
+    ]
+
+    LOG.debug("Testing Learning Mode for custom hooks volume mounted at runtime")
+    num_tests_ran += exec_tests(
+        tests=tests, volumes=hooks_script_volumes, image=image, user=user
     )
 
     tests: list[tuple[dict, str, int]] = [  # type: ignore
