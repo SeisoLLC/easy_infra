@@ -55,7 +55,7 @@ function process_command_exit_status() {
 {%- set monitor = packages[package]["monitor"] -%}
 
 function {{ "scan_" ~ function if scan else function }}() {
-  _feedback DEBUGGING "Entering the ${FUNCNAME[0]} function..."
+  _feedback DEBUG "Entering the ${FUNCNAME[0]} function..."
   arguments=("${@}")
   easy_infra_{{ function | replace("-", "_") }}_security_tools=({% for security_tool in security_tools %}{{ security_tool | replace("-", "_") }}{% if not loop.last %} {% endif %}{% endfor %})
 
@@ -115,7 +115,7 @@ function {{ "scan_" ~ function if scan else function }}() {
     for file in /opt/hooks/bin/*.sh; do
       command=$(awk -F\: '/register_hook/ { gsub(/ /,""); print $2 }' "${file}")
       if [[ "${command}" == "{{ 'scan_' ~ function if scan else function }}" ]]; then
-        _feedback DEBUGGING "Registering ${file} to the ${FUNCNAME[0]} hooks"
+        _feedback DEBUG "Registering ${file} to the ${FUNCNAME[0]} hooks"
         easy_infra_{{ function | replace("-", "_") }}_hooks+=("${file}")
       fi
     done
@@ -124,23 +124,23 @@ function {{ "scan_" ~ function if scan else function }}() {
   # Adds the detected git toplevel as a safe directory to prevent errors when generating git context for logs.
   current_dir=$(pwd -P)
   export GIT_CONFIG_COUNT=1
-  _feedback DEBUGGING "Set GIT_CONFIG_COUNT to ${GIT_CONFIG_COUNT}"
+  _feedback DEBUG "Set GIT_CONFIG_COUNT to ${GIT_CONFIG_COUNT}"
   export GIT_CONFIG_KEY_0="safe.directory"
-  _feedback DEBUGGING "Set GIT_CONFIG_KEY_0 to ${GIT_CONFIG_KEY_0}"
+  _feedback DEBUG "Set GIT_CONFIG_KEY_0 to ${GIT_CONFIG_KEY_0}"
   GIT_CONFIG_VALUE_0="$(git rev-parse --show-toplevel 2>/dev/null || echo ${current_dir})"
   export GIT_CONFIG_VALUE_0
-  _feedback DEBUGGING "Set GIT_CONFIG_VALUE_0 to ${GIT_CONFIG_VALUE_0}"
+  _feedback DEBUG "Set GIT_CONFIG_VALUE_0 to ${GIT_CONFIG_VALUE_0}"
 
   # Methods to skip **all** security tools for {{ function }}{% for filter in allow_filter if allow_filter is defined %} {{ filter['match'] }}{% endfor %}
   DISABLE_SECURITY="${DISABLE_SECURITY:-false}"
   dirs=()
-  _feedback DEBUGGING "AUTODETECT is ${AUTODETECT:-not set}"
+  _feedback DEBUG "AUTODETECT is ${AUTODETECT:-not set}"
   if [[ "${AUTODETECT:-false}" == "true" ]]; then
 {%- if file_extensions is defined %}
 {%- for file_extension in file_extensions %}
     files=$(find . -iname "*.{{ file_extension }}" -type f)
     if [[ "${files}" ]]; then
-      _feedback DEBUGGING "Adding to the dirs loop due to detecting files with the {{ file_extension }} extension: ${files}"
+      _feedback DEBUG "Adding to the dirs loop due to detecting files with the {{ file_extension }} extension: ${files}"
       dirs+=($(for file in ${files}; do dirname ${file}; done | sort -u | xargs readlink --canonicalize))
     fi
 {%- endfor %}
@@ -159,7 +159,7 @@ function {{ "scan_" ~ function if scan else function }}() {
   if [ "{{ '${' }}#dirs[@]}" -eq 0 ]; then
     _feedback WARNING "The function ${FUNCNAME[0]} has no directories to iterate through; did you run ${FUNCNAME[0]} with AUTODETECT=true but with no matching files in any subdirectories?"
   else
-    _feedback DEBUGGING "The final dirs array is ${dirs[*]:-empty}"
+    _feedback DEBUG "The final dirs array is ${dirs[*]:-empty}"
   fi
 
   for dir in "${dirs[@]}"; do
@@ -184,18 +184,18 @@ function {{ "scan_" ~ function if scan else function }}() {
           if [[ "${LEARNING_MODE,,}" == "true" ]]; then
             message="${hook} exited non-zero but learning mode was ${learning_mode} so suppressing the failure"
             _log "easy_infra.stdouterr" allowed failure "easy_infra" "${dir}" string "${message}"
-            _feedback DEBUGGING "${message}"
+            _feedback DEBUG "${message}"
           else
             popd > /dev/null
             if [[ "${FAIL_FAST:-false}" == "true" ]]; then
               message="${hook} exited non-zero and fail_fast is set to ${FAIL_FAST}; returning the exit code of ${return}"
-              _log "easy_infra.stdouterr" denied failure "easy_infra" "${dir}" string "${message}" 
-              _feedback DEBUGGING "${message}"
+              _log "easy_infra.stdouterr" denied failure "easy_infra" "${dir}" string "${message}"
+              _feedback DEBUG "${message}"
               return "${return}"
             else
               message="${hook} exited non-zero and fail_fast is set to ${FAIL_FAST:-null or unset}; capturing the exit code of ${return}"
               _log "easy_infra.stdouterr" denied failure "easy_infra" "${dir}" string "${message}"
-              _feedback DEBUGGING "${messsage}"
+              _feedback DEBUG "${messsage}"
               dir_exit_codes["${dir}"]="${return}"
               continue
             fi
@@ -260,7 +260,7 @@ function {{ "scan_" ~ function if scan else function }}() {
     fi
     if [[ -r "${hashfile}" && -n ${hash} && ${hash} == "${previous_hash}" ]]; then
       run_scans="false"
-      _feedback DEBUGGING "Setting run_scans to ${run_scans} because the hashfile already exists and the current hash matches the previous hash"
+      _feedback DEBUG "Setting run_scans to ${run_scans} because the hashfile already exists and the current hash matches the previous hash"
     elif [[ -r "${hashfile}" ]]; then
       _feedback INFO "The files at ${dirs_to_hash[*]} were changed from ${previous_hash} to ${hash}; reactivating scans..."
       echo "${hash}" >> "${hashfile}"
@@ -269,7 +269,7 @@ function {{ "scan_" ~ function if scan else function }}() {
       _feedback ERROR "Unable to obtain the hash of the files at ${dirs_to_hash[*]}; this should never happen"
       exit 1
     else
-      _feedback DEBUGGING "Creating ${hashfile} with the contents ${hash} due to the files at ${dirs_to_hash[*]}"
+      _feedback DEBUG "Creating ${hashfile} with the contents ${hash} due to the files at ${dirs_to_hash[*]}"
       # This creates the hashfile
       echo "${hash}" >> "${hashfile}"
       run_scans="true"
@@ -284,7 +284,7 @@ function {{ "scan_" ~ function if scan else function }}() {
     if [[ "${return:-1}" != 0 ]]; then
       cat /tmp/{{ validation.command | replace(" ", "_") }}_stdouterr
       if [[ "${LEARNING_MODE,,}" == "true" ]]; then
-        _feedback DEBUGGING "Learning mode enabled, not returning {{ validation.command }}'s exit code of ${return}"
+        _feedback DEBUG "Learning mode enabled, not returning {{ validation.command }}'s exit code of ${return}"
       else
         popd > /dev/null
         if [[ "${FAIL_FAST:-false}" == "true" ]]; then
@@ -329,7 +329,7 @@ function {{ "scan_" ~ function if scan else function }}() {
         if [[ -v {{ env_var }} ]]; then
           append=' {{ argument }} "{{ '${' }}{{ env_var }}{{ '}' }}"'
           security_tool_command+="${append}"
-          _feedback DEBUGGING "Adding '${append}' to the end of the {{ security_tool }} command"
+          _feedback DEBUG "Adding '${append}' to the end of the {{ security_tool }} command"
         fi
         {%- endfor %}
         {%- endif %}
@@ -338,11 +338,11 @@ function {{ "scan_" ~ function if scan else function }}() {
         if [[ -v {{ config_env_var }} ]]; then
           prefix="{{ security_tool_env }}={{ '${' }}{{ config_env_var }}{{ '}' }}"
           security_tool_command="${prefix} ${security_tool_command}"
-          _feedback DEBUGGING "Adding '${prefix}' to the beginning of the {{ security_tool }} command"
+          _feedback DEBUG "Adding '${prefix}' to the beginning of the {{ security_tool }} command"
         fi
         {%- endfor %}
         {%- endif %}
-        _feedback DEBUGGING "Running '${security_tool_command} &>/tmp/{{ security_tool | replace("-", "_") }}_stdouterr'"
+        _feedback DEBUG "Running '${security_tool_command} &>/tmp/{{ security_tool | replace("-", "_") }}_stdouterr'"
         eval "${security_tool_command} &>/tmp/{{ security_tool | replace("-", "_") }}_stdouterr"
         process_command_exit_status "$?" "{{ security_tool | replace("-", "_") }}" "{{ security_tools[security_tool].description }}"
         return=$?
@@ -352,12 +352,12 @@ function {{ "scan_" ~ function if scan else function }}() {
           message_file_path="{{ '${' }}{{ security_tool | upper | replace("-", "_") }}{{ '_JSON_REPORT_PATH}' }}/{{ security_tool | replace("-", "_") }}.json"
           message_type="json"
         else
-          _feedback DEBUGGING "{{ security_tool | upper | replace("-", "_") }}{{ '_JSON_REPORT_PATH' }} was not set or {{ '\${' }}{{ security_tool | upper | replace("-", "_") }}{{ '_JSON_REPORT_PATH}' }}/{{ security_tool | replace("-", "_") }}.json is not readable; falling back to /tmp/{{ security_tool | replace("-", "_") }}_stdouterr"
+          _feedback DEBUG "{{ security_tool | upper | replace("-", "_") }}{{ '_JSON_REPORT_PATH' }} was not set or {{ '\${' }}{{ security_tool | upper | replace("-", "_") }}{{ '_JSON_REPORT_PATH}' }}/{{ security_tool | replace("-", "_") }}.json is not readable; falling back to /tmp/{{ security_tool | replace("-", "_") }}_stdouterr"
           message_file_path="/tmp/{{ security_tool | replace("-", "_") }}_stdouterr"
           message_type="string"
         fi
 
-        _feedback DEBUGGING "The message type was set to ${message_type:-null or unset}"
+        _feedback DEBUG "The message type was set to ${message_type:-null or unset}"
 
         # Identify the interpolated security tool command
         interpolated_security_tool_command="$(envsubst "$(printf '{{ '${' }}%s{{ '}' }} ' $(env | awk -F\= '{print $1}'))" < <(echo "${security_tool_command}"))"
@@ -367,10 +367,10 @@ function {{ "scan_" ~ function if scan else function }}() {
 
           if [[ "${LEARNING_MODE,,}" == "true" ]]; then
             _log "{{ security_tool }}.stdouterr" allowed failure "${interpolated_security_tool_command}" "${dir}" "${message_type}" "${message_file_path}"
-            _feedback DEBUGGING "{{ security_tool }} running from the ${dir} folder exited ${return}, but suppressing it due to learning mode"
+            _feedback DEBUG "{{ security_tool }} running from the ${dir} folder exited ${return}, but suppressing it due to learning mode"
           else
             _log "{{ security_tool }}.stdouterr" denied failure "${interpolated_security_tool_command}" "${dir}" "${message_type}" "${message_file_path}"
-            _feedback DEBUGGING "{{ security_tool }} running from the ${dir} folder exited ${return}; learning mode was ${LEARNING_MODE:-null or unset}. Returning ${return}"
+            _feedback DEBUG "{{ security_tool }} running from the ${dir} folder exited ${return}; learning mode was ${LEARNING_MODE:-null or unset}. Returning ${return}"
             popd > /dev/null
             if [[ "${FAIL_FAST:-false}" == "true" ]]; then
               _feedback INFO "FAIL_FAST is set to ${FAIL_FAST}; returning the exit code of ${return} immediately"
@@ -383,12 +383,12 @@ function {{ "scan_" ~ function if scan else function }}() {
         else
           # easy_infra allowed the command and the security tool succeeded
           _log "{{ security_tool }}.stdouterr" allowed success "${interpolated_security_tool_command}" "${dir}" "${message_type}" "${message_file_path}"
-          _feedback DEBUGGING "{{ security_tool }} was run successfully from the ${dir} folder; specifically '${interpolated_security_tool_command}'"
+          _feedback DEBUG "{{ security_tool }} was run successfully from the ${dir} folder; specifically '${interpolated_security_tool_command}'"
         fi
       else
         # easy_infra skipped the security tool
         _log "{{ security_tool }}.stdouterr" info unknown "{{ security_tool }}" "${dir}" string "{{ security_tool }} was not run because it was either not in the path or is not executable"
-        _feedback DEBUGGING "Did not run {{ security_tool }} because it was either not in the path or is not executable"
+        _feedback DEBUG "Did not run {{ security_tool }} because it was either not in the path or is not executable"
       fi
     fi
     {%- endfor %}
@@ -418,7 +418,7 @@ function {{ "scan_" ~ function if scan else function }}() {
       something_failed="true"
       failure_exit_code="${dir_exit_codes[${dir}]}"
     else
-      feedback_label="DEBUGGING"
+      feedback_label="DEBUG"
     fi
     exit_code="${dir_exit_codes[${dir}]}"
     _feedback "${feedback_label}" "${dir} resulted in an exit code of ${exit_code}"

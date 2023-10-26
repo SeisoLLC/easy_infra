@@ -4,7 +4,7 @@
 # shellcheck disable=SC2034
 ERROR='\033[0;31m'
 WARNING='\033[0;33m'
-DEBUGGING='\033[0;36m'
+DEBUG='\033[0;36m'
 INFO='\033[0m'
 DEFAULT='\033[0m'
 
@@ -73,7 +73,7 @@ function _log() {
 
   if [[ ! -r "${message_file_or_string}" ]]; then
     # _log was provided a raw string, not a file
-    _feedback DEBUGGING "_log was not provided a readable file; we assume it is a string and will escape the JSON special characters..."
+    _feedback DEBUG "_log was not provided a readable file; we assume it is a string and will escape the JSON special characters..."
     message="$(jq --raw-input <<< "${message_file_or_string}")"
   elif [[ "${message_type}" == "string" ]]; then
     message_file="${message_file_or_string}"
@@ -159,19 +159,21 @@ function _feedback() {
 
   local timestamp
   timestamp="$(date --iso-8601=seconds --utc)"
-  # Use the provided color code label
-  local color
-  color="${1}"
+
+  local log_level
+  log_level="${LOG_LEVEL:-WARNING}"
+
+  # ${!log_level} will set the color code related to log_level
   case "${1}" in
     ERROR)
-      >&2 echo -e "${!color}${timestamp} - ${1}:  ${2}${DEFAULT}" ;;
+      >&2 echo -e "${!log_level}${timestamp} - ${1}:  ${2}${DEFAULT}" ;;
     WARNING)
-      >&2 echo -e "${!color}${timestamp} - ${1}:  ${2}${DEFAULT}" ;;
+      >&2 echo -e "${!log_level}${timestamp} - ${1}:  ${2}${DEFAULT}" ;;
     *)
-      if [[ "${1}" != "DEBUGGING" ]]; then
-        echo -e "${!color}${timestamp} - ${1}:  ${2}${DEFAULT}"
-      elif [[ "${LOG_LEVEL}" == "DEBUG" && "${1}" == "DEBUGGING" ]]; then
-        echo -e "${!color}${timestamp} - ${1}:  ${2}${DEFAULT}"
+      if [[ "${1}" != "DEBUG" ]]; then
+        echo -e "${!log_level}${timestamp} - ${1}:  ${2}${DEFAULT}"
+      elif [[ "${log_level}" == "DEBUG" && "${1}" == "DEBUG" ]]; then
+        echo -e "${!log_level}${timestamp} - ${1}:  ${2}${DEFAULT}"
       fi ;;
   esac
 }

@@ -21,7 +21,7 @@ function shutdown() {
   # And then wait for it to exit
   wait
 
-  _feedback DEBUGGING "Successfully dequeud fluent-bit, shutting down easy_infra..."
+  _feedback DEBUG "Successfully dequeud fluent-bit, shutting down easy_infra..."
 }
 
 trap shutdown EXIT
