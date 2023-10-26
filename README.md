@@ -48,7 +48,7 @@ What `easy_infra` does in this case is:
 
 ### Learning mode
 
-The learning mode suppresses the exit codes of any injected validation, hook, or security tooling, ensuring the provided commands will run.  
+The learning mode suppresses the exit codes of any injected validation, hook, or security tooling, ensuring the provided commands will run.
 This can be configured by setting the `LEARNING_MODE` environment variable to `true`, for instance:
 
 ```bash
