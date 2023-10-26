@@ -28,3 +28,6 @@ are optional.
 
 .. note::
     Note: Only unauthenticated clones are supported over https. If you do not specify the CLONE_PROTOCOL, or specify it as ssh, you must provide the associated ssh configurations and keys.
+
+Here is an example command using some environment variables::
+    docker run --env AUTODETECT=true --env VCS_DOMAIN=github.com --env CLONE_REPOSITORIES=terraform-aws-modules/terraform-aws-security-group --env CLONE_PROTOCOL=https seiso/easy_infra:latest-terraform
