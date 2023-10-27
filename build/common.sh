@@ -173,7 +173,7 @@ function _feedback() {
     elif [[ "${log_level}" == "DEBUG" && "${severity}" == "DEBUG" ]]; then
       echo -e "${!severity}${timestamp} - ${severity}:  ${message}${DEFAULT}"
     else
-      >&2 echo -e "Issue calling _feedback"
+      >&2 echo -e "Issue calling _feedback; log_level is ${log_level}, severity is ${severity}, and message is ${message}"
       exit 1
     fi
   fi
