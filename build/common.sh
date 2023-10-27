@@ -160,22 +160,23 @@ function _feedback() {
   local timestamp
   timestamp="$(date --iso-8601=seconds --utc)"
 
-  local log_level
-  log_level="${LOG_LEVEL:-WARNING}"
+  local log_level="${LOG_LEVEL:-WARNING}"
+  local severity="$1"
+  local message="$2"
 
-  # ${!log_level} will set the color code related to log_level
-  case "${1}" in
-    ERROR)
-      >&2 echo -e "${!log_level}${timestamp} - ${1}:  ${2}${DEFAULT}" ;;
-    WARNING)
-      >&2 echo -e "${!log_level}${timestamp} - ${1}:  ${2}${DEFAULT}" ;;
-    *)
-      if [[ "${1}" != "DEBUG" ]]; then
-        echo -e "${!log_level}${timestamp} - ${1}:  ${2}${DEFAULT}"
-      elif [[ "${log_level}" == "DEBUG" && "${1}" == "DEBUG" ]]; then
-        echo -e "${!log_level}${timestamp} - ${1}:  ${2}${DEFAULT}"
-      fi ;;
-  esac
+  # ${!severity} will set the color code related to the severity
+  if [[ "${severity}" == "ERROR" ]]; then
+    >&2 echo -e "${!severity}${timestamp} - ${severity}:  ${message}${DEFAULT}"
+  else
+    if [[ "${severity}" != "DEBUG" ]]; then
+      echo -e "${!severity}${timestamp} - ${severity}:  ${message}${DEFAULT}"
+    elif [[ "${log_level}" == "DEBUG" && "${severity}" == "DEBUG" ]]; then
+      echo -e "${!severity}${timestamp} - ${severity}:  ${message}${DEFAULT}"
+    else
+      >&2 echo -e "Issue calling _feedback"
+      exit 1
+    fi
+  fi
 }
 
 
