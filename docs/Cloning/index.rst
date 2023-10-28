@@ -31,4 +31,8 @@ are optional.
 
 Here is an example command using some environment variables::
     
-    docker run -e AUTODETECT=true -e VCS_DOMAIN=github.com -e CLONE_REPOSITORIES=terraform-aws-modules/terraform-aws-security-group -e CLONE_PROTOCOL=https seiso/easy_infra:latest-terraform scan_terraform
+    docker run -e AUTODETECT=true  \
+    -e VCS_DOMAIN=github.com \
+    -e CLONE_REPOSITORIES=terraform-aws-modules/terraform-aws-security-group \
+    -e CLONE_PROTOCOL=https \
+    seiso/easy_infra:latest-terraform scan_terraform
