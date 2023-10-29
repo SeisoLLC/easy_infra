@@ -29,7 +29,7 @@ are optional.
 .. note::
     Note: Only unauthenticated clones are supported over https. If you do not specify the CLONE_PROTOCOL, or specify it as ssh, you must provide the associated ssh configurations and keys.
 
-Here is an example command using some environment variables. This command clones the specified repositories and searches for all terraform associated files. It uses the `scan_terraform` function to run Checkov against the cloned repositories. ::
+Here is an example command using some environment variables. This command clones the specified repositories and searches for all terraform associated files. It uses the ``scan_terraform`` function to run Checkov against the cloned repositories. ::
     
     docker run -e AUTODETECT=true  \
     -e VCS_DOMAIN=github.com \
