@@ -25,6 +25,174 @@ function run_command() {
   command "${function_name}" "${function_arguments[@]}"
 }
 
+function process_dir_exit_codes() {
+  exit_code_type="${1}"
+  dir_exit_codes="${2}"
+
+  ## Process the exit codes from each directory
+  for dir in "${!dir_exit_codes[@]}"; do
+    if [[ "${dir_exit_codes[${dir}]}" -gt 0 ]]; then
+      feedback_label="ERROR"
+      something_failed="true"
+      failure_exit_code="${dir_exit_codes[${dir}]}"
+    else
+      feedback_label="DEBUG"
+    fi
+    exit_code="${dir_exit_codes[${dir}]}"
+    _feedback "${feedback_label}" "Running the ${exit_code_type} in ${dir} resulted in an exit code of ${exit_code}"
+  done
+
+  return failure_exit_code
+}
+
+function run_hooks() {
+  local function_name="${1}"
+  local function_subcommands="${2}"
+  local hook_type="${3}"
+  local hooks="${4}"
+  local message
+
+  if [[ "${DISABLE_HOOKS:-false}" == "true" ]]; then
+    message="DISABLE_HOOKS is set to ${DISABLE_HOOKS}; skipping the ${hook_type} hooks for the ${function_name}${function_subcommands} {{ filter['match'] }}{% endfor %} command..."
+    _feedback WARNING "${message}"
+    _log "easy_infra.stdouterr" info unknown "{{ function }}" "${dir}" string "${message}"
+  else
+    for hook in ${hooks[@]}; do
+      bash "${hook}"
+      return=$?
+      if [[ "${return:-1}" != 0 ]]; then
+        if [[ "${LEARNING_MODE,,}" == "true" ]]; then
+          message="${hook} exited non-zero but learning mode was ${learning_mode} so suppressing the failure"
+          _log "easy_infra.stdouterr" allowed failure "easy_infra" "${dir}" string "${message}"
+          _feedback DEBUG "${message}"
+        else
+          popd > /dev/null
+          if [[ "${FAIL_FAST:-false}" == "true" ]]; then
+            message="${hook} exited non-zero and fail_fast is set to ${FAIL_FAST}; returning the exit code of ${return}"
+            _log "easy_infra.stdouterr" denied failure "easy_infra" "${dir}" string "${message}"
+            _feedback DEBUG "${message}"
+            return "${return}"
+          else
+            message="${hook} exited non-zero and fail_fast is set to ${FAIL_FAST:-null or unset}; capturing the exit code of ${return}"
+            _log "easy_infra.stdouterr" denied failure "easy_infra" "${dir}" string "${message}"
+            _feedback DEBUG "${messsage}"
+            declare "${hook_type}_hook_dir_exit_codes"["${dir}"]="${return}"
+            continue
+          fi
+        fi
+      else
+        # Intentionally no _log or _feedback when the return code is 0; we expect those messages are in the hook themselves
+        :
+      fi
+    done
+  fi
+}
+
+function run_tool_if_disable_security_is_set() {
+  local function_name="${1}"
+  local function_subcommands="${2}"
+
+  if [[ "${security_skipped:-false}" == "argument" ]]; then
+    message="Skipping all security checks for ${function_name}${function_subcommands} due to the --disable-security argument"
+    _feedback WARNING "${message}"
+    _log "easy_infra.stdouterr" info unknown "${function_name}" "${dir}" string "${message}"
+    unset 'security_skipped'
+    run_command "${function_name}" "${arguments[@]}"
+    return=$?
+    popd > /dev/null
+    if [[ "${return:-1}" != 0 ]]; then
+      if [[ "${FAIL_FAST:-false}" == "true" ]]; then
+        _feedback INFO "FAIL_FAST is set to ${FAIL_FAST}; returning the exit code of ${return} immediately"
+        return "${return}"
+      else
+        command_dir_exit_codes["${dir}"]="${return}"
+        return
+      fi
+    fi
+    return
+  elif [[ "${DISABLE_SECURITY,,}" == "true" ]]; then
+    message="Skipping all security checks for ${function_name}${function_subcommands} due to the DISABLE_SECURITY environment variable value"
+    _feedback WARNING "${message}"
+    _log "easy_infra.stdouterr" info unknown "${function_name}" "${dir}" string "${message}"
+    run_command "${function_name}" "${arguments[@]}"
+    return=$?
+    popd > /dev/null
+    if [[ "${return:-1}" != 0 ]]; then
+      if [[ "${FAIL_FAST:-false}" == "true" ]]; then
+        _feedback INFO "FAIL_FAST is set to ${FAIL_FAST}; returning the exit code of ${return} immediately"
+        return "${return}"
+      else
+        command_dir_exit_codes["${dir}"]="${return}"
+        return
+      fi
+    fi
+    return
+  fi
+}
+
+function should_we_run_scans() {
+  local dirs_to_hash="${1}"
+
+  hash="$(sha256sum <(find ${dirs_to_hash[@]} -type f -exec sha256sum {} \; | sort) | awk '{print $1}')"
+  sanitized_cwd="${dir//\//_}"
+  hashfile="/tmp/{{ function }}.${sanitized_cwd}.hash"
+  previous_hash='empty'
+  if [[ -r "${hashfile}" ]]; then
+    previous_hash="$(tail -1 "${hashfile}")"
+  fi
+  if [[ -r "${hashfile}" && -n ${hash} && ${hash} == "${previous_hash}" ]]; then
+    _feedback DEBUG "Setting run_scans to ${run_scans} because the hashfile already exists and the current hash matches the previous hash"
+    return "false"
+  elif [[ -r "${hashfile}" ]]; then
+    _feedback INFO "The files at ${dirs_to_hash[*]} were changed from ${previous_hash} to ${hash}; reactivating scans..."
+    echo "${hash}" >> "${hashfile}"
+    return "true"
+  elif [[ -z ${hash} ]]; then
+    _feedback ERROR "Unable to obtain the hash of the files at ${dirs_to_hash[*]}; this should never happen"
+    exit 1
+  else
+    _feedback DEBUG "Creating ${hashfile} with the contents ${hash} due to the files at ${dirs_to_hash[*]}"
+    # This creates the hashfile
+    echo "${hash}" >> "${hashfile}"
+    return "true"
+  fi
+}
+
+function should_we_run_security_tool() {
+    local security_tool_skipped="${1}"
+    local security_tool="${2}"
+    local security_tool_sanitized="sed 's/-/_/g' <<< ${security_tool}"
+    local security_tool_sanitized_lower="${security_tool_sanitized,,}"
+    local security_tool_sanitized_upper="${security_tool_sanitized^^}"
+    local security_tool_skip_argument="--skip-${security_tool_sanitized_lower}"
+    local security_tool_skip_env_var="SKIP_${security_tool_sanitized_upper}"
+    local message
+
+    ## Methods to skip the provided security tool
+    if [[ "${security_tool_skipped}" == "argument" ]]; then
+      message="Skipping ${security_tool} due to ${security_tool_skip_argument}"
+      _feedback WARNING "${message}"
+      _log "easy_infra.stdouterr" info unknown "${security_tool}-skipped" "${dir}" string "${message}"
+      unset '{{ security_tool | replace("-", "_") }}_skipped'
+      return "false"
+    # If the "skip" environment variable was set to true, skip the security scan
+    elif [[ "${!{{ security_tool | replace("-", "_") }}_skip_env_var,,}" == "true" ]]; then
+      message="Skipping {{ security_tool }} due to the {{ '${' }}{{ security_tool | replace("-", "_") }}_skip_env_var} environment variable value"
+      _feedback WARNING "${message}"
+      _log "easy_infra.stdouterr" info unknown "{{ security_tool }}-skipped" "${dir}" string "${message}"
+      return "false"
+    # If the security scan was already run and the filesystem hasn't changed since then, don't run it again
+    elif [[ ${run_scans:-true} == "false" && -r "/tmp/{{ security_tool | replace("-", "_") }}_complete" ]]; then
+      local last_run_timestamp="$(date -d @"$(cat /tmp/${security_tool_sanitized_lower}_complete)")"
+      message="Skipping ${security_tool} because it was already run on ${last_run_timestamp} and the filesystem has not changed since then"
+      _feedback INFO "${message}"
+      _log "easy_infra.stdouterr" info unknown "{{ security_tool }}-skipped" "${dir}" string "${message}"
+      return "false"
+    fi
+
+    ## Otherwise, we should run the security tool
+    return "true"
+}
 
 function process_command_exit_status() {
   # Store the provided exit status to return it at the end
@@ -53,11 +221,14 @@ function process_command_exit_status() {
 {%- set version_argument = packages[package]["version_argument"] -%}
 {%- set validations = packages[package]["validation"] -%}
 {%- set monitor = packages[package]["monitor"] -%}
+# TODO: Is this working?
+{%- set function = "scan_" ~ function if scan else function -%}
 
-function {{ "scan_" ~ function if scan else function }}() {
+function {{ function }}() {
   _feedback DEBUG "Entering the ${FUNCNAME[0]} function..."
   arguments=("${@}")
   easy_infra_{{ function | replace("-", "_") }}_security_tools=({% for security_tool in security_tools %}{{ security_tool | replace("-", "_") }}{% if not loop.last %} {% endif %}{% endfor %})
+  function_subcommands"{% for filter in allow_filter if allow_filter is defined %} {{ filter['match'] }}{% endfor %}"
 
   # If an argument was provided which adjusts the easy_infra runtime, set a related variable and remove that argument from the arguments array
   for i in "${!arguments[@]}"; do
@@ -85,7 +256,7 @@ function {{ "scan_" ~ function if scan else function }}() {
     return
 {%- else %}
   if [[ "${1}" == "{{ version_argument }}" ]]; then
-    _feedback INFO "Detected version check, skipping security checks for {{ function }}{% for filter in allow_filter if allow_filter is defined %} {{ filter['match'] }}{% endfor %}"
+    _feedback INFO "Detected version check, skipping security checks for {{ function }}${function_subcommands}"
     # Allow piping of the version command into other commands
     run_command "${FUNCNAME[0]}" "${arguments[@]}"
     return $?
@@ -109,14 +280,20 @@ function {{ "scan_" ~ function if scan else function }}() {
   done
 {%- endif %}
 
-  easy_infra_{{ function | replace("-", "_") }}_hooks=()
+  easy_infra_{{ function | replace("-", "_") }}_pre_hooks=()
   if [[ "${DISABLE_HOOKS:-false}" != "true" ]]; then
     # Dynamically register hooks
     for file in /opt/hooks/bin/*.sh; do
-      command=$(awk -F\: '/register_hook/ { gsub(/ /,""); print $2 }' "${file}")
-      if [[ "${command}" == "{{ 'scan_' ~ function if scan else function }}" ]]; then
-        _feedback DEBUG "Registering ${file} to the ${FUNCNAME[0]} hooks"
-        easy_infra_{{ function | replace("-", "_") }}_hooks+=("${file}")
+      hook_command=$(awk -F\: '/register_hook/ { gsub(/ /,""); print $2 }' "${file}")
+      hook_type=$(awk -F\: '/register_hook/ { print $3 }' "${file}")
+      if [[ "${hook_command}" == "{{ function }}" ]]; then
+        if [[ "${hook_type:-}" == "pre" ]]; then
+          _feedback DEBUG "Registering ${file} to the ${FUNCNAME[0]} pre hooks"
+          easy_infra_{{ function | replace("-", "_") }}_pre_hooks+=("${file}")
+        else
+          _feedback DEBUG "Hook detected with no hook type specified; Registering ${file} to the ${FUNCNAME[0]} pre hooks"
+          easy_infra_{{ function | replace("-", "_") }}_pre_hooks+=("${file}")
+        fi
       fi
     done
   fi
@@ -146,15 +323,16 @@ function {{ "scan_" ~ function if scan else function }}() {
 {%- endfor %}
 {%- else %}
     dir=$(pwd -P)
-    _feedback WARNING "AUTODETECT enabled, but {{ function }}{% for filter in allow_filter if allow_filter is defined %} {{ filter['match'] }}{% endfor %} does not have any file extensions configured to search for; falling back to running in ${dir}"
-    _log "easy_infra.stdouterr" info unknown "{{ function }}" "${dir}" string "Failed to properly autodetect the directories to scan when running a {{ function }}{% for filter in allow_filter if allow_filter is defined %} {{ filter['match'] }}{% endfor %} command"
+    _feedback WARNING "AUTODETECT enabled, but {{ function }}${function_subcommands} does not have any file extensions configured to search for; falling back to running in ${dir}"
+    _log "easy_infra.stdouterr" info unknown "{{ function }}" "${dir}" string "Failed to properly autodetect the directories to scan when running a {{ function }}${function_subcommands} command"
     dirs+=("${dir}")
 {%- endif %}
   else
     dirs+=($(pwd -P))
   fi
 
-  declare -A dir_exit_codes
+  declare -A pre_hook_dir_exit_codes
+  declare -A command_dir_exit_codes
 
   if [ "{{ '${' }}#dirs[@]}" -eq 0 ]; then
     _feedback WARNING "The function ${FUNCNAME[0]} has no directories to iterate through; did you run ${FUNCNAME[0]} with AUTODETECT=true but with no matching files in any subdirectories?"
@@ -172,77 +350,21 @@ function {{ "scan_" ~ function if scan else function }}() {
     # Export variables to be used in the hooks
     export dir
 
-    # Process the registered hooks
-    if [[ "${DISABLE_HOOKS:-false}" == "true" ]]; then
-      _feedback WARNING "DISABLE_HOOKS is set to ${DISABLE_HOOKS}; skipping all hooks for the {{ function }}{% for filter in allow_filter if allow_filter is defined %} {{ filter['match'] }}{% endfor %} command..."
-      _log "easy_infra.stdouterr" info unknown "{{ function }}" "${dir}" string "The DISABLE_HOOKS environment variable is set to ${DISABLE_HOOKS}, skipping all hooks for the {{ function }}{% for filter in allow_filter if allow_filter is defined %} {{ filter['match'] }}{% endfor %} command"
-    else
-      for hook in ${easy_infra_{{ function | replace("-", "_") }}_hooks[@]}; do
-        bash "${hook}"
-        return=$?
-        if [[ "${return:-1}" != 0 ]]; then
-          if [[ "${LEARNING_MODE,,}" == "true" ]]; then
-            message="${hook} exited non-zero but learning mode was ${learning_mode} so suppressing the failure"
-            _log "easy_infra.stdouterr" allowed failure "easy_infra" "${dir}" string "${message}"
-            _feedback DEBUG "${message}"
-          else
-            popd > /dev/null
-            if [[ "${FAIL_FAST:-false}" == "true" ]]; then
-              message="${hook} exited non-zero and fail_fast is set to ${FAIL_FAST}; returning the exit code of ${return}"
-              _log "easy_infra.stdouterr" denied failure "easy_infra" "${dir}" string "${message}"
-              _feedback DEBUG "${message}"
-              return "${return}"
-            else
-              message="${hook} exited non-zero and fail_fast is set to ${FAIL_FAST:-null or unset}; capturing the exit code of ${return}"
-              _log "easy_infra.stdouterr" denied failure "easy_infra" "${dir}" string "${message}"
-              _feedback DEBUG "${messsage}"
-              dir_exit_codes["${dir}"]="${return}"
-              continue
-            fi
-          fi
-        else
-          # Intentionally no _log or _feedback when the return code is 0; we expect those messages are in the hook themselves
-          :
-        fi
-      done
+    # Run the registered "pre" hooks; this modifies dir_exit_codes
+    pre_hooks_return="$(run_hooks "{{ function }}" "${function_subcommands}" "pre" "${easy_infra_{{ function | replace("-", "_") }}_pre_hooks[@]}")"
+
+    if [[ "${pre_hooks_return}" -gt 0 ]]; then
+      # disable security, learning mode, and fail fast logic is in the upstream function; if it returns non-zero we should return with that immediately
+      return "${pre_hooks_return}"
     fi
 
-    if [[ "${security_skipped:-false}" == "argument" ]]; then
-      _feedback WARNING "Skipping all security checks for {{ function }}{% for filter in allow_filter if allow_filter is defined %} {{ filter['match'] }}{% endfor %} due to the --disable-security argument"
-      _log "easy_infra.stdouterr" info unknown "{{ function }}" "${dir}" string "All security checks for {{ function }}{% for filter in allow_filter if allow_filter is defined %} {{ filter['match'] }}{% endfor %} were skipped due to the --disable-security argument"
-      unset 'security_skipped'
-      run_command "${FUNCNAME[0]}" "${arguments[@]}"
-      return=$?
-      popd > /dev/null
-      if [[ "${return:-1}" != 0 ]]; then
-        if [[ "${FAIL_FAST:-false}" == "true" ]]; then
-          _feedback INFO "FAIL_FAST is set to ${FAIL_FAST}; returning the exit code of ${return} immediately"
-          return "${return}"
-        else
-          dir_exit_codes["${dir}"]="${return}"
-          continue
-        fi
-      fi
-      continue
-    elif [[ "${DISABLE_SECURITY,,}" == "true" ]]; then
-      _feedback WARNING "Skipping all security checks for {{ function }}{% for filter in allow_filter if allow_filter is defined %} {{ filter['match'] }}{% endfor %} due to the DISABLE_SECURITY environment variable value"
-      _log "easy_infra.stdouterr" info unknown "{{ function }}" "${dir}" string "All security checks for {{ function }}{% for filter in allow_filter if allow_filter is defined %} {{ filter['match'] }}{% endfor %} were skipped due to the DISABLE_SECURITY environment variable value"
-      run_command "${FUNCNAME[0]}" "${arguments[@]}"
-      return=$?
-      popd > /dev/null
-      if [[ "${return:-1}" != 0 ]]; then
-        if [[ "${FAIL_FAST:-false}" == "true" ]]; then
-          _feedback INFO "FAIL_FAST is set to ${FAIL_FAST}; returning the exit code of ${return} immediately"
-          return "${return}"
-        else
-          dir_exit_codes["${dir}"]="${return}"
-          continue
-        fi
-      fi
-      continue
+    # Run the tools if disable security is set; this modifies dir_exit_codes
+    tool_return="$(run_tool_if_disable_security_is_set "${FUNCNAME[0]}")"
+      # disable security, learning mode, and fail fast logic is in the upstream function; if it returns non-zero we should return with that immediately
+      return "${tool_return}"
     fi
 
-    ## Only rerun security tools if (1) it is the first time, or (2) we are able to detect a change
+    ## Only run security tools if (1) it is the first time, or (2) we are able to detect a change
     dirs_to_hash=("${dir}")
   {%- if monitor is defined %}
     {%- for env_var in monitor["env_vars"] if monitor["env_vars"] %}
@@ -251,29 +373,7 @@ function {{ "scan_" ~ function if scan else function }}() {
     fi
     {%- endfor %}
   {%- endif %}
-    hash="$(sha256sum <(find ${dirs_to_hash[@]} -type f -exec sha256sum {} \; | sort) | awk '{print $1}')"
-    sanitized_cwd="${dir//\//_}"
-    hashfile="/tmp/{{ function }}.${sanitized_cwd}.hash"
-    previous_hash='empty'
-    if [[ -r "${hashfile}" ]]; then
-      previous_hash="$(tail -1 "${hashfile}")"
-    fi
-    if [[ -r "${hashfile}" && -n ${hash} && ${hash} == "${previous_hash}" ]]; then
-      run_scans="false"
-      _feedback DEBUG "Setting run_scans to ${run_scans} because the hashfile already exists and the current hash matches the previous hash"
-    elif [[ -r "${hashfile}" ]]; then
-      _feedback INFO "The files at ${dirs_to_hash[*]} were changed from ${previous_hash} to ${hash}; reactivating scans..."
-      echo "${hash}" >> "${hashfile}"
-      run_scans="true"
-    elif [[ -z ${hash} ]]; then
-      _feedback ERROR "Unable to obtain the hash of the files at ${dirs_to_hash[*]}; this should never happen"
-      exit 1
-    else
-      _feedback DEBUG "Creating ${hashfile} with the contents ${hash} due to the files at ${dirs_to_hash[*]}"
-      # This creates the hashfile
-      echo "${hash}" >> "${hashfile}"
-      run_scans="true"
-    fi
+    run_scans="$(should_we_run_scans "${dirs_to_hash[@]}")"
 
   {%- if validations is defined %}
     ## Validate the input prior to running security tooling
@@ -291,7 +391,7 @@ function {{ "scan_" ~ function if scan else function }}() {
           _feedback INFO "FAIL_FAST is set to ${FAIL_FAST}; returning the exit code of ${return} immediately"
           return "${return}"
         else
-          dir_exit_codes["${dir}"]="${return}"
+          command_dir_exit_codes["${dir}"]="${return}"
           continue
         fi
       fi
@@ -307,22 +407,11 @@ function {{ "scan_" ~ function if scan else function }}() {
     {{ security_tool | replace("-", "_") }}_skip_env_var="SKIP_{{ '${' }}{{ security_tool | replace("-", "_") }}_upper}"
     declare "SKIP_{{ '${' }}{{ security_tool | replace("-", "_") }}_upper}={{ '${' }}!{{ security_tool | replace("-", "_") }}_skip_env_var:-false}"
 
-    ## Methods to skip {{ security_tool | replace("-", "_") }}
-    if [[ "{{ '${' }}{{ security_tool | replace("-", "_") }}_skipped:-false}" == "argument" ]]; then
-      _feedback WARNING "Skipping {{ security_tool }} due to {{ '${' }}{{ security_tool | replace("-", "_") }}_skip_argument}"
-      _log "easy_infra.stdouterr" info unknown "{{ security_tool }}-skipped" "${dir}" string "Skipping {{ security_tool }} due to {{ '${' }}{{ security_tool | replace("-", "_") }}_skip_argument}"
-      unset '{{ security_tool | replace("-", "_") }}_skipped'
-    # If the "skip" environment variable was set to true, skip the security scan
-    elif [[ "${!{{ security_tool | replace("-", "_") }}_skip_env_var,,}" == "true" ]]; then
-      _feedback WARNING "Skipping {{ security_tool }} due to the {{ '${' }}{{ security_tool | replace("-", "_") }}_skip_env_var} environment variable value"
-      _log "easy_infra.stdouterr" info unknown "{{ security_tool }}-skipped" "${dir}" string "Skipping {{ security_tool }} due to the {{ '${' }}{{ security_tool | replace("-", "_") }}_skip_env_var} environment variable value"
-    # If the security scan was already run and the filesystem hasn't changed since then, don't run it again
-    elif [[ ${run_scans:-true} == "false" && -r "/tmp/{{ security_tool | replace("-", "_") }}_complete" ]]; then
-      _feedback INFO "Skipping {{ security_tool }} because it was already run on $(date -d @"$(cat /tmp/{{ security_tool | replace("-", "_") }}_complete)") and the filesystem has not changed since then"
-      _log "easy_infra.stdouterr" info unknown "{{ security_tool }}-skipped" "${dir}" string "Skipping {{ security_tool }} because it was already run on $(date -d @"$(cat /tmp/{{ security_tool | replace("-", "_") }}_complete)") and the filesystem has not changed since then"
-    # Otherwise, attempt to run the security tool
-    else
+    local should_we_run_security_tool "{{ security_tool }}" "{{ '${' }}{{ security_tool | replace("-", "_") }}_skipped:-false}"
+
+    if [[ "${run_scans}" == "true" && "${should_we_run_security_tool}" == "true" ]]; then
       if [[ -x $(which {{ security_tool }}) ]]; then
+        # TODO: run_security_tool, left off here...
         security_tool_command='{{ security_tools[security_tool].command }}'
         {%- if security_tools[security_tool]["arg_customizations"] is defined %}
         {%- for env_var, argument in security_tools[security_tool]["arg_customizations"].items() %}
@@ -376,7 +465,7 @@ function {{ "scan_" ~ function if scan else function }}() {
               _feedback INFO "FAIL_FAST is set to ${FAIL_FAST}; returning the exit code of ${return} immediately"
               return "${return}"
             else
-              dir_exit_codes["${dir}"]="${return}"
+              command_dir_exit_codes["${dir}"]="${return}"
               continue
             fi
           fi
@@ -403,7 +492,7 @@ function {{ "scan_" ~ function if scan else function }}() {
         _feedback INFO "FAIL_FAST is set to ${FAIL_FAST}; returning the exit code of ${return} immediately"
         return "${return}"
       else
-        dir_exit_codes["${dir}"]="${return}"
+        command_dir_exit_codes["${dir}"]="${return}"
         continue
       fi
     fi
@@ -411,22 +500,20 @@ function {{ "scan_" ~ function if scan else function }}() {
     popd > /dev/null
   done
 
-  ## Process the exit codes from each directory
-  for dir in "${!dir_exit_codes[@]}"; do
-    if [[ "${dir_exit_codes[${dir}]}" -gt 0 ]]; then
-      feedback_label="ERROR"
-      something_failed="true"
-      failure_exit_code="${dir_exit_codes[${dir}]}"
-    else
-      feedback_label="DEBUG"
-    fi
-    exit_code="${dir_exit_codes[${dir}]}"
-    _feedback "${feedback_label}" "${dir} resulted in an exit code of ${exit_code}"
-  done
+  ## Process the exit codes from each directory; refactor in the future if this expands to more scenarios
+  something_failed="false" # process_dir_exit_codes may modify this
+  pre_failure_exit_code="$(process_dir_exit_codes "pre hooks" "${pre_hook_dir_exit_codes[@]}")"
+  command_failure_exit_code="$(process_dir_exit_codes "command" "${command_dir_exit_codes[@]}")"
 
-  if [[ "${something_failed:-false}" == "true" ]]; then
-    # Returns the last exit code encountered
-    return "${failure_exit_code}"
+  # Return the last exit code encountered
+  if [[ "${something_failed}" == "true" ]]; then
+    if [[ "${pre_failure_exit_code}" -gt 0 ]]; then
+      return "${pre_failure_exit_code}"
+    elif [[ "${command_failure_exit_code}" -gt 0 ]]; then
+      return "${command_failure_exit_code}"
+    else
+      return 0
+    fi
   fi
 }
 {% endmacro %}

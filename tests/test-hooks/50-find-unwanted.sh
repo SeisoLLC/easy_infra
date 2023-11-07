@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# register_hook: scan_terraform
+# register_hook: scan_terraform:pre
 
 findings="$(find . -name "unwanted_file")"
 

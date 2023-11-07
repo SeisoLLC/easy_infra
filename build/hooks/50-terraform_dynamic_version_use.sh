@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# register_hook: terraform
+# register_hook: terraform:pre
 
 # All private functions (start with _) come from here
 # shellcheck disable=SC1091
