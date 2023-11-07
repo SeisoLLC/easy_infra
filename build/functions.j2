@@ -53,9 +53,9 @@ function run_hooks() {
   local message
 
   if [[ "${DISABLE_HOOKS:-false}" == "true" ]]; then
-    message="DISABLE_HOOKS is set to ${DISABLE_HOOKS}; skipping the ${hook_type} hooks for the ${function_name}${function_subcommands} {{ filter['match'] }}{% endfor %} command..."
+    message="DISABLE_HOOKS is set to ${DISABLE_HOOKS}; skipping the ${hook_type} hooks for the ${function_name}${function_subcommands} command..."
     _feedback WARNING "${message}"
-    _log "easy_infra.stdouterr" info unknown "{{ function }}" "${dir}" string "${message}"
+    _log "easy_infra.stdouterr" info unknown "${function_name}" "${dir}" string "${message}"
   else
     for hook in ${hooks[@]}; do
       bash "${hook}"
