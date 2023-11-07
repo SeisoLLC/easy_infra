@@ -360,6 +360,8 @@ function {{ function }}() {
 
     # Run the tools if disable security is set; this modifies dir_exit_codes
     tool_return="$(run_tool_if_disable_security_is_set "${FUNCNAME[0]}")"
+
+    if [[ "${tool_return}" -gt 0 ]]; then
       # disable security, learning mode, and fail fast logic is in the upstream function; if it returns non-zero we should return with that immediately
       return "${tool_return}"
     fi
