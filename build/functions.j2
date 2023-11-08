@@ -142,11 +142,13 @@ function should_we_run_scans() {
   fi
   if [[ -r "${hashfile}" && -n ${hash} && ${hash} == "${previous_hash}" ]]; then
     _feedback DEBUG "Setting run_scans to ${run_scans} because the hashfile already exists and the current hash matches the previous hash"
-    return "false"
+    echo "false"
+    return
   elif [[ -r "${hashfile}" ]]; then
     _feedback INFO "The files at ${dirs_to_hash[*]} were changed from ${previous_hash} to ${hash}; reactivating scans..."
     echo "${hash}" >> "${hashfile}"
-    return "true"
+    echo "true"
+    return
   elif [[ -z ${hash} ]]; then
     _feedback ERROR "Unable to obtain the hash of the files at ${dirs_to_hash[*]}; this should never happen"
     exit 1
@@ -154,7 +156,8 @@ function should_we_run_scans() {
     _feedback DEBUG "Creating ${hashfile} with the contents ${hash} due to the files at ${dirs_to_hash[*]}"
     # This creates the hashfile
     echo "${hash}" >> "${hashfile}"
-    return "true"
+    echo "true"
+    return
   fi
 }
 
@@ -221,14 +224,13 @@ function process_command_exit_status() {
 {%- set version_argument = packages[package]["version_argument"] -%}
 {%- set validations = packages[package]["validation"] -%}
 {%- set monitor = packages[package]["monitor"] -%}
-# TODO: Is this working?
 {%- set function = "scan_" ~ function if scan else function -%}
 
 function {{ function }}() {
   _feedback DEBUG "Entering the ${FUNCNAME[0]} function..."
   arguments=("${@}")
   easy_infra_{{ function | replace("-", "_") }}_security_tools=({% for security_tool in security_tools %}{{ security_tool | replace("-", "_") }}{% if not loop.last %} {% endif %}{% endfor %})
-  function_subcommands"{% for filter in allow_filter if allow_filter is defined %} {{ filter['match'] }}{% endfor %}"
+  function_subcommands="{% for filter in allow_filter if allow_filter is defined %} {{ filter['match'] }}{% endfor %}"
 
   # If an argument was provided which adjusts the easy_infra runtime, set a related variable and remove that argument from the arguments array
   for i in "${!arguments[@]}"; do
@@ -409,7 +411,7 @@ function {{ function }}() {
     {{ security_tool | replace("-", "_") }}_skip_env_var="SKIP_{{ '${' }}{{ security_tool | replace("-", "_") }}_upper}"
     declare "SKIP_{{ '${' }}{{ security_tool | replace("-", "_") }}_upper}={{ '${' }}!{{ security_tool | replace("-", "_") }}_skip_env_var:-false}"
 
-    local should_we_run_security_tool "{{ security_tool }}" "{{ '${' }}{{ security_tool | replace("-", "_") }}_skipped:-false}"
+    should_we_run_security_tool "{{ security_tool }}" "{{ '${' }}{{ security_tool | replace("-", "_") }}_skipped:-false}"
 
     if [[ "${run_scans}" == "true" && "${should_we_run_security_tool}" == "true" ]]; then
       if [[ -x $(which {{ security_tool }}) ]]; then
