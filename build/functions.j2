@@ -50,6 +50,7 @@ function run_hooks() {
   local function_subcommands="${2}"
   local hook_type="${3}"
   local hooks="${4}"
+  local return_variable="${5}"
   local message
 
   if [[ "${DISABLE_HOOKS:-false}" == "true" ]]; then
@@ -71,7 +72,8 @@ function run_hooks() {
             message="${hook} exited non-zero and fail_fast is set to ${FAIL_FAST}; returning the exit code of ${return}"
             _log "easy_infra.stdouterr" denied failure "easy_infra" "${dir}" string "${message}"
             _feedback DEBUG "${message}"
-            return "${return}"
+            declare ${!return_variable}="${return}"
+            return
           else
             message="${hook} exited non-zero and fail_fast is set to ${FAIL_FAST:-null or unset}; capturing the exit code of ${return}"
             _log "easy_infra.stdouterr" denied failure "easy_infra" "${dir}" string "${message}"
@@ -176,20 +178,20 @@ function should_we_run_security_tool() {
       message="Skipping ${security_tool} due to ${security_tool_skip_argument}"
       _feedback WARNING "${message}"
       _log "easy_infra.stdouterr" info unknown "${security_tool}-skipped" "${dir}" string "${message}"
-      unset '{{ security_tool | replace("-", "_") }}_skipped'
+      unset '${security_tool_sanitized_lower}_skipped'
       return "false"
     # If the "skip" environment variable was set to true, skip the security scan
-    elif [[ "${!{{ security_tool | replace("-", "_") }}_skip_env_var,,}" == "true" ]]; then
-      message="Skipping {{ security_tool }} due to the {{ '${' }}{{ security_tool | replace("-", "_") }}_skip_env_var} environment variable value"
+    elif [[ "${!security_tool_skip_env_var,,}" == "true" ]]; then
+      message="Skipping ${security_tool} due to the ${security_tool_skip_env_var} environment variable value of ${!security_tool_skip_env_var}"
       _feedback WARNING "${message}"
-      _log "easy_infra.stdouterr" info unknown "{{ security_tool }}-skipped" "${dir}" string "${message}"
+      _log "easy_infra.stdouterr" info unknown "${security_tool}-skipped" "${dir}" string "${message}"
       return "false"
     # If the security scan was already run and the filesystem hasn't changed since then, don't run it again
-    elif [[ ${run_scans:-true} == "false" && -r "/tmp/{{ security_tool | replace("-", "_") }}_complete" ]]; then
+    elif [[ ${run_scans:-true} == "false" && -r "/tmp/${security_tool_sanitized_lower}_complete" ]]; then
       local last_run_timestamp="$(date -d @"$(cat /tmp/${security_tool_sanitized_lower}_complete)")"
       message="Skipping ${security_tool} because it was already run on ${last_run_timestamp} and the filesystem has not changed since then"
       _feedback INFO "${message}"
-      _log "easy_infra.stdouterr" info unknown "{{ security_tool }}-skipped" "${dir}" string "${message}"
+      _log "easy_infra.stdouterr" info unknown "${security_tool}-skipped" "${dir}" string "${message}"
       return "false"
     fi
 
@@ -353,7 +355,8 @@ function {{ function }}() {
     export dir
 
     # Run the registered "pre" hooks; this modifies dir_exit_codes
-    pre_hooks_return="$(run_hooks "{{ function }}" "${function_subcommands}" "pre" "${easy_infra_{{ function | replace("-", "_") }}_pre_hooks[@]}")"
+    pre_hooks_return=""
+    run_hooks "{{ function }}" "${function_subcommands}" "pre" "${easy_infra_{{ function | replace("-", "_") }}_pre_hooks[@]}" "pre_hooks_return"
 
     if [[ "${pre_hooks_return}" -gt 0 ]]; then
       # disable security, learning mode, and fail fast logic is in the upstream function; if it returns non-zero we should return with that immediately
