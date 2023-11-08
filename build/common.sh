@@ -165,12 +165,6 @@ function _feedback() {
   local message="$2"
 
   # ${!severity} will set the color code related to the severity
-  #
-  #
-  # Issue calling _feedback; log_level is WARNING, severity is DEBUG, and message is Entering the ansible-playbook function...  Issue calling _feedback;
-  # log_level is WARNING, severity is DEBUG, and message is Successfully dequeud fluent-bit, shutting down easy_infra
-  #
-  #
   if [[ "${severity}" == "ERROR" ]]; then
     >&2 echo -e "${!severity}${timestamp} - ${severity}:  ${message}${DEFAULT}"
   else

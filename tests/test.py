@@ -12,7 +12,7 @@ import sys
 import time
 from logging import getLogger
 from pathlib import Path
-from typing import Union
+from typing import Optional, Union
 
 import docker
 
@@ -393,10 +393,15 @@ def exec_tests(
 
 
 def run_tests(
-    *, image: str, user: str, tool: str, environment: str | None, local: bool = False
+    *,
+    image: str,
+    user: str,
+    tool: str,
+    environment: Optional[str],
+    mount_functions: bool = False,
 ) -> None:
     """Fanout function to run the appropriate tests"""
-    if local:
+    if mount_functions:
         # Render with the full, unfiltered config
         utils.render_jinja2(
             template_file=constants.FUNCTIONS_INPUT_FILE,
@@ -409,7 +414,7 @@ def run_tests(
 
     tool_test_function: str = f"run_{tool}"
     eval(tool_test_function)(
-        image=image, user=user, local=local
+        image=image, user=user, mount_functions=mount_functions
     )  # nosec B307 pylint: disable=eval-used
 
     if environment and environment != "none":
@@ -459,7 +464,7 @@ def run_tests(
         sys.exit(1)
 
 
-def run_cloudformation(*, image: str, user: str, local: bool) -> None:
+def run_cloudformation(*, image: str, user: str, mount_functions: bool) -> None:
     """Run the CloudFormation tests"""
     num_tests_ran: int = 0
     working_dir: str = "/iac/"
@@ -497,7 +502,7 @@ def run_cloudformation(*, image: str, user: str, local: bool) -> None:
     checkov_output_file: Path = report_base_dir.joinpath("checkov").joinpath(
         "checkov.json"
     )
-    if local:
+    if mount_functions:
         functions_dir = CWD.joinpath("build").joinpath("functions")
         for volume in volumes:
             volume[functions_dir] = {"bind": "/functions"}
@@ -716,7 +721,7 @@ def run_cloudformation(*, image: str, user: str, local: bool) -> None:
     LOG.info(f"{image} passed {num_tests_ran} end to end cloudformation tests")
 
 
-def run_terraform(*, image: str, user: str, local: bool) -> None:
+def run_terraform(*, image: str, user: str, mount_functions: bool) -> None:
     """Run the terraform tests"""
     num_tests_ran: int = 0
     working_dir: str = "/iac/"
@@ -795,7 +800,7 @@ def run_terraform(*, image: str, user: str, local: bool) -> None:
     checkov_output_file: Path = report_base_dir.joinpath("checkov").joinpath(
         "checkov.json"
     )
-    if local:
+    if mount_functions:
         functions_dir = CWD.joinpath("build").joinpath("functions")
         for volume in volumes:
             volume[functions_dir] = {"bind": "/functions"}
@@ -1420,7 +1425,7 @@ def run_terraform(*, image: str, user: str, local: bool) -> None:
     LOG.info(f"{image} passed {num_tests_ran} end to end terraform tests")
 
 
-def run_ansible(*, image: str, user: str, local: bool) -> None:
+def run_ansible(*, image: str, user: str, mount_functions: bool) -> None:
     """Run the ansible-playbook tests"""
     num_tests_ran = 0
     working_dir = "/iac/"
@@ -1443,7 +1448,7 @@ def run_ansible(*, image: str, user: str, local: bool) -> None:
         "mode": "ro",
     }
     volumes.append(secure_volumes_with_log_config)
-    if local:
+    if mount_functions:
         functions_dir = CWD.joinpath("build").joinpath("functions")
         for volume in volumes:
             volume[functions_dir] = {"bind": "/functions"}
@@ -1636,11 +1641,11 @@ def run_ansible(*, image: str, user: str, local: bool) -> None:
     LOG.info(f"{image} passed {num_tests_ran} end to end ansible-playbook tests")
 
 
-def run_azure(*, image: str, user: str, local: bool) -> None:
+def run_azure(*, image: str, user: str, mount_functions: bool) -> None:
     """Run the azure tests"""
     num_tests_ran = 0
 
-    if local:
+    if mount_functions:
         LOG.debug("local is not yet implemented for azure environmental tests")
 
     # Ensure a basic azure help command succeeds
@@ -1653,11 +1658,11 @@ def run_azure(*, image: str, user: str, local: bool) -> None:
     LOG.info(f"{image} passed {num_tests_ran} integration tests as {user}")
 
 
-def run_aws(*, image: str, user: str, local: bool) -> None:
+def run_aws(*, image: str, user: str, mount_functions: bool) -> None:
     """Run the aws tests"""
     num_tests_ran = 0
 
-    if local:
+    if mount_functions:
         LOG.debug("local is not yet implemented for aws environmental tests")
 
     # Ensure a basic aws help command succeeds

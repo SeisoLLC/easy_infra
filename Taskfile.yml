@@ -128,8 +128,7 @@ tasks:
       ENVIRONMENT: '{{.ENVIRONMENT | default "all"}}'
       USER: '{{.USER | default "all"}}'
       DEBUG: '{{.DEBUG | default "False"}}'
-      # Perform a "local test" meaning render functions.j2 and mount it into the testing containers
-      LOCAL: '{{if eq .CLI_ARGS "local"}}True{{else}}False{{end}}'
+      TAG: '{{.TAG | default ""}}'
       PLATFORM: '{{.PLATFORM | default .LOCAL_PLATFORM}}'
     cmds:
       - find tests -mindepth 1 -type d -exec chmod o+w {} \;
@@ -138,7 +137,7 @@ tasks:
         'from distutils.util import strtobool;
         debug = bool(strtobool("{{.DEBUG}}"));
         from {{.PROJECT_SLUG}} import utils;
-        utils.test(tool="{{.TOOL}}", environment="{{.ENVIRONMENT}}", user="{{.USER}}", debug=debug, local="{{.LOCAL}}")'
+        utils.test(tool="{{.TOOL}}", environment="{{.ENVIRONMENT}}", user="{{.USER}}", debug=debug, tag="{{.TAG}}")'
 
   update:
     desc: Update the project dev and runtime dependencies, and other misc components

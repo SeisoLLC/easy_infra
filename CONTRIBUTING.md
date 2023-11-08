@@ -72,20 +72,21 @@ If you are attempting to run the tests locally, consider running the following t
 find tests -mindepth 1 -type d -exec chmod o+w {} \;
 ```
 
-You can now run the tests locally:
+You can now run the tests:
 
 ```bash
 task test
 ```
 
-If you want to do some local iteration, you can pass a cli arg of `local`, which will do an unfiltered rendering of `functions.j2` and mount the output into the
-containers being tested, without requiring a rebuild.
+If you are troubleshooting a specific image, you can pass a cli arg of the tag, i.e. `2023.11.01-ansible` which runs the specified image tag and mounts an
+unfiltered rendering of `functions.j2` at test time. This assumes that the related image tag has already been built and is available to the docker daemon
+(either by pulling it from docker hub, or locally).
 
 ```bash
-task test -- local
+task test -- 2023.11.01-ansible-d7b1663
 ```
 
-You can also pass in a specific tool, environment, and/or user.
+You can also pass in any combination of a specific tool, environment, and/or user.
 
 ```bash
 TOOL=ansible ENVIRONMENT=none USER=easy_infra task test
