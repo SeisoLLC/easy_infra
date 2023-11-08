@@ -78,11 +78,22 @@ You can now run the tests locally:
 task test
 ```
 
-You can pass in the `--tool`, `--environment`, and `--user` arguments to test a specific subset of functionality. See the build step to see the `tool` and
-`environment` possible inputs.
+If you want to do some local iteration, you can pass a cli arg of `local`, which will do an unfiltered rendering of `functions.j2` and mount the output into the
+containers being tested, without requiring a rebuild.
 
-To see the list of supported users, run the following command. If you don't specify a user, `test` will assume that you want to test with all of the supported
-users.
+```bash
+task test -- local
+```
+
+You can also pass in a specific tool, environment, and/or user.
+
+```bash
+TOOL=ansible ENVIRONMENT=none USER=easy_infra task test
+```
+
+See the build documentation to see the `tool` and `environment` possible inputs. To see the list of supported users, run the following command. If you don't
+specify a user, `test` will assume that you want to test with all of the supported users. Note that if you don't specify a user but see a "X is not a supported
+user, exiting..." error, it is because the `$USER` variable in your shell is being implicitly passed into `task`.
 
 ```bash
 pipenv run python3 -c \

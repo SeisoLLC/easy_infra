@@ -1033,7 +1033,7 @@ def sbom(tool="all", environment="all", debug=False) -> None:
             sys.exit(1)
 
 
-def test(tool="all", environment="all", user="all", debug=False) -> None:
+def test(tool="all", environment="all", user="all", debug=False, local=False) -> None:
     """Test easy_infra"""
     if debug:
         getLogger().setLevel("DEBUG")
@@ -1066,6 +1066,7 @@ def test(tool="all", environment="all", user="all", debug=False) -> None:
                 tool=tool,
                 environment=environment,
                 user=user,
+                local=local,
             )
 
 
