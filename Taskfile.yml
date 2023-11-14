@@ -212,5 +212,5 @@ tasks:
   easy_infra_cleanup:
     desc: Cleanup specific to easy_infra
     cmds:
-      - rm -f '{{.ROOT_DIR}}/build/functions'
+      - rm -f '{{.ROOT_DIR}}/build/functions.sh'
       - rm -f '{{.ROOT_DIR}}/build/Dockerfile'

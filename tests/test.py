@@ -394,10 +394,10 @@ def run_tests(
     user: str,
     tool: str,
     environment: Optional[str],
-    mount_functions: bool = False,
+    mount_local_files: bool = False,
 ) -> None:
     """Fanout function to run the appropriate tests"""
-    if mount_functions:
+    if mount_local_files:
         # Render with the full, unfiltered config
         utils.render_jinja2(
             template_file=constants.FUNCTIONS_INPUT_FILE,
@@ -410,7 +410,7 @@ def run_tests(
 
     tool_test_function: str = f"run_{tool}"
     eval(tool_test_function)(
-        image=image, user=user, mount_functions=mount_functions
+        image=image, user=user, mount_local_files=mount_local_files
     )  # nosec B307 pylint: disable=eval-used
 
     if environment and environment != "none":
@@ -460,7 +460,7 @@ def run_tests(
         sys.exit(1)
 
 
-def run_cloudformation(*, image: str, user: str, mount_functions: bool) -> None:
+def run_cloudformation(*, image: str, user: str, mount_local_files: bool) -> None:
     """Run the CloudFormation tests"""
     num_tests_ran: int = 0
     working_dir: str = "/iac/"
@@ -498,10 +498,12 @@ def run_cloudformation(*, image: str, user: str, mount_functions: bool) -> None:
     checkov_output_file: Path = report_base_dir.joinpath("checkov").joinpath(
         "checkov.json"
     )
-    if mount_functions:
-        functions_dir = CWD.joinpath("build").joinpath("functions")
+    if mount_local_files:
+        functions_dir = CWD.joinpath("build").joinpath("functions.sh")
+        common_dir = CWD.joinpath("build").joinpath("common.sh")
         for volume in volumes:
-            volume[functions_dir] = {"bind": "/functions"}
+            volume[functions_dir] = {"bind": "/functions.sh"}
+            volume[common_dir] = {"bind": "/usr/local/bin/common.sh"}
 
     # Test alternative working directories/binds
     # Tests is a list of tuples containing the test environment, command, and expected exit code
@@ -717,7 +719,7 @@ def run_cloudformation(*, image: str, user: str, mount_functions: bool) -> None:
     LOG.info(f"{image} passed {num_tests_ran} end to end cloudformation tests")
 
 
-def run_terraform(*, image: str, user: str, mount_functions: bool) -> None:
+def run_terraform(*, image: str, user: str, mount_local_files: bool) -> None:
     """Run the terraform tests"""
     num_tests_ran: int = 0
     working_dir: str = "/iac/"
@@ -796,10 +798,12 @@ def run_terraform(*, image: str, user: str, mount_functions: bool) -> None:
     checkov_output_file: Path = report_base_dir.joinpath("checkov").joinpath(
         "checkov.json"
     )
-    if mount_functions:
-        functions_dir = CWD.joinpath("build").joinpath("functions")
+    if mount_local_files:
+        functions_dir = CWD.joinpath("build").joinpath("functions.sh")
+        common_dir = CWD.joinpath("build").joinpath("common.sh")
         for volume in volumes:
-            volume[functions_dir] = {"bind": "/functions"}
+            volume[functions_dir] = {"bind": "/functions.sh"}
+            volume[common_dir] = {"bind": "/usr/local/bin/common.sh"}
 
     # Ensure invalid configurations fail
     command: str = "terraform init"
@@ -1421,7 +1425,7 @@ def run_terraform(*, image: str, user: str, mount_functions: bool) -> None:
     LOG.info(f"{image} passed {num_tests_ran} end to end terraform tests")
 
 
-def run_ansible(*, image: str, user: str, mount_functions: bool) -> None:
+def run_ansible(*, image: str, user: str, mount_local_files: bool) -> None:
     """Run the ansible-playbook tests"""
     num_tests_ran = 0
     working_dir = "/iac/"
@@ -1444,10 +1448,12 @@ def run_ansible(*, image: str, user: str, mount_functions: bool) -> None:
         "mode": "ro",
     }
     volumes.append(secure_volumes_with_log_config)
-    if mount_functions:
-        functions_dir = CWD.joinpath("build").joinpath("functions")
+    if mount_local_files:
+        functions_dir = CWD.joinpath("build").joinpath("functions.sh")
+        common_dir = CWD.joinpath("build").joinpath("common.sh")
         for volume in volumes:
-            volume[functions_dir] = {"bind": "/functions"}
+            volume[functions_dir] = {"bind": "/functions.sh"}
+            volume[common_dir] = {"bind": "/usr/local/bin/common.sh"}
 
     # Test alternative working directories/binds
     # Tests is a list of tuples containing the test environment, command, and expected exit code
@@ -1637,11 +1643,11 @@ def run_ansible(*, image: str, user: str, mount_functions: bool) -> None:
     LOG.info(f"{image} passed {num_tests_ran} end to end ansible-playbook tests")
 
 
-def run_azure(*, image: str, user: str, mount_functions: bool) -> None:
+def run_azure(*, image: str, user: str, mount_local_files: bool) -> None:
     """Run the azure tests"""
     num_tests_ran = 0
 
-    if mount_functions:
+    if mount_local_files:
         LOG.debug("local is not yet implemented for azure environmental tests")
 
     # Ensure a basic azure help command succeeds
@@ -1654,11 +1660,11 @@ def run_azure(*, image: str, user: str, mount_functions: bool) -> None:
     LOG.info(f"{image} passed {num_tests_ran} integration tests as {user}")
 
 
-def run_aws(*, image: str, user: str, mount_functions: bool) -> None:
+def run_aws(*, image: str, user: str, mount_local_files: bool) -> None:
     """Run the aws tests"""
     num_tests_ran = 0
 
-    if mount_functions:
+    if mount_local_files:
         LOG.debug("local is not yet implemented for aws environmental tests")
 
     # Ensure a basic aws help command succeeds

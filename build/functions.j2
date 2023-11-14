@@ -29,8 +29,13 @@ function process_dir_exit_codes() {
   exit_code_type="${1}"
   dir_exit_codes="${2}"
 
-  ## Process the exit codes from each directory
-  for dir in "${!dir_exit_codes[@]}"; do
+  # Return if there are no exit codes to process
+  if [[ "{{ '${' }}#dir_exit_codes[@]}" -eq 0 ]]; then
+    return 0
+  fi
+
+  # Process the exit codes from each directory
+  for dir in "${dir_exit_codes[@]}"; do
     if [[ "${dir_exit_codes[${dir}]}" -gt 0 ]]; then
       feedback_label="ERROR"
       something_failed="true"
@@ -40,9 +45,13 @@ function process_dir_exit_codes() {
     fi
     exit_code="${dir_exit_codes[${dir}]}"
     _feedback "${feedback_label}" "Running the ${exit_code_type} in ${dir} resulted in an exit code of ${exit_code}"
+
+    if [[ "${FAIL_FAST:-false}" == "true" ]]; then
+      return "${failure_exit_code}"
+    fi
   done
 
-  return failure_exit_code
+  return "${exit_code}"
 }
 
 function run_hooks() {
@@ -58,7 +67,7 @@ function run_hooks() {
     _feedback WARNING "${message}"
     _log "easy_infra.stdouterr" info unknown "${function_name}" "${dir}" string "${message}"
   else
-    for hook in ${hooks[@]}; do
+    for hook in "${hooks[@]}"; do
       bash "${hook}"
       return=$?
       if [[ "${return:-1}" != 0 ]]; then
@@ -166,7 +175,7 @@ function should_we_run_scans() {
 function should_we_run_security_tool() {
     local security_tool_skipped="${1}"
     local security_tool="${2}"
-    local security_tool_sanitized="sed 's/-/_/g' <<< ${security_tool}"
+    local security_tool_sanitized="$(sed 's/-/_/g' <<< ${security_tool})"
     local security_tool_sanitized_lower="${security_tool_sanitized,,}"
     local security_tool_sanitized_upper="${security_tool_sanitized^^}"
     local security_tool_skip_argument="--skip-${security_tool_sanitized_lower}"
@@ -179,24 +188,28 @@ function should_we_run_security_tool() {
       _feedback WARNING "${message}"
       _log "easy_infra.stdouterr" info unknown "${security_tool}-skipped" "${dir}" string "${message}"
       unset '${security_tool_sanitized_lower}_skipped'
-      return "false"
+      echo "false"
+      return
     # If the "skip" environment variable was set to true, skip the security scan
     elif [[ "${!security_tool_skip_env_var,,}" == "true" ]]; then
       message="Skipping ${security_tool} due to the ${security_tool_skip_env_var} environment variable value of ${!security_tool_skip_env_var}"
       _feedback WARNING "${message}"
       _log "easy_infra.stdouterr" info unknown "${security_tool}-skipped" "${dir}" string "${message}"
-      return "false"
+      echo "false"
+      return
     # If the security scan was already run and the filesystem hasn't changed since then, don't run it again
     elif [[ ${run_scans:-true} == "false" && -r "/tmp/${security_tool_sanitized_lower}_complete" ]]; then
       local last_run_timestamp="$(date -d @"$(cat /tmp/${security_tool_sanitized_lower}_complete)")"
       message="Skipping ${security_tool} because it was already run on ${last_run_timestamp} and the filesystem has not changed since then"
       _feedback INFO "${message}"
       _log "easy_infra.stdouterr" info unknown "${security_tool}-skipped" "${dir}" string "${message}"
-      return "false"
+      echo "false"
+      return
     fi
 
     ## Otherwise, we should run the security tool
-    return "true"
+    echo "true"
+    return
 }
 
 function process_command_exit_status() {
@@ -229,7 +242,7 @@ function process_command_exit_status() {
 {%- set function = "scan_" ~ function if scan else function -%}
 
 function {{ function }}() {
-  _feedback DEBUG "Entering the ${FUNCNAME[0]} function..."
+  _feedback DEBUG "Entering the {{ function }} function..."
   arguments=("${@}")
   easy_infra_{{ function | replace("-", "_") }}_security_tools=({% for security_tool in security_tools %}{{ security_tool | replace("-", "_") }}{% if not loop.last %} {% endif %}{% endfor %})
   function_subcommands="{% for filter in allow_filter if allow_filter is defined %} {{ filter['match'] }}{% endfor %}"
@@ -355,12 +368,16 @@ function {{ function }}() {
     export dir
 
     # Run the registered "pre" hooks; this modifies dir_exit_codes
-    pre_hooks_return=""
-    run_hooks "{{ function }}" "${function_subcommands}" "pre" "${easy_infra_{{ function | replace("-", "_") }}_pre_hooks[@]}" "pre_hooks_return"
+    if [ {{ '${' }}#easy_infra_{{ function | replace("-", "_") }}_pre_hooks[@]} -eq 0 ]; then
+      _feedback DEBUG "No pre hooks registered for the ${FUNCNAME[0]} function"
+    else
+      pre_hooks_return=""
+      run_hooks "{{ function }}" "${function_subcommands}" "pre" "${easy_infra_{{ function | replace("-", "_") }}_pre_hooks[@]}" "pre_hooks_return"
 
-    if [[ "${pre_hooks_return}" -gt 0 ]]; then
-      # disable security, learning mode, and fail fast logic is in the upstream function; if it returns non-zero we should return with that immediately
-      return "${pre_hooks_return}"
+      if [[ "${pre_hooks_return}" -gt 0 ]]; then
+        # disable security, learning mode, and fail fast logic is in the upstream function; if it returns non-zero we should return with that immediately
+        return "${pre_hooks_return}"
+      fi
     fi
 
     # Run the tools if disable security is set; this modifies dir_exit_codes
@@ -512,7 +529,7 @@ function {{ function }}() {
   pre_failure_exit_code="$(process_dir_exit_codes "pre hooks" "${pre_hook_dir_exit_codes[@]}")"
   command_failure_exit_code="$(process_dir_exit_codes "command" "${command_dir_exit_codes[@]}")"
 
-  # Return the last exit code encountered
+  # Return the last non-zero exit code encountered, or 0
   if [[ "${something_failed}" == "true" ]]; then
     if [[ "${pre_failure_exit_code}" -gt 0 ]]; then
       return "${pre_failure_exit_code}"

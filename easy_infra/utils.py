@@ -1051,14 +1051,14 @@ def test(
 
     if tag:
         tags = [tag]
-        mount_functions = True
+        mount_local_files = True
     else:
         tags: list[str] = get_tags(
             tools_to_environments=tools_to_environments,
             environment=environment,
             only_versioned=True,
         )
-        mount_functions = False
+        mount_local_files = False
 
     image_and_versioned_tags: list[str] = []
 
@@ -1077,7 +1077,7 @@ def test(
                 tool=tool,
                 environment=environment,
                 user=user,
-                mount_functions=mount_functions,
+                mount_local_files=mount_local_files,
             )
 
 

@@ -7,7 +7,7 @@ easy_infra.yml
 
 ``easy_infra`` is a project which makes heavy use of generated code and composable container images. ``easy_infra.yml`` is the centralized
 configuration to instruct those generation and composition processes. It describes which version of software to use, where, how to generate the very
-important ``/functions`` script (more on that in `functions and functions.j2`_), which is what provides all of the hooking and capabilities.
+important ``/functions.sh`` script (more on that in `functions.sh and functions.j2`_), which is what provides all of the hooking and capabilities.
 
 Here is a fictitious ``easy_infra.yml`` that concisely demonstrates the various features that are possible::
 
@@ -81,7 +81,7 @@ Alias
 
 Certain tools have multiple ways to run them, such as by running ``kubectl`` or simply ``k``. These aliases often point to the exact same binary, and
 if you'd like to support multiple aliases for a tool, provide a list of those aliases under ``aliases`` in ``easy_infra.yml``, which will result in
-``/functions`` containing an appropriate function hook for each of the aliases.
+``/functions.sh`` containing an appropriate function hook for each of the aliases.
 
 
 Allow filter
@@ -95,9 +95,9 @@ example, we have::
       - match: exec
         position: 0
 
-This ensures that, in the generated ``tfenv`` function in ``/functions``, it will check for ``exec`` in the ``0`` position (0-indexed, starting after
-the command, and after any easy_infra specific arguments have been removed (i.e. ``--skip-checkov``)), and only if there's a match will it continue to
-perform security scans as described in the ``security`` object under the respective ``package`` (i.e. ``tfenv``).
+This ensures that, in the generated ``tfenv`` function in ``/functions.sh``, it will check for ``exec`` in the ``0`` position (0-indexed, starting after the
+command, and after any easy_infra specific arguments have been removed (i.e. ``--skip-checkov``)), and only if there's a match will it continue to perform
+security scans as described in the ``security`` object under the respective ``package`` (i.e. ``tfenv``).
 
 Allow update
 ^^^^^^^^^^^^
@@ -223,21 +223,21 @@ available locally::
 All ``build/Dockerfrag*`` files cannot be built individually and are only fragments of an image specification. They are meant to be layered on top of
 their respective ``Dockerfile``.
 
-functions and functions.j2
---------------------------
+functions.sh and functions.j2
+-----------------------------
 
-``functions.j2`` is a Jinja2 template, which is rendered into a ``functions`` script, and then copied into each ``easy_infra`` image at build time.
-This all works based on the combination of this ``/functions`` file existing inside of the container, commands being run from within a shell (whether
-or not you specify ``bash -c`` or not when running a container), and the ``BASH_ENV`` environment variable pointing to ``/functions``. The way that we
-ensure that all commands are run inside a shell is by using ``"$@"`` in the ``easy_infra`` image ``entrypoint`` of ``docker-entrypoint.sh``.
+``functions.j2`` is a Jinja2 template, which is rendered into a ``functions.sh`` script, and then copied into each ``easy_infra`` image at build time. This all
+works based on the combination of this ``/functions.sh`` file existing inside of the container, commands being run from within a shell (whether or not you
+specify ``bash -c`` or not when running a container), and the ``BASH_ENV`` environment variable pointing to ``/functions.sh``. The way that we ensure that all
+commands are run inside a shell is by using ``"$@"`` in the ``easy_infra`` image ``entrypoint`` of ``docker-entrypoint.sh``.
 
-Because ``BASH_ENV`` will ensure that ``/functions`` is loaded into the shell at initialization, and ``/functions`` contains functions which match the
-name of tools which we are protecting, we can use those functions to perform security scans, arbitrary hooks, and logging prior to executing the
-original command.
+Because ``BASH_ENV`` will ensure that ``/functions.sh`` is loaded into the shell at initialization, and ``/functions.sh`` contains functions which match the
+name of tools which we are protecting, we can use those functions to perform security scans, arbitrary hooks, and logging prior to executing the original
+command.
 
-Ultimately, this means that when you run ``terraform`` (or some other properly defined package in `easy_infra.yml`_) inside of ``easy_infra``, it will
-actually run the function "terraform", which will run the security scans, hooks, and logging, and only after evaluating the precursor logic will it
-run ``command terraform`` which runs the ``terraform`` binary from the ``PATH``.
+Ultimately, this means that when you run ``terraform`` (or some other properly defined package in `easy_infra.yml`_) inside of ``easy_infra``, it will actually
+run the function "terraform", which will run the security scans, hooks, and logging, and only after evaluating the precursor logic will it run ``command
+terraform`` which runs the ``terraform`` binary from the ``PATH``.
 
 Marking Git Directories Safe
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
