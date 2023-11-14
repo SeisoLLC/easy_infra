@@ -7,7 +7,7 @@ ARG OPENTOFU_VERSION
 ENV OPENTOFU_VERSION="${OPENTOFU_VERSION}"
 ARG TERRATAG_VERSION
 ENV TERRATAG_VERSION="${TERRATAG_VERSION}"
-# Remove ARG default when pr merged
+# TODO: Remove ARG default when opentofu support is merged into tfenv
 ARG TFENV_VERSION="add-opentofu-support"
 ENV TFENV_VERSION="${TFENV_VERSION}"
 ENV TFENV_ENGINE="tofu"
