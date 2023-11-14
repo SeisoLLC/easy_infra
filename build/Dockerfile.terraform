@@ -26,7 +26,7 @@ RUN curl -L https://github.com/env0/terratag/releases/download/${TERRATAG_VERSIO
  && rm -f /usr/local/bin/terratag.tar.gz \
  && chmod 0755 /usr/local/bin/terratag \
  && chown root: /usr/local/bin/terratag \
- # TODO: Revert this after
+ # TODO: Replace opentofu with tfenv this after it gets merged into tfenv
  && su easy_infra -c "git clone https://github.com/opentofu/tfenv.git /home/easy_infra/.tfenv --depth 1 --branch ${TFENV_VERSION}" \
  && rm -rf /home/easy_infra/.tfenv/.git \
  && su easy_infra -c "mkdir -p /home/easy_infra/.terraform.d/plugin-cache" \
