@@ -245,11 +245,11 @@ def check_container(
     return num_successful_tests
 
 
-def run_path_check(*, tool: str, user: str, environment: str | None = None) -> None:
+def run_path_check(
+    *, tool: str, user: str, environment: str | None = None, image_and_tag: str
+) -> None:
     """Wrapper to run check_paths"""
     commands: list[str] = []
-
-    image_and_tag: str = utils.get_image_and_tag(tool=tool, environment=environment)
 
     for package in constants.CONFIG["packages"]:
         if (
@@ -288,10 +288,9 @@ def run_path_check(*, tool: str, user: str, environment: str | None = None) -> N
     for interactive in [True, False]:
         num_successful_tests: int = check_paths(
             interactive=interactive,
-            tool=tool,
             user=user,
-            environment=environment,
             commands=commands,
+            image_and_tag=image_and_tag,
         )
 
         if num_successful_tests > 0:
@@ -308,17 +307,14 @@ def run_path_check(*, tool: str, user: str, environment: str | None = None) -> N
 def check_paths(
     *,
     interactive: bool,
-    tool: str,
-    environment: str | None = None,
     user: str,
     commands: list[str],
+    image_and_tag: str,
 ) -> int:
     """
     Check the commands in easy_infra.yml to ensure they are in the supported user's PATH.
     Return 0 for any failures, or the number of correctly found files
     """
-    image_and_tag: str = utils.get_image_and_tag(tool=tool, environment=environment)
-
     # All commands should be in the PATH of supported users
     num_successful_tests: int = 0
     container = CLIENT.containers.run(
@@ -410,7 +406,7 @@ def run_tests(
             output_mode=0o755,
         )
 
-    run_path_check(tool=tool, user=user, environment=environment)
+    run_path_check(tool=tool, user=user, environment=environment, image_and_tag=image)
 
     tool_test_function: str = f"run_{tool}"
     eval(tool_test_function)(

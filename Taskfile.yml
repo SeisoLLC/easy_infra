@@ -128,7 +128,7 @@ tasks:
       ENVIRONMENT: '{{.ENVIRONMENT | default "all"}}'
       USER: '{{.USER | default "all"}}'
       DEBUG: '{{.DEBUG | default "False"}}'
-      TAG: '{{.TAG | default ""}}'
+      TAG: '{{.CLI_ARGS | default ""}}'
       PLATFORM: '{{.PLATFORM | default .LOCAL_PLATFORM}}'
     cmds:
       - find tests -mindepth 1 -type d -exec chmod o+w {} \;
