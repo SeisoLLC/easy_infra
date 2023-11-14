@@ -1033,7 +1033,13 @@ def sbom(tool="all", environment="all", debug=False) -> None:
             sys.exit(1)
 
 
-def test(tool="all", environment="all", user="all", debug=False) -> None:
+def test(
+    tool: str = "all",
+    environment: str = "all",
+    user: str = "all",
+    debug: bool = False,
+    tag: str = "",
+) -> None:
     """Test easy_infra"""
     if debug:
         getLogger().setLevel("DEBUG")
@@ -1043,11 +1049,16 @@ def test(tool="all", environment="all", user="all", debug=False) -> None:
     )
     users: list[str] = gather_users(user=user)
 
-    tags: list[str] = get_tags(
-        tools_to_environments=tools_to_environments,
-        environment=environment,
-        only_versioned=True,
-    )
+    if tag:
+        tags = [tag]
+        mount_local_files = True
+    else:
+        tags: list[str] = get_tags(
+            tools_to_environments=tools_to_environments,
+            environment=environment,
+            only_versioned=True,
+        )
+        mount_local_files = False
 
     image_and_versioned_tags: list[str] = []
 
@@ -1066,6 +1077,7 @@ def test(tool="all", environment="all", user="all", debug=False) -> None:
                 tool=tool,
                 environment=environment,
                 user=user,
+                mount_local_files=mount_local_files,
             )
 
 

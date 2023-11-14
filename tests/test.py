@@ -12,7 +12,7 @@ import sys
 import time
 from logging import getLogger
 from pathlib import Path
-from typing import Union
+from typing import Optional, Union
 
 import docker
 
@@ -245,11 +245,11 @@ def check_container(
     return num_successful_tests
 
 
-def run_path_check(*, tool: str, user: str, environment: str | None = None) -> None:
+def run_path_check(
+    *, tool: str, user: str, environment: Optional[str] = None, image_and_tag: str
+) -> None:
     """Wrapper to run check_paths"""
     commands: list[str] = []
-
-    image_and_tag: str = utils.get_image_and_tag(tool=tool, environment=environment)
 
     for package in constants.CONFIG["packages"]:
         if (
@@ -288,10 +288,9 @@ def run_path_check(*, tool: str, user: str, environment: str | None = None) -> N
     for interactive in [True, False]:
         num_successful_tests: int = check_paths(
             interactive=interactive,
-            tool=tool,
             user=user,
-            environment=environment,
             commands=commands,
+            image_and_tag=image_and_tag,
         )
 
         if num_successful_tests > 0:
@@ -308,17 +307,14 @@ def run_path_check(*, tool: str, user: str, environment: str | None = None) -> N
 def check_paths(
     *,
     interactive: bool,
-    tool: str,
-    environment: str | None = None,
     user: str,
     commands: list[str],
+    image_and_tag: str,
 ) -> int:
     """
     Check the commands in easy_infra.yml to ensure they are in the supported user's PATH.
     Return 0 for any failures, or the number of correctly found files
     """
-    image_and_tag: str = utils.get_image_and_tag(tool=tool, environment=environment)
-
     # All commands should be in the PATH of supported users
     num_successful_tests: int = 0
     container = CLIENT.containers.run(
@@ -392,20 +388,40 @@ def exec_tests(
     return num_tests_ran
 
 
-def run_tests(*, image: str, user: str, tool: str, environment: str | None) -> None:
+def run_tests(
+    *,
+    image: str,
+    user: str,
+    tool: str,
+    environment: Optional[str],
+    mount_local_files: bool = False,
+) -> None:
     """Fanout function to run the appropriate tests"""
-    run_path_check(tool=tool, user=user, environment=environment)
+    if mount_local_files:
+        # Render with the full, unfiltered config
+        utils.render_jinja2(
+            template_file=constants.FUNCTIONS_INPUT_FILE,
+            config=constants.CONFIG,
+            output_file=constants.FUNCTIONS_OUTPUT_FILE,
+            output_mode=0o755,
+        )
+
+    run_path_check(tool=tool, user=user, environment=environment, image_and_tag=image)
 
     tool_test_function: str = f"run_{tool}"
     eval(tool_test_function)(
-        image=image, user=user
+        image=image,
+        user=user,
+        mount_local_files=mount_local_files,
     )  # nosec B307 pylint: disable=eval-used
 
     if environment and environment != "none":
         environment_test_function: str = f"run_{environment}"
         # TODO: Consider how we may want to test {tool}-{environment} features specifically; right now it is environment-only testing
         eval(environment_test_function)(  # nosec B307 pylint: disable=eval-used
-            image=image, user=user
+            image=image,
+            user=user,
+            mount_local_files=mount_local_files,
         )
         tag: str = constants.CONTEXT[tool][environment]["versioned_tag"]
     else:
@@ -448,23 +464,27 @@ def run_tests(*, image: str, user: str, tool: str, environment: str | None) -> N
         sys.exit(1)
 
 
-def run_cloudformation(*, image: str, user: str) -> None:
+def run_cloudformation(*, image: str, user: str, mount_local_files: bool) -> None:
     """Run the CloudFormation tests"""
     num_tests_ran: int = 0
     working_dir: str = "/iac/"
     environment: dict[str, str] = {"AWS_DEFAULT_REGION": "ap-northeast-1"}
     cloudformation_test_dir: Path = TESTS_PATH.joinpath("cloudformation")
+    volumes: list[dict[Path, dict[str, str]]] = []
     secure_test_dir: Path = cloudformation_test_dir.joinpath("general/secure")
     secure_volumes: dict[Path, dict[str, str]] = {
         secure_test_dir: {"bind": working_dir, "mode": "rw"}
     }
+    volumes.append(secure_volumes)
     alt_working_dir: str = "/alt_working_dir/"
     alt_bind_secure_volumes = copy.deepcopy(secure_volumes)
     alt_bind_secure_volumes[secure_test_dir]["bind"] = alt_working_dir
+    volumes.append(alt_bind_secure_volumes)
     checkov_test_dir: Path = cloudformation_test_dir.joinpath("tool/checkov")
     checkov_volumes: dict[Path, dict[str, str]] = {
         checkov_test_dir: {"bind": working_dir, "mode": "rw"}
     }
+    volumes.append(checkov_volumes)
     fluent_bit_config_host: Path = TESTS_PATH.joinpath("fluent-bit.outputs.conf")
     fluent_bit_config_container: str = (
         "/usr/local/etc/fluent-bit/fluent-bit.outputs.conf"
@@ -476,11 +496,18 @@ def run_cloudformation(*, image: str, user: str) -> None:
         "bind": fluent_bit_config_container,
         "mode": "ro",
     }
+    volumes.append(secure_volumes_with_log_config)
     # This is for use inside of the container
     report_base_dir: Path = Path("/tmp/reports")
     checkov_output_file: Path = report_base_dir.joinpath("checkov").joinpath(
         "checkov.json"
     )
+    if mount_local_files:
+        functions_dir = CWD.joinpath("build").joinpath("functions.sh")
+        common_dir = CWD.joinpath("build").joinpath("common.sh")
+        for volume in volumes:
+            volume[functions_dir] = {"bind": "/functions.sh"}
+            volume[common_dir] = {"bind": "/usr/local/bin/common.sh"}
 
     # Test alternative working directories/binds
     # Tests is a list of tuples containing the test environment, command, and expected exit code
@@ -696,20 +723,23 @@ def run_cloudformation(*, image: str, user: str) -> None:
     LOG.info(f"{image} passed {num_tests_ran} end to end cloudformation tests")
 
 
-def run_terraform(*, image: str, user: str) -> None:
+def run_terraform(*, image: str, user: str, mount_local_files: bool) -> None:
     """Run the terraform tests"""
     num_tests_ran: int = 0
     working_dir: str = "/iac/"
     environment: dict[str, str] = {"TF_DATA_DIR": "/tmp"}
+    volumes: list[dict[Path, dict[str, str]]] = []
     terraform_test_dir: Path = TESTS_PATH.joinpath("terraform")
     invalid_test_dir: Path = terraform_test_dir.joinpath("general/invalid")
     invalid_volumes: dict[Path, dict[str, str]] = {
         invalid_test_dir: {"bind": working_dir, "mode": "rw"}
     }
+    volumes.append(invalid_volumes)
     checkov_test_dir: Path = terraform_test_dir.joinpath("tool/checkov")
     checkov_volumes: dict[Path, dict[str, str]] = {
         checkov_test_dir: {"bind": working_dir, "mode": "rw"}
     }
+    volumes.append(checkov_volumes)
     large_checkov_output_file: Path = terraform_test_dir.joinpath("checkov.json")
     large_checkov_volumes: dict[Path, dict[str, str]] = {
         large_checkov_output_file: {
@@ -717,25 +747,31 @@ def run_terraform(*, image: str, user: str) -> None:
             "mode": "ro",
         }
     }
+    volumes.append(large_checkov_volumes)
     secure_config_dir: Path = terraform_test_dir.joinpath("general/secure")
     secure_volumes: dict[Path, dict[str, str]] = {
         secure_config_dir: {"bind": working_dir, "mode": "rw"}
     }
+    volumes.append(secure_volumes)
     alt_working_dir: str = "/alt_working_dir/"
     alt_bind_secure_volumes = copy.deepcopy(secure_volumes)
     alt_bind_secure_volumes[secure_config_dir]["bind"] = alt_working_dir
+    volumes.append(alt_bind_secure_volumes)
     general_test_dir: Path = terraform_test_dir.joinpath("general")
     general_test_volumes: dict[Path, dict[str, str]] = {
         general_test_dir: {"bind": working_dir, "mode": "rw"}
     }
+    volumes.append(general_test_volumes)
     hooks_config_dir: Path = terraform_test_dir.joinpath("hooks")
     hooks_config_volumes: dict[Path, dict[str, str]] = {
         hooks_config_dir: {"bind": working_dir, "mode": "rw"}
     }
+    volumes.append(hooks_config_volumes)
     hooks_script_dir: Path = TESTS_PATH.joinpath("test-hooks")
     hooks_script_volumes: dict[Path, dict[str, str]] = {
         hooks_script_dir: {"bind": "/opt/hooks/bin/", "mode": "ro"}
     }
+    volumes.append(hooks_script_volumes)
     fluent_bit_config_host: Path = TESTS_PATH.joinpath("fluent-bit.outputs.conf")
     fluent_bit_config_container: str = (
         "/usr/local/etc/fluent-bit/fluent-bit.outputs.conf"
@@ -747,22 +783,31 @@ def run_terraform(*, image: str, user: str) -> None:
         "bind": fluent_bit_config_container,
         "mode": "ro",
     }
+    volumes.append(secure_volumes_with_log_config)
     hooks_secure_terraform_v_builtin_dir: Path = TESTS_PATH.joinpath(
         "terraform/hooks/secure_builtin_version"
     )
     hooks_secure_terraform_v_builtin_dir_volumes: dict[Path, dict[str, str]] = {
         hooks_secure_terraform_v_builtin_dir: {"bind": working_dir, "mode": "rw"}
     }
+    volumes.append(hooks_secure_terraform_v_builtin_dir_volumes)
     hooks_secure_terraform_v_0_14_dir: Path = TESTS_PATH.joinpath(
         "terraform/hooks/secure_0_14"
     )
     hooks_secure_terraform_v_0_14_dir_volumes: dict[Path, dict[str, str]] = {
         hooks_secure_terraform_v_0_14_dir: {"bind": working_dir, "mode": "rw"}
     }
+    volumes.append(hooks_secure_terraform_v_0_14_dir_volumes)
     report_base_dir: Path = Path("/tmp/reports")
     checkov_output_file: Path = report_base_dir.joinpath("checkov").joinpath(
         "checkov.json"
     )
+    if mount_local_files:
+        functions_dir = CWD.joinpath("build").joinpath("functions.sh")
+        common_dir = CWD.joinpath("build").joinpath("common.sh")
+        for volume in volumes:
+            volume[functions_dir] = {"bind": "/functions.sh"}
+            volume[common_dir] = {"bind": "/usr/local/bin/common.sh"}
 
     # Ensure invalid configurations fail
     command: str = "terraform init"
@@ -1384,24 +1429,35 @@ def run_terraform(*, image: str, user: str) -> None:
     LOG.info(f"{image} passed {num_tests_ran} end to end terraform tests")
 
 
-def run_ansible(*, image: str, user: str) -> None:
+def run_ansible(*, image: str, user: str, mount_local_files: bool) -> None:
     """Run the ansible-playbook tests"""
     num_tests_ran = 0
     working_dir = "/iac/"
+    volumes: list[dict[Path, dict[str, str]]] = []
     kics_config_dir = TESTS_PATH.joinpath("ansible/tool/kics")
     kics_volumes = {kics_config_dir: {"bind": working_dir, "mode": "rw"}}
+    volumes.update(kics_volumes)
     secure_config_dir = TESTS_PATH.joinpath("ansible/general/secure")
     secure_volumes = {secure_config_dir: {"bind": working_dir, "mode": "rw"}}
+    volumes.update(secure_volumes)
     secure_volumes_with_log_config = copy.deepcopy(secure_volumes)
     alt_working_dir: str = "/alt_working_dir/"
     alt_bind_secure_volumes = copy.deepcopy(secure_volumes)
     alt_bind_secure_volumes[secure_config_dir]["bind"] = alt_working_dir
+    volumes.update(alt_bind_secure_volumes)
     fluent_bit_config_host = TESTS_PATH.joinpath("fluent-bit.outputs.conf")
     fluent_bit_config_container = "/usr/local/etc/fluent-bit/fluent-bit.outputs.conf"
     secure_volumes_with_log_config[fluent_bit_config_host] = {
         "bind": fluent_bit_config_container,
         "mode": "ro",
     }
+    volumes.update(secure_volumes_with_log_config)
+    if mount_local_files:
+        functions_dir = CWD.joinpath("build").joinpath("functions.sh")
+        common_dir = CWD.joinpath("build").joinpath("common.sh")
+        for volume in volumes:
+            volume[functions_dir] = {"bind": "/functions.sh"}
+            volume[common_dir] = {"bind": "/usr/local/bin/common.sh"}
 
     # Test alternative working directories/binds
     # Tests is a list of tuples containing the test environment, command, and expected exit code
@@ -1591,9 +1647,14 @@ def run_ansible(*, image: str, user: str) -> None:
     LOG.info(f"{image} passed {num_tests_ran} end to end ansible-playbook tests")
 
 
-def run_azure(*, image: str, user: str) -> None:
+def run_azure(*, image: str, user: str, mount_local_files: bool) -> None:
     """Run the azure tests"""
     num_tests_ran = 0
+
+    if mount_local_files:
+        LOG.debug(
+            "mount_local_files is not yet implemented for azure environmental tests"
+        )
 
     # Ensure a basic azure help command succeeds
     command = "az help"
@@ -1605,9 +1666,14 @@ def run_azure(*, image: str, user: str) -> None:
     LOG.info(f"{image} passed {num_tests_ran} integration tests as {user}")
 
 
-def run_aws(*, image: str, user: str) -> None:
+def run_aws(*, image: str, user: str, mount_local_files: bool) -> None:
     """Run the aws tests"""
     num_tests_ran = 0
+
+    if mount_local_files:
+        LOG.debug(
+            "mount_local_files is not yet implemented for azure environmental tests"
+        )
 
     # Ensure a basic aws help command succeeds
     command = "aws help"
