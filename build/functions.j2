@@ -26,16 +26,19 @@ function run_command() {
 }
 
 function process_dir_exit_codes() {
+  set -x
   exit_code_type="${1}"
-  dir_exit_codes="${2}"
+  shift
+  declare -A dir_exit_codes
+  dir_exit_codes=("$@")
 
   # Return if there are no exit codes to process
   if [[ "{{ '${' }}#dir_exit_codes[@]}" -eq 0 ]]; then
     return 0
   fi
 
-  # Process the exit codes from each directory
-  for dir in "${dir_exit_codes[@]}"; do
+  # Process the exit codes from each directory; note that "${!dir_exit_codes[@]}" loops over the keys of the array
+  for dir in "${!dir_exit_codes[@]}"; do
     if [[ "${dir_exit_codes[${dir}]}" -gt 0 ]]; then
       feedback_label="ERROR"
       something_failed="true"
@@ -175,7 +178,8 @@ function should_we_run_scans() {
 function should_we_run_security_tool() {
     local security_tool_skipped="${1}"
     local security_tool="${2}"
-    local security_tool_sanitized="$(sed 's/-/_/g' <<< ${security_tool})"
+    # Avoiding here strings to improve bash highlighting
+    local security_tool_sanitized="$(echo "${security_tool}" | sed 's/-/_/g')"
     local security_tool_sanitized_lower="${security_tool_sanitized,,}"
     local security_tool_sanitized_upper="${security_tool_sanitized^^}"
     local security_tool_skip_argument="--skip-${security_tool_sanitized_lower}"
