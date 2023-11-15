@@ -1071,36 +1071,6 @@ def run_unified_terraform_opentofu(*, image: str, user: str, base_command: str) 
     ]
     num_tests_ran += exec_tests(tests=tests, volumes=volumes, image=image, user=user)
 
-    # Ensure the easy_infra hooks work as expected when network access is available
-    # Tests is a list of tuples containing the test environment, command, and expected exit code
-    tests: list[tuple[dict, str, int]] = [  # type: ignore
-        (
-            {
-                "DISABLE_HOOKS": "false",
-                "AUTODETECT": "true",
-                "DISABLE_SECURITY": "true",
-            },
-            f'/bin/bash -c "{base_command} init -backend=false && {base_command} validate"',
-            0,
-        ),  # This tests the {base_command} version switching hook, regardless of the built-in security tools
-        (
-            {
-                "DISABLE_HOOKS": "true",
-                "AUTODETECT": "true",
-                "DISABLE_SECURITY": "true",
-            },
-            f'/bin/bash -c "{base_command} init -backend=false && {base_command} validate"',
-            1,
-        ),  # This tests DISABLE_HOOKS; it fails because the {base_command} version used is incorrect
-    ]
-
-    LOG.debug(
-        f"Testing the easy_infra hooks against various {base_command} configurations"
-    )
-    num_tests_ran += exec_tests(
-        tests=tests, volumes=hooks_config_volumes, image=image, user=user
-    )
-
     # Ensure the easy_infra hooks honor Learning Mode by not failing on hook script errors
     # Tests is a list of tuples containing the test environment, command, and expected exit code
     tests: list[tuple[dict, str, int]] = [  # type: ignore
@@ -1393,7 +1363,46 @@ def run_opentofu(*, image: str, user: str) -> None:
 
 def run_terraform(*, image: str, user: str) -> None:
     """Run the terraform tests"""
-    run_unified_terraform_opentofu(image=image, user=user, base_command="terraform")
+    base_command = "terraform"
+    run_unified_terraform_opentofu(image=image, user=user, base_command=base_command)
+
+    num_tests_ran: int = 0
+    working_dir: str = "/iac/"
+    terraform_test_dir: Path = TESTS_PATH.joinpath("terraform")
+    hooks_config_dir: Path = terraform_test_dir.joinpath("hooks")
+    hooks_config_volumes: dict[Path, dict[str, str]] = {
+        hooks_config_dir: {"bind": working_dir, "mode": "rw"}
+    }
+
+    # Ensure the easy_infra hooks work as expected when network access is available
+    # Tests is a list of tuples containing the test environment, command, and expected exit code
+    tests: list[tuple[dict, str, int]] = [  # type: ignore
+        (
+            {
+                "DISABLE_HOOKS": "false",
+                "AUTODETECT": "true",
+                "DISABLE_SECURITY": "true",
+            },
+            f'/bin/bash -c "{base_command} init -backend=false && {base_command} validate"',
+            0,
+        ),  # This tests the {base_command} version switching hook, regardless of the built-in security tools
+        (
+            {
+                "DISABLE_HOOKS": "true",
+                "AUTODETECT": "true",
+                "DISABLE_SECURITY": "true",
+            },
+            f'/bin/bash -c "{base_command} init -backend=false && {base_command} validate"',
+            1,
+        ),  # This tests DISABLE_HOOKS; it fails because the {base_command} version used is incorrect
+    ]
+
+    LOG.debug(
+        f"Testing the easy_infra hooks against various {base_command} configurations"
+    )
+    num_tests_ran += exec_tests(
+        tests=tests, volumes=hooks_config_volumes, image=image, user=user
+    )
 
 
 def run_ansible(*, image: str, user: str) -> None:

@@ -13,7 +13,6 @@ if [[ "${AUTODETECT}" != "true" ]]; then
   exit 0
 fi
 
-# TODO: Does this change?
 current_version=$(cat /home/easy_infra/.tfenv/version)
 
 # Use tfenv to get the minimum version of opentofu specified in the opentofu code (in the current directory)

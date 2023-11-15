@@ -6,7 +6,6 @@
 source /usr/local/bin/common.sh
 
 
-# TODO: Does this change?
 current_version=$(cat /home/easy_infra/.tfenv/version)
 output_log="/var/log/$(basename "${BASH_SOURCE[0]%%.sh}.log")"
 
