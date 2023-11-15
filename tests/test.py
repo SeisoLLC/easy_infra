@@ -1391,7 +1391,7 @@ def run_unified_terraform_opentofu(*, image: str, user: str, base_command: str) 
 
 def run_opentofu(*, image: str, user: str) -> None:
     """Run the opentofu tests"""
-    run_unified_terraform_opentofu(image=image, user=user, base_command="opentofu")
+    run_unified_terraform_opentofu(image=image, user=user, base_command="tofu")
 
 
 def run_terraform(*, image: str, user: str) -> None:
