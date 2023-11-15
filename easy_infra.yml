@@ -113,7 +113,7 @@ packages:
       env_vars:
       - TF_DATA_DIR
     security: *id004
-    version: 1.6.0-alpha2
+    version: v1.6.0-alpha5
     version_argument: version
   terraform:
     file_extensions: *id003
