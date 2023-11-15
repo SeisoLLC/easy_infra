@@ -1436,22 +1436,22 @@ def run_ansible(*, image: str, user: str, mount_local_files: bool) -> None:
     volumes: list[dict[Path, dict[str, str]]] = []
     kics_config_dir = TESTS_PATH.joinpath("ansible/tool/kics")
     kics_volumes = {kics_config_dir: {"bind": working_dir, "mode": "rw"}}
-    volumes.update(kics_volumes)
+    volumes.append(kics_volumes)
     secure_config_dir = TESTS_PATH.joinpath("ansible/general/secure")
     secure_volumes = {secure_config_dir: {"bind": working_dir, "mode": "rw"}}
-    volumes.update(secure_volumes)
+    volumes.append(secure_volumes)
     secure_volumes_with_log_config = copy.deepcopy(secure_volumes)
     alt_working_dir: str = "/alt_working_dir/"
     alt_bind_secure_volumes = copy.deepcopy(secure_volumes)
     alt_bind_secure_volumes[secure_config_dir]["bind"] = alt_working_dir
-    volumes.update(alt_bind_secure_volumes)
+    volumes.append(alt_bind_secure_volumes)
     fluent_bit_config_host = TESTS_PATH.joinpath("fluent-bit.outputs.conf")
     fluent_bit_config_container = "/usr/local/etc/fluent-bit/fluent-bit.outputs.conf"
     secure_volumes_with_log_config[fluent_bit_config_host] = {
         "bind": fluent_bit_config_container,
         "mode": "ro",
     }
-    volumes.update(secure_volumes_with_log_config)
+    volumes.append(secure_volumes_with_log_config)
     if mount_local_files:
         functions_dir = CWD.joinpath("build").joinpath("functions.sh")
         common_dir = CWD.joinpath("build").joinpath("common.sh")
