@@ -51,8 +51,8 @@ packages:
           KICS_EXCLUDE_SEVERITIES: --exclude-severities
           KICS_INCLUDE_QUERIES: --include-queries
         command: >-
-          kics scan --type Ansible --no-progress --queries-path ${KICS_INCLUDE_QUERIES_PATH}
-          --libraries-path ${KICS_LIBRARY_PATH} --report-formats json --output-path
+          kics scan --type Ansible --no-progress --queries-path ${KICS_QUERIES_PATH}
+          --libraries-path ${KICS_LIBRARIES_PATH} --report-formats json --output-path
           ${KICS_JSON_REPORT_PATH} --output-name kics --path .
         description: directory scan
     version: 2.10.7+merged+base+2.10.8+dfsg-1
