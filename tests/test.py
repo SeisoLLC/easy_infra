@@ -1152,9 +1152,9 @@ def run_unified_terraform_opentofu(*, image: str, user: str, base_command: str) 
             },
             f'/bin/bash -c "scan_{base_command} && {base_command} init -backend=false && {base_command} validate"',
             1,
-        ),  # This tests the bring-your-own {base_command}_VERSION hook (40-), regardless of the built-in security tools (DISABLE_SECURITY=true)
-        # It fails because it ignores the 50- {base_command} due to AUTODETECT=false, and the v_0_14_dir files fail given the version of
-        # {base_command}_VERSION specified above
+        ),  # This tests the bring-your-own {uppercase_base_command}_VERSION hook (40-), regardless of the built-in security tools (DISABLE_SECURITY=true)
+        # It fails because it ignores the 50- {base_command} due to AUTODETECT=false, and the v_0_14_dir files fail given the
+        # version of {uppercase_base_command}_VERSION specified above
     ]
     LOG.debug(
         f"Fail when using a modern version of {base_command} in a repo which expects 0.14.x"
