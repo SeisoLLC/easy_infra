@@ -27,8 +27,9 @@ _anchors:
         CHECKOV_SKIP_CVE_PACKAGE: --skip-cve-package
         CHECKOV_SOFT_FAIL_ON: --soft-fail-on
         CHECKOV_VAR_FILE: --var-file
-      command: checkov -d . --download-external-modules True --framework terraform
-        --skip-download --output cli --output json --output-file-path console,${CHECKOV_JSON_REPORT_PATH}/checkov.json
+      command: >
+        checkov -d . --download-external-modules True --framework terraform --skip-download
+        --output cli --output json --output-file-path console,${CHECKOV_JSON_REPORT_PATH}/checkov.json
       description: directory scan
       env_customizations: &id002
         CHECKOV_LOG_LEVEL: LOG_LEVEL
@@ -49,7 +50,8 @@ packages:
         arg_customizations:
           KICS_EXCLUDE_SEVERITIES: --exclude-severities
           KICS_INCLUDE_QUERIES: --include-queries
-        command: kics scan --type Ansible --no-progress --queries-path ${KICS_INCLUDE_QUERIES_PATH}
+        command: >
+          kics scan --type Ansible --no-progress --queries-path ${KICS_INCLUDE_QUERIES_PATH}
           --libraries-path ${KICS_LIBRARY_PATH} --report-formats json --output-path
           ${KICS_JSON_REPORT_PATH} --output-name kics --path .
         description: directory scan
@@ -64,8 +66,9 @@ packages:
     security:
       checkov:
         arg_customizations: *id001
-        command: checkov -d . --framework cloudformation --skip-download --output
-          cli --output json --output-file-path console,${CHECKOV_JSON_REPORT_PATH}/checkov.json
+        command: >
+          checkov -d . --framework cloudformation --skip-download --output cli
+          --output json --output-file-path console,${CHECKOV_JSON_REPORT_PATH}/checkov.json
         description: directory scan
         env_customizations: *id002
     tool:
