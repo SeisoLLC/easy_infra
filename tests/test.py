@@ -696,8 +696,9 @@ def run_cloudformation(*, image: str, user: str) -> None:
     LOG.info(f"{image} passed {num_tests_ran} end to end cloudformation tests")
 
 
-def run_terraform(*, image: str, user: str) -> None:
-    """Run the terraform tests"""
+def run_unified_terraform_opentofu(*, image: str, user: str, base_command: str) -> None:
+    """Run the unified terraform and opentofu tests"""
+    uppercase_base_command = base_command.upper()
     num_tests_ran: int = 0
     working_dir: str = "/iac/"
     environment: dict[str, str] = {"TF_DATA_DIR": "/tmp"}
@@ -765,8 +766,8 @@ def run_terraform(*, image: str, user: str) -> None:
     )
 
     # Ensure invalid configurations fail
-    command: str = "terraform init"
-    LOG.debug("Testing invalid terraform configurations")
+    command: str = f"{base_command} init"
+    LOG.debug(f"Testing invalid {base_command} configurations")
     utils.opinionated_docker_run(
         image=image,
         volumes=invalid_volumes,
@@ -784,7 +785,7 @@ def run_terraform(*, image: str, user: str) -> None:
     # https://github.com/docker/docker-py/issues/2230 issue from January 2019
     #
     # The exit 230 ensures that, if the dir doesn't exist, it doesn't accidentally match the expected_exit of 1 below
-    command = '/bin/bash -c "cd /iac/seisollc/easy_infra/tests/terraform/general/invalid || exit 230 && terraform validate"'
+    command = f'/bin/bash -c "cd /iac/seisollc/easy_infra/tests/terraform/general/invalid || exit 230 && {base_command} validate"'
     LOG.debug(
         "Testing learning mode on an invalid configuration using the git clone feature, non-interactively"
     )
@@ -804,7 +805,7 @@ def run_terraform(*, image: str, user: str) -> None:
         image=image,
         command=command,
         environment=learning_mode_and_clone_environment,
-        expected_exit=1,  # This still fails the final terraform validate, which only runs if scan_terraform succeeds as expected
+        expected_exit=1,  # This still fails the final {base_command} validate, which only runs if scan_{base_command} succeeds as expected
     )
     num_tests_ran += 1
 
@@ -826,14 +827,14 @@ def run_terraform(*, image: str, user: str) -> None:
     )
     num_tests_ran += 1
 
-    # Ensure autodetect finds the appropriate terraform configs, which can be inferred by the number of logs written to /var/log/easy_infra.log
+    # Ensure autodetect finds the appropriate {base_command} configs, which can be inferred by the number of logs written to /var/log/easy_infra.log
     #
     # This test requires LEARNING_MODE to be true because the autodetect functionality traverses into the testing sub-directories, including those
     # which are purposefully insecure, which otherwise would exit non-zero early, resulting in a limited set of logs.
     # There is always one log for each security tool, regardless of if that tool is installed in the image being used.  If a tool is not in the PATH
     # and executable, a log message indicating that is generated.
     number_of_security_tools = len(
-        constants.CONFIG["packages"]["terraform"]["security"]
+        constants.CONFIG["packages"][base_command]["security"]
     )
     # This list needs to be sorted because it uses pathlib's rglob, which (currently) uses os.scandir, which is documented to yield entries in
     # arbitrary order https://docs.python.org/3/library/os.html#os.scandir
@@ -884,7 +885,9 @@ def run_terraform(*, image: str, user: str) -> None:
             + f'echo \\"/var/log/easy_infra.log had a length of ${{actual_number_of_logs}} when a length of {expected_number_of_logs} was expected\\"; '
             + "exit 230; fi"
         )
-        command = f'/bin/bash -c "terraform init -backend=false && {test_log_length}"'
+        command = (
+            f'/bin/bash -c "{base_command} init -backend=false && {test_log_length}"'
+        )
         learning_mode_and_autodetect_environment["AUTODETECT"] = autodetect_status
         learning_mode_and_autodetect_environment["FAIL_FAST"] = fail_fast
         tests.append(
@@ -913,7 +916,7 @@ def run_terraform(*, image: str, user: str) -> None:
         tests=tests, volumes=general_test_volumes, image=image, user=user
     )
 
-    # Ensure autodetect finds the appropriate terraform configs, which can be inferred by the number of logs written to /var/log/easy_infra.log
+    # Ensure autodetect finds the appropriate {base_command} configs, which can be inferred by the number of logs written to /var/log/easy_infra.log
     #
     # This test ensure that, when DISABLE_SECURITY is true, the provided command is still run for each of the testing sub-directories. It will exit
     # non-zero on the first instance of a failed command, which should occur only when it encounters an invalid configuration. Hooks are also disabled
@@ -930,13 +933,13 @@ def run_terraform(*, image: str, user: str) -> None:
     )
     for autodetect_status in ["true", "false"]:
         disable_security_and_autodetect_environment["AUTODETECT"] = autodetect_status
-        command = '/bin/bash -c "terraform init && terraform validate"'
+        command = f'/bin/bash -c "{base_command} init && {base_command} validate"'
 
         if autodetect_status == "true":
-            # Expect exit 1 due to the discovery of terraform/general/invalid/invalid.tf
+            # Expect exit 1 due to the discovery of {base_command}/general/invalid/invalid.tf
             expected_exit = 1
         elif autodetect_status == "false":
-            # Expect exit 0 because the command is ran in terraform/general and doesn't discover subdirs
+            # Expect exit 0 because the command is ran in {base_command}/general and doesn't discover subdirs
             expected_exit = 0
 
         utils.opinionated_docker_run(
@@ -973,7 +976,7 @@ def run_terraform(*, image: str, user: str) -> None:
             )
 
         test_autodetect_disable_security_container.exec_run(
-            cmd='/bin/bash -c "terraform init"', tty=False
+            cmd=f'/bin/bash -c "{base_command} init"', tty=False
         )
 
         if (
@@ -993,11 +996,11 @@ def run_terraform(*, image: str, user: str) -> None:
     # Test alternative working directories/binds
     # Tests is a list of tuples containing the test environment, command, and expected exit code
     tests: list[tuple[dict, str, int]] = [  # type: ignore
-        ({}, "terraform init", 0),
+        ({}, f"{base_command} init", 0),
         ({}, "tfenv exec init", 0),
         (
             {},
-            '/usr/bin/env bash -c "terraform init && false"',
+            f'/usr/bin/env bash -c "{base_command} init && false"',
             1,
         ),
         (
@@ -1007,7 +1010,7 @@ def run_terraform(*, image: str, user: str) -> None:
         ),
     ]
 
-    LOG.debug("Testing alternative working dirs/binds with the terraform image")
+    LOG.debug(f"Testing alternative working dirs/binds with the {base_command} image")
     num_tests_ran += exec_tests(
         tests=tests, volumes=alt_bind_secure_volumes, image=image, user=user
     )
@@ -1015,39 +1018,39 @@ def run_terraform(*, image: str, user: str) -> None:
     # Ensure secure configurations pass
     # Tests is a list of tuples containing the test environment, command, and expected exit code
     tests: list[tuple[dict, str, int]] = [  # type: ignore
-        ({}, "terraform init", 0),
+        ({}, f"{base_command} init", 0),
         ({}, "tfenv exec init", 0),
-        ({}, "scan_terraform", 0),
+        ({}, f"scan_{base_command}", 0),
         ({}, "scan_tfenv", 0),
         (
             {},
-            '/bin/bash -c "terraform init && terraform validate && echo no | terraform apply"',
+            f'/bin/bash -c "{base_command} init && {base_command} validate && echo no | {base_command} apply"',
             1,
         ),  # Previous Getting Started example from the README.md (Minimally modified for automation)
         (
             {},
-            '/bin/bash -c "terraform init; terraform version"',
+            f'/bin/bash -c "{base_command} init; {base_command} version"',
             0,
-        ),  # Previous Terraform Caching example from the README.md
+        ),  # Previous {base_command} Caching example from the README.md
         (
             {},
-            '/usr/bin/env bash -c "terraform init && terraform validate && terraform plan && terraform validate"',
+            f'/usr/bin/env bash -c "{base_command} init && {base_command} validate && {base_command} plan && {base_command} validate"',
             0,
         ),
         (
             {},
-            '/usr/bin/env bash -c "terraform init && terraform validate && false"',
+            f'/usr/bin/env bash -c "{base_command} init && {base_command} validate && false"',
             1,
         ),
         (
             {"CHECKOV_SKIP_CHECK": "CKV_AWS_8"},
-            "terraform init",
+            f"{base_command} init",
             0,
         ),  # This tests "arg_customizations" features from easy_infra.yml and functions.j2
         # TODO: Test env_customizations
     ]
 
-    LOG.debug("Testing secure terraform configurations")
+    LOG.debug(f"Testing secure {base_command} configurations")
     num_tests_ran += exec_tests(
         tests=tests, volumes=secure_volumes, image=image, user=user
     )
@@ -1057,9 +1060,9 @@ def run_terraform(*, image: str, user: str) -> None:
     tests: list[tuple[dict, str, int]] = [  # type: ignore
         (
             {"DISABLE_SECURITY": "true"},
-            "scan_terraform",
+            f"scan_{base_command}",
             230,
-        )  # This tests scan_terraform hook registration; if it runs and finds the unwanted file it should exit 230
+        )  # This tests scan_{base_command} hook registration; if it runs and finds the unwanted file it should exit 230
     ]
 
     LOG.debug("Testing scan_ hooks and custom hooks volume mounted at runtime")
@@ -1078,21 +1081,23 @@ def run_terraform(*, image: str, user: str) -> None:
                 "AUTODETECT": "true",
                 "DISABLE_SECURITY": "true",
             },
-            '/bin/bash -c "terraform init -backend=false && terraform validate"',
+            f'/bin/bash -c "{base_command} init -backend=false && {base_command} validate"',
             0,
-        ),  # This tests the terraform version switching hook, regardless of the built-in security tools
+        ),  # This tests the {base_command} version switching hook, regardless of the built-in security tools
         (
             {
                 "DISABLE_HOOKS": "true",
                 "AUTODETECT": "true",
                 "DISABLE_SECURITY": "true",
             },
-            '/bin/bash -c "terraform init -backend=false && terraform validate"',
+            f'/bin/bash -c "{base_command} init -backend=false && {base_command} validate"',
             1,
-        ),  # This tests DISABLE_HOOKS; it fails because the terraform version used is incorrect
+        ),  # This tests DISABLE_HOOKS; it fails because the {base_command} version used is incorrect
     ]
 
-    LOG.debug("Testing the easy_infra hooks against various terraform configurations")
+    LOG.debug(
+        f"Testing the easy_infra hooks against various {base_command} configurations"
+    )
     num_tests_ran += exec_tests(
         tests=tests, volumes=hooks_config_volumes, image=image, user=user
     )
@@ -1107,7 +1112,7 @@ def run_terraform(*, image: str, user: str) -> None:
                 "FAIL_FAST": "true",
                 "LEARNING_MODE": "true",
             },
-            '/bin/bash -c "scan_terraform"',
+            f'/bin/bash -c "scan_{base_command}"',
             0,
         ),  # This tests that the failed script does not fail easy_infra when LM is enabled
         (
@@ -1117,7 +1122,7 @@ def run_terraform(*, image: str, user: str) -> None:
                 "FAIL_FAST": "true",
                 "LEARNING_MODE": "false",
             },
-            '/bin/bash -c "scan_terraform"',
+            f'/bin/bash -c "scan_{base_command}"',
             230,
         ),  # This tests the hook script for a non-zero exit code that would result in easy_infra failing when LM is disabled
         (
@@ -1127,7 +1132,7 @@ def run_terraform(*, image: str, user: str) -> None:
                 "FAIL_FAST": "false",
                 "LEARNING_MODE": "false",
             },
-            '/bin/bash -c "scan_terraform"',
+            f'/bin/bash -c "scan_{base_command}"',
             230,
         ),  # This tests the hook script for a non-zero exit code with FAIL_FAST and LEARNING_MODE both disabled to ensure the
         # failed hook gets added to the dir_exit_codes array
@@ -1144,16 +1149,16 @@ def run_terraform(*, image: str, user: str) -> None:
                 "DISABLE_HOOKS": "false",
                 "AUTODETECT": "false",
                 "DISABLE_SECURITY": "true",
-                "TERRAFORM_VERSION": "1.1.8",
+                f"{uppercase_base_command}_VERSION": "1.1.8",
             },
-            '/bin/bash -c "scan_terraform && terraform init -backend=false && terraform validate"',
+            f'/bin/bash -c "scan_{base_command} && {base_command} init -backend=false && {base_command} validate"',
             1,
-        ),  # This tests the bring-your-own TERRAFORM_VERSION hook (40-), regardless of the built-in security tools (DISABLE_SECURITY=true)
-        # It fails because it ignores the 50- terraform due to AUTODETECT=false, and the v_0_14_dir files fail given the version of
-        # TERRAFORM_VERSION specified above
+        ),  # This tests the bring-your-own {base_command}_VERSION hook (40-), regardless of the built-in security tools (DISABLE_SECURITY=true)
+        # It fails because it ignores the 50- {base_command} due to AUTODETECT=false, and the v_0_14_dir files fail given the version of
+        # {base_command}_VERSION specified above
     ]
     LOG.debug(
-        "Fail when using a modern version of terraform in a repo which expects 0.14.x"
+        f"Fail when using a modern version of {base_command} in a repo which expects 0.14.x"
     )
     num_tests_ran += exec_tests(
         tests=tests,
@@ -1171,14 +1176,14 @@ def run_terraform(*, image: str, user: str) -> None:
                 "AUTODETECT": "true",
                 "DISABLE_SECURITY": "true",
             },
-            '/bin/bash -c "terraform init -backend=false && terraform validate"',
+            f'/bin/bash -c "{base_command} init -backend=false && {base_command} validate"',
             1,
-        ),  # This tests the terraform version switching hook failback due to no network (see exec_tests below)
-        # It fails because terraform/hooks/secure_0_14/secure.tf cannot be validated with the version of terraform
-        # that TERRAFORM_VERSION indicates by default
+        ),  # This tests the {base_command} version switching hook failback due to no network (see exec_tests below)
+        # It fails because terraform/hooks/secure_0_14/secure.tf cannot be validated with the version of {base_command}
+        # that {uppercase_base_command}_VERSION indicates by default
     ]
     LOG.debug(
-        "Testing the easy_infra hooks with no network access, against various terraform configurations, expecting failures"
+        f"Testing the easy_infra hooks with no network access, against various {base_command} configurations, expecting failures"
     )
     num_tests_ran += exec_tests(
         tests=tests,
@@ -1195,26 +1200,26 @@ def run_terraform(*, image: str, user: str) -> None:
                 "AUTODETECT": "true",
                 "DISABLE_SECURITY": "true",
             },
-            '/bin/bash -c "terraform init -backend=false && terraform validate"',
+            f'/bin/bash -c "{base_command} init -backend=false && {base_command} validate"',
             0,
-        ),  # This tests the terraform version switching hook failback due to no network (see exec_tests below)
-        # It succeeds because only terraform/hooks/secure_builtin_version/secure.tf is tested, which will validate properly with the version of terraform that
-        # TERRAFORM_VERSION indicates by default
+        ),  # This tests the {base_command} version switching hook failback due to no network (see exec_tests below)
+        # It succeeds because only terraform/hooks/secure_builtin_version/secure.tf is tested, which will validate properly with the version of {base_command}
+        # that {uppercase_base_command}_VERSION indicates by default
         (
             {
                 "DISABLE_HOOKS": "false",
                 "AUTODETECT": "false",
                 "DISABLE_SECURITY": "true",
-                "TERRAFORM_VERSION": "1.1.8",
+                f"{uppercase_base_command}_VERSION": "1.1.8",
             },
-            '/bin/bash -c "terraform init -backend=false && terraform validate"',
+            f'/bin/bash -c "{base_command} init -backend=false && {base_command} validate"',
             0,
-        ),  # This tests the bring-your-own TERRAFORM_VERSION hook, regardless of the built-in security tools
-        # It succeeds because only terraform/hooks/secure_builtin_version/secure.tf is tested, and it requires a version of terraform newer then the provided
-        # TERRAFORM_VERSION environment variable specifies, but because there is no network access the change does not take place
+        ),  # This tests the bring-your-own {uppercase_base_command}_VERSION hook, regardless of the built-in security tools
+        # It succeeds because only terraform/hooks/secure_builtin_version/secure.tf is tested, and it requires a version of {base_command} newer then the
+        # provided {uppercase_base_command}_VERSION environment variable specifies, but because there is no network access the change does not take place
     ]
     LOG.debug(
-        "Testing the easy_infra hooks with no network access, against various terraform configurations, expecting successes"
+        f"Testing the easy_infra hooks with no network access, against various {base_command} configurations, expecting successes"
     )
     num_tests_ran += exec_tests(
         tests=tests,
@@ -1227,32 +1232,32 @@ def run_terraform(*, image: str, user: str) -> None:
     # Ensure insecure configurations still succeed when security checks are disabled
     # Tests is a list of tuples containing the test environment, command, and expected exit code
     tests: list[tuple[dict, str, int]] = [  # type: ignore
-        ({"DISABLE_SECURITY": "true"}, "terraform init", 0),
+        ({"DISABLE_SECURITY": "true"}, f"{base_command} init", 0),
         ({"DISABLE_SECURITY": "true"}, "tfenv exec init", 0),
-        ({"DISABLE_SECURITY": "true"}, "scan_terraform", 0),
-        ({}, '/usr/bin/env bash -c "DISABLE_SECURITY=true terraform init"', 0),
+        ({"DISABLE_SECURITY": "true"}, f"scan_{base_command}", 0),
+        ({}, f'/usr/bin/env bash -c "DISABLE_SECURITY=true {base_command} init"', 0),
         (
             {},
-            '/usr/bin/env bash -c "DISABLE_SECURITY=true terraform --disable-security init"',
+            f'/usr/bin/env bash -c "DISABLE_SECURITY=true {base_command} --disable-security init"',
             0,
         ),
-        ({}, "terraform --disable-security init", 0),  # Test order independence
-        ({}, "terraform init --disable-security", 0),  # Test order independence
+        ({}, f"{base_command} --disable-security init", 0),  # Test order independence
+        ({}, f"{base_command} init --disable-security", 0),  # Test order independence
         (
             {},
-            '/usr/bin/env bash -c "DISABLE_SECURITY=true terraform init --disable-security || true && false"',
+            f'/usr/bin/env bash -c "DISABLE_SECURITY=true {base_command} init --disable-security || true && false"',
             1,
         ),
         (
             {"DISABLE_SECURITY": "true"},
-            "terraform init || false",
+            f"{base_command} init || false",
             1,
         ),  # Not supported; reproduce "Too many command line arguments. Configuration path expected." error
-        #     locally with `docker run -e DISABLE_SECURITY=true -v $(pwd)/tests/terraform/tool/checkov:/iac seiso/easy_infra:latest-terraform terraform plan
-        #     \|\| false`, prefer passing the commands through bash like the following test
+        #     locally with `docker run -e DISABLE_SECURITY=true -v $(pwd)/tests/terraform/tool/checkov:/iac seiso/easy_infra:latest-{base_command}
+        #     {base_command} plan \|\| false`, prefer passing the commands through bash like the following test
         (
             {},
-            "DISABLE_SECURITY=true terraform plan",
+            f"DISABLE_SECURITY=true {base_command} plan",
             127,
         ),  # Not supported; prepended variables do not work unless the
         #     commands are passed through bash
@@ -1261,13 +1266,13 @@ def run_terraform(*, image: str, user: str) -> None:
                 "CHECKOV_SKIP_CHECK": "CKV_AWS_8",  # Would normally still fail due to checkov_volumes CKV_AWS_79
                 "DISABLE_SECURITY": "true",
             },
-            "terraform init",
+            f"{base_command} init",
             0,
         ),  # This tests the "arg_customizations" idea from easy_infra.yml and functions.j2
         # TODO: Test env_customizations
     ]
 
-    LOG.debug("Testing terraform with security disabled")
+    LOG.debug(f"Testing {base_command} with security disabled")
     num_tests_ran += exec_tests(
         tests=tests, volumes=checkov_volumes, image=image, user=user
     )
@@ -1275,42 +1280,42 @@ def run_terraform(*, image: str, user: str) -> None:
     # Ensure insecure configurations fail properly due to checkov
     # Tests is a list of tuples containing the test environment, command, and expected exit code
     tests: list[tuple[dict, str, int]] = [  # type: ignore
-        ({}, "terraform init", 1),
+        ({}, f"{base_command} init", 1),
         ({}, "tfenv exec plan", 1),
-        ({}, "scan_terraform", 1),
+        ({}, f"scan_{base_command}", 1),
         (
             {},
-            '/usr/bin/env bash -c "terraform init"',
+            f'/usr/bin/env bash -c "{base_command} init"',
             1,
         ),
         (
             {},
-            '/usr/bin/env bash -c "terraform init || true"',
+            f'/usr/bin/env bash -c "{base_command} init || true"',
             0,
         ),
         (
             {},
-            '/usr/bin/env bash -c "terraform init || true && false"',
+            f'/usr/bin/env bash -c "{base_command} init || true && false"',
             1,
         ),
         (
             {"LEARNING_MODE": "tRuE"},
-            '/usr/bin/env bash -c "terraform init && terraform validate"',
+            f'/usr/bin/env bash -c "{base_command} init && {base_command} validate"',
             0,
         ),
         (
             {"LEARNING_MODE": "tRuE"},
-            '/bin/bash -c "terraform init && terraform validate"',
+            f'/bin/bash -c "{base_command} init && {base_command} validate"',
             0,
         ),
     ]
 
-    LOG.debug("Testing checkov against insecure terraform")
+    LOG.debug(f"Testing checkov against insecure {base_command}")
     num_tests_ran += exec_tests(
         tests=tests, volumes=checkov_volumes, image=image, user=user
     )
 
-    # Run base non-interactive tests for terraform
+    # Run base non-interactive tests for {base_command}
     test_noninteractive_container = CLIENT.containers.run(
         image=image,
         detach=True,
@@ -1320,19 +1325,19 @@ def run_terraform(*, image: str, user: str) -> None:
         environment=environment,
     )
 
-    # Running a non-interactive terraform command
+    # Running a non-interactive {base_command} command
     test_noninteractive_container.exec_run(
-        cmd='/bin/bash -c "terraform init"', tty=False
+        cmd=f'/bin/bash -c "{base_command} init"', tty=False
     )
 
-    # A non-interactive terraform command should cause the creation of the following files, and should have the same number of logs lines in the
+    # A non-interactive {base_command} command should cause the creation of the following files, and should have the same number of logs lines in the
     # fluent bit log regardless of which image is being tested
     files = ["/tmp/checkov_complete"]
     # Piggyback checking the checkov reports on the checkov complete file checks
     files.append(str(checkov_output_file))
-    LOG.debug("Testing non-interactive terraform commands")
+    LOG.debug(f"Testing non-interactive {base_command} commands")
     number_of_security_tools = len(
-        constants.CONFIG["packages"]["terraform"]["security"]
+        constants.CONFIG["packages"][base_command]["security"]
     )
     expected_number_of_logs = number_of_security_tools
 
@@ -1353,7 +1358,7 @@ def run_terraform(*, image: str, user: str) -> None:
 
     num_tests_ran += num_successful_tests
 
-    # Run terraform version non-interactive test
+    # Run {base_command} version non-interactive test
     test_noninteractive_container = CLIENT.containers.run(
         image=image,
         detach=True,
@@ -1363,13 +1368,13 @@ def run_terraform(*, image: str, user: str) -> None:
         environment=environment,
     )
 
-    # Running a non-interactive terraform version (or any other supported
+    # Running a non-interactive {base_command} version (or any other supported
     # "version" argument) should NOT cause the creation of the following files
     test_noninteractive_container.exec_run(
-        cmd='/bin/bash -c "terraform version"', tty=False
+        cmd=f'/bin/bash -c "{base_command} version"', tty=False
     )
     files = ["/tmp/checkov_complete"]
-    LOG.debug("Testing non-interactive terraform version")
+    LOG.debug(f"Testing non-interactive {base_command} version")
     if (
         num_successful_tests := check_for_files(
             container=test_noninteractive_container,
@@ -1381,7 +1386,17 @@ def run_terraform(*, image: str, user: str) -> None:
 
     num_tests_ran += num_successful_tests
 
-    LOG.info(f"{image} passed {num_tests_ran} end to end terraform tests")
+    LOG.info(f"{image} passed {num_tests_ran} end to end {base_command} tests")
+
+
+def run_opentofu(*, image: str, user: str) -> None:
+    """Run the opentofu tests"""
+    run_unified_terraform_opentofu(image=image, user=user, base_command="opentofu")
+
+
+def run_terraform(*, image: str, user: str) -> None:
+    """Run the terraform tests"""
+    run_unified_terraform_opentofu(image=image, user=user, base_command="terraform")
 
 
 def run_ansible(*, image: str, user: str) -> None:
