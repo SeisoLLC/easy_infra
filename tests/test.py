@@ -698,7 +698,6 @@ def run_cloudformation(*, image: str, user: str) -> None:
 
 def run_unified_terraform_opentofu(*, image: str, user: str, base_command: str) -> None:
     """Run the unified terraform and opentofu tests"""
-    uppercase_base_command = base_command.upper()
     key = base_command if base_command == "terraform" else "opentofu"
     num_tests_ran: int = 0
     working_dir: str = "/iac/"
@@ -730,14 +729,6 @@ def run_unified_terraform_opentofu(*, image: str, user: str, base_command: str) 
     general_test_volumes: dict[Path, dict[str, str]] = {
         general_test_dir: {"bind": working_dir, "mode": "rw"}
     }
-    hooks_config_dir: Path = terraform_test_dir.joinpath("hooks")
-    hooks_config_volumes: dict[Path, dict[str, str]] = {
-        hooks_config_dir: {"bind": working_dir, "mode": "rw"}
-    }
-    hooks_script_dir: Path = TESTS_PATH.joinpath("test-hooks")
-    hooks_script_volumes: dict[Path, dict[str, str]] = {
-        hooks_script_dir: {"bind": "/opt/hooks/bin/", "mode": "ro"}
-    }
     fluent_bit_config_host: Path = TESTS_PATH.joinpath("fluent-bit.outputs.conf")
     fluent_bit_config_container: str = (
         "/usr/local/etc/fluent-bit/fluent-bit.outputs.conf"
@@ -748,18 +739,6 @@ def run_unified_terraform_opentofu(*, image: str, user: str, base_command: str) 
     secure_volumes_with_log_config[fluent_bit_config_host] = {
         "bind": fluent_bit_config_container,
         "mode": "ro",
-    }
-    hooks_secure_terraform_v_builtin_dir: Path = TESTS_PATH.joinpath(
-        "terraform/hooks/secure_builtin_version"
-    )
-    hooks_secure_terraform_v_builtin_dir_volumes: dict[Path, dict[str, str]] = {
-        hooks_secure_terraform_v_builtin_dir: {"bind": working_dir, "mode": "rw"}
-    }
-    hooks_secure_terraform_v_0_14_dir: Path = TESTS_PATH.joinpath(
-        "terraform/hooks/secure_0_14"
-    )
-    hooks_secure_terraform_v_0_14_dir_volumes: dict[Path, dict[str, str]] = {
-        hooks_secure_terraform_v_0_14_dir: {"bind": working_dir, "mode": "rw"}
     }
     report_base_dir: Path = Path("/tmp/reports")
     checkov_output_file: Path = report_base_dir.joinpath("checkov").joinpath(
@@ -1054,150 +1033,6 @@ def run_unified_terraform_opentofu(*, image: str, user: str, base_command: str) 
         tests=tests, volumes=secure_volumes, image=image, user=user
     )
 
-    # Ensure the scan_ hooks work and that you can provide custom hooks via volume mounting at runtime
-    # Tests is a list of tuples containing the test environment, command, and expected exit code
-    tests: list[tuple[dict, str, int]] = [  # type: ignore
-        (
-            {"DISABLE_SECURITY": "true"},
-            f"scan_{base_command}",
-            230,
-        )  # This tests scan_{base_command} hook registration; if it runs and finds the unwanted file it should exit 230
-    ]
-
-    LOG.debug("Testing scan_ hooks and custom hooks volume mounted at runtime")
-    volumes: list[dict[Path, dict[str, str]]] = [
-        hooks_config_volumes,
-        hooks_script_volumes,
-    ]
-    num_tests_ran += exec_tests(tests=tests, volumes=volumes, image=image, user=user)
-
-    # Ensure the easy_infra hooks honor Learning Mode by not failing on hook script errors
-    # Tests is a list of tuples containing the test environment, command, and expected exit code
-    tests: list[tuple[dict, str, int]] = [  # type: ignore
-        (
-            {
-                "DISABLE_HOOKS": "false",
-                "DISABLE_SECURITY": "true",
-                "FAIL_FAST": "true",
-                "LEARNING_MODE": "true",
-            },
-            f'/bin/bash -c "scan_{base_command}"',
-            0,
-        ),  # This tests that the failed script does not fail easy_infra when LM is enabled
-        (
-            {
-                "DISABLE_HOOKS": "false",
-                "DISABLE_SECURITY": "true",
-                "FAIL_FAST": "true",
-                "LEARNING_MODE": "false",
-            },
-            f'/bin/bash -c "scan_{base_command}"',
-            230,
-        ),  # This tests the hook script for a non-zero exit code that would result in easy_infra failing when LM is disabled
-        (
-            {
-                "DISABLE_HOOKS": "false",
-                "DISABLE_SECURITY": "true",
-                "FAIL_FAST": "false",
-                "LEARNING_MODE": "false",
-            },
-            f'/bin/bash -c "scan_{base_command}"',
-            230,
-        ),  # This tests the hook script for a non-zero exit code with FAIL_FAST and LEARNING_MODE both disabled to ensure the
-        # failed hook gets added to the dir_exit_codes array
-    ]
-
-    LOG.debug("Testing Learning Mode for custom hooks volume mounted at runtime")
-    num_tests_ran += exec_tests(
-        tests=tests, volumes=hooks_script_volumes, image=image, user=user
-    )
-
-    tests: list[tuple[dict, str, int]] = [  # type: ignore
-        (
-            {
-                "DISABLE_HOOKS": "false",
-                "AUTODETECT": "false",
-                "DISABLE_SECURITY": "true",
-                f"{uppercase_base_command}_VERSION": "1.1.8",
-            },
-            f'/bin/bash -c "scan_{base_command} && {base_command} init -backend=false && {base_command} validate"',
-            1,
-        ),  # This tests the bring-your-own {uppercase_base_command}_VERSION hook (40-), regardless of the built-in security tools (DISABLE_SECURITY=true)
-        # It fails because it ignores the 50- {base_command} due to AUTODETECT=false, and the v_0_14_dir files fail given the
-        # version of {uppercase_base_command}_VERSION specified above
-    ]
-    LOG.debug(
-        f"Fail when using a modern version of {base_command} in a repo which expects 0.14.x"
-    )
-    num_tests_ran += exec_tests(
-        tests=tests,
-        volumes=hooks_secure_terraform_v_0_14_dir_volumes,
-        image=image,
-        user=user,
-    )
-
-    # Ensure the easy_infra hooks work as expected when network access is NOT available
-    # Tests is a list of tuples containing the test environment, command, and expected exit code
-    tests: list[tuple[dict, str, int]] = [  # type: ignore
-        (
-            {
-                "DISABLE_HOOKS": "false",
-                "AUTODETECT": "true",
-                "DISABLE_SECURITY": "true",
-            },
-            f'/bin/bash -c "{base_command} init -backend=false && {base_command} validate"',
-            1,
-        ),  # This tests the {base_command} version switching hook failback due to no network (see exec_tests below)
-        # It fails because terraform/hooks/secure_0_14/secure.tf cannot be validated with the version of {base_command}
-        # that {uppercase_base_command}_VERSION indicates by default
-    ]
-    LOG.debug(
-        f"Testing the easy_infra hooks with no network access, against various {base_command} configurations, expecting failures"
-    )
-    num_tests_ran += exec_tests(
-        tests=tests,
-        volumes=hooks_config_volumes,
-        image=image,
-        user=user,
-        network_mode="none",
-    )
-
-    tests: list[tuple[dict, str, int]] = [  # type: ignore
-        (
-            {
-                "DISABLE_HOOKS": "false",
-                "AUTODETECT": "true",
-                "DISABLE_SECURITY": "true",
-            },
-            f'/bin/bash -c "{base_command} init -backend=false && {base_command} validate"',
-            0,
-        ),  # This tests the {base_command} version switching hook failback due to no network (see exec_tests below)
-        # It succeeds because only terraform/hooks/secure_builtin_version/secure.tf is tested, which will validate properly with the version of {base_command}
-        # that {uppercase_base_command}_VERSION indicates by default
-        (
-            {
-                "DISABLE_HOOKS": "false",
-                "AUTODETECT": "false",
-                "DISABLE_SECURITY": "true",
-                f"{uppercase_base_command}_VERSION": "1.1.8",
-            },
-            f'/bin/bash -c "{base_command} init -backend=false && {base_command} validate"',
-            0,
-        ),  # This tests the bring-your-own {uppercase_base_command}_VERSION hook, regardless of the built-in security tools
-        # It succeeds because only terraform/hooks/secure_builtin_version/secure.tf is tested, and it requires a version of {base_command} newer then the
-        # provided {uppercase_base_command}_VERSION environment variable specifies, but because there is no network access the change does not take place
-    ]
-    LOG.debug(
-        f"Testing the easy_infra hooks with no network access, against various {base_command} configurations, expecting successes"
-    )
-    num_tests_ran += exec_tests(
-        tests=tests,
-        volumes=hooks_secure_terraform_v_builtin_dir_volumes,
-        image=image,
-        user=user,
-        network_mode="none",
-    )
-
     # Ensure insecure configurations still succeed when security checks are disabled
     # Tests is a list of tuples containing the test environment, command, and expected exit code
     tests: list[tuple[dict, str, int]] = [  # type: ignore
@@ -1364,6 +1199,7 @@ def run_opentofu(*, image: str, user: str) -> None:
 def run_terraform(*, image: str, user: str) -> None:
     """Run the terraform tests"""
     base_command = "terraform"
+    uppercase_base_command = base_command.upper()
     run_unified_terraform_opentofu(image=image, user=user, base_command=base_command)
 
     num_tests_ran: int = 0
@@ -1372,6 +1208,22 @@ def run_terraform(*, image: str, user: str) -> None:
     hooks_config_dir: Path = terraform_test_dir.joinpath("hooks")
     hooks_config_volumes: dict[Path, dict[str, str]] = {
         hooks_config_dir: {"bind": working_dir, "mode": "rw"}
+    }
+    hooks_script_dir: Path = TESTS_PATH.joinpath("test-hooks")
+    hooks_script_volumes: dict[Path, dict[str, str]] = {
+        hooks_script_dir: {"bind": "/opt/hooks/bin/", "mode": "ro"}
+    }
+    hooks_secure_terraform_v_builtin_dir: Path = TESTS_PATH.joinpath(
+        "terraform/hooks/secure_builtin_version"
+    )
+    hooks_secure_terraform_v_builtin_dir_volumes: dict[Path, dict[str, str]] = {
+        hooks_secure_terraform_v_builtin_dir: {"bind": working_dir, "mode": "rw"}
+    }
+    hooks_secure_terraform_v_0_14_dir: Path = TESTS_PATH.joinpath(
+        "terraform/hooks/secure_0_14"
+    )
+    hooks_secure_terraform_v_0_14_dir_volumes: dict[Path, dict[str, str]] = {
+        hooks_secure_terraform_v_0_14_dir: {"bind": working_dir, "mode": "rw"}
     }
 
     # Ensure the easy_infra hooks work as expected when network access is available
@@ -1402,6 +1254,150 @@ def run_terraform(*, image: str, user: str) -> None:
     )
     num_tests_ran += exec_tests(
         tests=tests, volumes=hooks_config_volumes, image=image, user=user
+    )
+
+    # Ensure the easy_infra hooks work as expected when network access is NOT available
+    # Tests is a list of tuples containing the test environment, command, and expected exit code
+    tests: list[tuple[dict, str, int]] = [  # type: ignore
+        (
+            {
+                "DISABLE_HOOKS": "false",
+                "AUTODETECT": "true",
+                "DISABLE_SECURITY": "true",
+            },
+            f'/bin/bash -c "{base_command} init -backend=false && {base_command} validate"',
+            1,
+        ),  # This tests the {base_command} version switching hook failback due to no network (see exec_tests below)
+        # It fails because terraform/hooks/secure_0_14/secure.tf cannot be validated with the version of {base_command}
+        # that {uppercase_base_command}_VERSION indicates by default
+    ]
+    LOG.debug(
+        f"Testing the easy_infra hooks with no network access, against various {base_command} configurations, expecting failures"
+    )
+    num_tests_ran += exec_tests(
+        tests=tests,
+        volumes=hooks_config_volumes,
+        image=image,
+        user=user,
+        network_mode="none",
+    )
+
+    # Ensure the scan_ hooks work and that you can provide custom hooks via volume mounting at runtime
+    # Tests is a list of tuples containing the test environment, command, and expected exit code
+    tests: list[tuple[dict, str, int]] = [  # type: ignore
+        (
+            {"DISABLE_SECURITY": "true"},
+            f"scan_{base_command}",
+            230,
+        )  # This tests scan_{base_command} hook registration; if it runs and finds the unwanted file it should exit 230
+    ]
+
+    LOG.debug("Testing scan_ hooks and custom hooks volume mounted at runtime")
+    volumes: list[dict[Path, dict[str, str]]] = [
+        hooks_config_volumes,
+        hooks_script_volumes,
+    ]
+    num_tests_ran += exec_tests(tests=tests, volumes=volumes, image=image, user=user)
+
+    # Ensure the easy_infra hooks honor Learning Mode by not failing on hook script errors
+    # Tests is a list of tuples containing the test environment, command, and expected exit code
+    tests: list[tuple[dict, str, int]] = [  # type: ignore
+        (
+            {
+                "DISABLE_HOOKS": "false",
+                "DISABLE_SECURITY": "true",
+                "FAIL_FAST": "true",
+                "LEARNING_MODE": "true",
+            },
+            f'/bin/bash -c "scan_{base_command}"',
+            0,
+        ),  # This tests that the failed script does not fail easy_infra when LM is enabled
+        (
+            {
+                "DISABLE_HOOKS": "false",
+                "DISABLE_SECURITY": "true",
+                "FAIL_FAST": "true",
+                "LEARNING_MODE": "false",
+            },
+            f'/bin/bash -c "scan_{base_command}"',
+            230,
+        ),  # This tests the hook script for a non-zero exit code that would result in easy_infra failing when LM is disabled
+        (
+            {
+                "DISABLE_HOOKS": "false",
+                "DISABLE_SECURITY": "true",
+                "FAIL_FAST": "false",
+                "LEARNING_MODE": "false",
+            },
+            f'/bin/bash -c "scan_{base_command}"',
+            230,
+        ),  # This tests the hook script for a non-zero exit code with FAIL_FAST and LEARNING_MODE both disabled to ensure the
+        # failed hook gets added to the dir_exit_codes array
+    ]
+
+    LOG.debug("Testing Learning Mode for custom hooks volume mounted at runtime")
+    num_tests_ran += exec_tests(
+        tests=tests, volumes=hooks_script_volumes, image=image, user=user
+    )
+
+    tests: list[tuple[dict, str, int]] = [  # type: ignore
+        (
+            {
+                "DISABLE_HOOKS": "false",
+                "AUTODETECT": "false",
+                "DISABLE_SECURITY": "true",
+                f"{uppercase_base_command}_VERSION": "1.1.8",
+            },
+            f'/bin/bash -c "scan_{base_command} && {base_command} init -backend=false && {base_command} validate"',
+            1,
+        ),  # This tests the bring-your-own {uppercase_base_command}_VERSION hook (40-), regardless of the built-in security tools (DISABLE_SECURITY=true)
+        # It fails because it ignores the 50- {base_command} due to AUTODETECT=false, and the v_0_14_dir files fail given the
+        # version of {uppercase_base_command}_VERSION specified above
+    ]
+    LOG.debug(
+        f"Fail when using a modern version of {base_command} in a repo which expects 0.14.x"
+    )
+    num_tests_ran += exec_tests(
+        tests=tests,
+        volumes=hooks_secure_terraform_v_0_14_dir_volumes,
+        image=image,
+        user=user,
+    )
+
+    tests: list[tuple[dict, str, int]] = [  # type: ignore
+        (
+            {
+                "DISABLE_HOOKS": "false",
+                "AUTODETECT": "true",
+                "DISABLE_SECURITY": "true",
+            },
+            f'/bin/bash -c "{base_command} init -backend=false && {base_command} validate"',
+            0,
+        ),  # This tests the {base_command} version switching hook failback due to no network (see exec_tests below)
+        # It succeeds because only terraform/hooks/secure_builtin_version/secure.tf is tested, which will validate properly with the version of {base_command}
+        # that {uppercase_base_command}_VERSION indicates by default
+        (
+            {
+                "DISABLE_HOOKS": "false",
+                "AUTODETECT": "false",
+                "DISABLE_SECURITY": "true",
+                f"{uppercase_base_command}_VERSION": "1.1.8",
+            },
+            f'/bin/bash -c "{base_command} init -backend=false && {base_command} validate"',
+            0,
+        ),  # This tests the bring-your-own {uppercase_base_command}_VERSION hook, regardless of the built-in security tools
+        # It succeeds because only terraform/hooks/secure_builtin_version/secure.tf is tested, and it requires a version of {base_command} newer then the
+        # provided {uppercase_base_command}_VERSION environment variable specifies, but because there is no network access the change does not take place
+    ]
+    LOG.debug(
+        f"Testing the easy_infra hooks with no network access, against various {base_command} configurations, expecting successes"
+    )
+    num_tests_ran += exec_tests(
+        tests=tests,
+        volumes=hooks_secure_terraform_v_builtin_dir_volumes,
+        image=image,
+        user=user,
+        network_mode="none",
     )
 
 
