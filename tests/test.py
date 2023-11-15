@@ -699,6 +699,7 @@ def run_cloudformation(*, image: str, user: str) -> None:
 def run_unified_terraform_opentofu(*, image: str, user: str, base_command: str) -> None:
     """Run the unified terraform and opentofu tests"""
     uppercase_base_command = base_command.upper()
+    key = base_command if base_command == "terraform" else "opentofu"
     num_tests_ran: int = 0
     working_dir: str = "/iac/"
     environment: dict[str, str] = {"TF_DATA_DIR": "/tmp"}
@@ -833,9 +834,7 @@ def run_unified_terraform_opentofu(*, image: str, user: str, base_command: str) 
     # which are purposefully insecure, which otherwise would exit non-zero early, resulting in a limited set of logs.
     # There is always one log for each security tool, regardless of if that tool is installed in the image being used.  If a tool is not in the PATH
     # and executable, a log message indicating that is generated.
-    number_of_security_tools = len(
-        constants.CONFIG["packages"][base_command]["security"]
-    )
+    number_of_security_tools = len(constants.CONFIG["packages"][key]["security"])
     # This list needs to be sorted because it uses pathlib's rglob, which (currently) uses os.scandir, which is documented to yield entries in
     # arbitrary order https://docs.python.org/3/library/os.html#os.scandir
     general_test_dirs = [dir for dir in general_test_dir.rglob("*") if dir.is_dir()]
@@ -1336,9 +1335,7 @@ def run_unified_terraform_opentofu(*, image: str, user: str, base_command: str) 
     # Piggyback checking the checkov reports on the checkov complete file checks
     files.append(str(checkov_output_file))
     LOG.debug(f"Testing non-interactive {base_command} commands")
-    number_of_security_tools = len(
-        constants.CONFIG["packages"][base_command]["security"]
-    )
+    number_of_security_tools = len(constants.CONFIG["packages"][key]["security"])
     expected_number_of_logs = number_of_security_tools
 
     # Check the container
