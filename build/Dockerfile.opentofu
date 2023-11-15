@@ -1,15 +1,16 @@
 ARG EASY_INFRA_TAG
 
-FROM seiso/easy_infra_base:"${EASY_INFRA_TAG}" AS terraform
+FROM seiso/easy_infra_base:"${EASY_INFRA_TAG}" AS opentofu
 
 ARG BUILDARCH
-ARG TERRAFORM_VERSION
-ENV TERRAFORM_VERSION="${TERRAFORM_VERSION}"
+ARG OPENTOFU_VERSION
+ENV OPENTOFU_VERSION="${OPENTOFU_VERSION}"
 ARG TERRATAG_VERSION
 ENV TERRATAG_VERSION="${TERRATAG_VERSION}"
-ARG TFENV_VERSION
+# TODO: Remove ARG default when opentofu support is merged into tfenv
+ARG TFENV_VERSION="add-opentofu-support"
 ENV TFENV_VERSION="${TFENV_VERSION}"
-ENV TFENV_ENGINE="terraform"
+ENV TFENV_ENGINE="tofu"
 ARG DEBIAN_FRONTEND="noninteractive"
 
 COPY --chown=easy_infra:easy_infra .terraformrc /home/easy_infra/
@@ -33,8 +34,8 @@ RUN curl -L https://github.com/env0/terratag/releases/download/${TERRATAG_VERSIO
  && mkdir -p /home/easy_infra/.terraform.d/plugin-cache \
  && mkdir -p /home/easy_infra/.local/bin/ \
  && ln -s /home/easy_infra/.tfenv/bin/* /home/easy_infra/.local/bin \
- && su - easy_infra -c "TFENV_ENGINE=${TFENV_ENGINE} tfenv install ${TERRAFORM_VERSION}" \
- && su - easy_infra -c "TFENV_ENGINE=${TFENV_ENGINE} tfenv use ${TERRAFORM_VERSION}" \
- && command terraform -install-autocomplete \
+ && su - easy_infra -c "TFENV_ENGINE=${TFENV_ENGINE} tfenv install ${OPENTOFU_VERSION}" \
+ && su - easy_infra -c "TFENV_ENGINE=${TFENV_ENGINE} tfenv use ${OPENTOFU_VERSION}" \
+ && command tofu -install-autocomplete \
  && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/cache/debconf/*-old
 USER easy_infra
