@@ -27,9 +27,8 @@ _anchors:
         CHECKOV_SKIP_CVE_PACKAGE: --skip-cve-package
         CHECKOV_SOFT_FAIL_ON: --soft-fail-on
         CHECKOV_VAR_FILE: --var-file
-      command: >-
-        checkov -d . --download-external-modules True --framework terraform --skip-download
-        --output cli --output json --output-file-path console,${CHECKOV_JSON_REPORT_PATH}/checkov.json
+      command: checkov -d . --download-external-modules True --framework terraform
+        --skip-download --output cli --output json --output-file-path console,${CHECKOV_JSON_REPORT_PATH}/checkov.json
       description: directory scan
       env_customizations: &id002
         CHECKOV_LOG_LEVEL: LOG_LEVEL
@@ -50,8 +49,7 @@ packages:
         arg_customizations:
           KICS_EXCLUDE_SEVERITIES: --exclude-severities
           KICS_INCLUDE_QUERIES: --include-queries
-        command: >-
-          kics scan --type Ansible --no-progress --queries-path ${KICS_QUERIES_PATH}
+        command: kics scan --type Ansible --no-progress --queries-path ${KICS_QUERIES_PATH}
           --libraries-path ${KICS_LIBRARIES_PATH} --report-formats json --output-path
           ${KICS_JSON_REPORT_PATH} --output-name kics --path .
         description: directory scan
@@ -66,24 +64,23 @@ packages:
     security:
       checkov:
         arg_customizations: *id001
-        command: >-
-          checkov -d . --framework cloudformation --skip-download --output cli
-          --output json --output-file-path console,${CHECKOV_JSON_REPORT_PATH}/checkov.json
+        command: checkov -d . --framework cloudformation --skip-download --output
+          cli --output json --output-file-path console,${CHECKOV_JSON_REPORT_PATH}/checkov.json
         description: directory scan
         env_customizations: *id002
     tool:
       environments:
       - none
       name: cloudformation
-    version: 2.13.34
+    version: 2.13.36
     version_argument: --version
   azure-cli:
     aliases:
     - az
-    version: 2.53.1-1~jammy
+    version: 2.54.0-1~jammy
     version_argument: version
   checkov:
-    version: 3.0.34
+    version: 3.0.37
     version_argument: --version
   consul-template:
     helper:
@@ -101,6 +98,7 @@ packages:
     version: v2.2.0
     version_argument: --version
   git:
+    allow_update: False
     helper:
     - all
     version: v2.42.0
@@ -124,7 +122,7 @@ packages:
       env_vars:
       - TF_DATA_DIR
     security: *id004
-    version: 1.6.3
+    version: 1.6.4
     version_argument: version
   terratag:
     helper:
@@ -135,6 +133,7 @@ packages:
     allow_filter:
     - match: exec
       position: 0
+    allow_update: False
     file_extensions: *id003
     helper:
     - terraform
@@ -143,6 +142,5 @@ packages:
       env_vars:
       - TF_DATA_DIR
     security: *id004
-    # TODO: Revert after merge
     version: add-opentofu-support
     version_argument: --version
