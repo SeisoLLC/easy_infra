@@ -5,8 +5,9 @@ FROM checkmarx/kics:"${KICS_VERSION}-debian" AS kics
 ARG KICS_VERSION
 ENV KICS_VERSION="${KICS_VERSION}"
 ENV SKIP_KICS="false"
-ENV KICS_INCLUDE_QUERIES_PATH="/home/easy_infra/.kics/assets/queries"
-ENV KICS_LIBRARY_PATH="/home/easy_infra/.kics/assets/libraries"
+ENV KICS_QUERIES_PATH="/home/easy_infra/.kics/assets/queries"
+ENV KICS_LIBRARIES_PATH="/home/easy_infra/.kics/assets/libraries"
+#ENV KICS_EXPERIMENTAL_QUERIES="/home/easy_infra/.kics/assets/utils/"
 ENV KICS_JSON_REPORT_PATH="/tmp/reports/kics"
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]

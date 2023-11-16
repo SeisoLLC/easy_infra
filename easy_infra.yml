@@ -27,8 +27,9 @@ _anchors:
         CHECKOV_SKIP_CVE_PACKAGE: --skip-cve-package
         CHECKOV_SOFT_FAIL_ON: --soft-fail-on
         CHECKOV_VAR_FILE: --var-file
-      command: checkov -d . --download-external-modules True --framework terraform
-        --skip-download --output cli --output json --output-file-path console,${CHECKOV_JSON_REPORT_PATH}/checkov.json
+      command: >-
+        checkov -d . --download-external-modules True --framework terraform --skip-download
+        --output cli --output json --output-file-path console,${CHECKOV_JSON_REPORT_PATH}/checkov.json
       description: directory scan
       env_customizations: &id002
         CHECKOV_LOG_LEVEL: LOG_LEVEL
@@ -49,8 +50,9 @@ packages:
         arg_customizations:
           KICS_EXCLUDE_SEVERITIES: --exclude-severities
           KICS_INCLUDE_QUERIES: --include-queries
-        command: kics scan --type Ansible --no-progress --queries-path ${KICS_INCLUDE_QUERIES_PATH}
-          --libraries-path ${KICS_LIBRARY_PATH} --report-formats json --output-path
+        command: >-
+          kics scan --type Ansible --no-progress --queries-path ${KICS_QUERIES_PATH}
+          --libraries-path ${KICS_LIBRARIES_PATH} --report-formats json --output-path
           ${KICS_JSON_REPORT_PATH} --output-name kics --path .
         description: directory scan
     version: 2.10.7+merged+base+2.10.8+dfsg-1
@@ -64,8 +66,9 @@ packages:
     security:
       checkov:
         arg_customizations: *id001
-        command: checkov -d . --framework cloudformation --skip-download --output
-          cli --output json --output-file-path console,${CHECKOV_JSON_REPORT_PATH}/checkov.json
+        command: >-
+          checkov -d . --framework cloudformation --skip-download --output cli
+          --output json --output-file-path console,${CHECKOV_JSON_REPORT_PATH}/checkov.json
         description: directory scan
         env_customizations: *id002
     tool:
@@ -105,6 +108,16 @@ packages:
   kics:
     version: v1.7.11
     version_argument: version
+  opentofu:
+    aliases:
+    - tofu
+    file_extensions: *id003
+    monitor:
+      env_vars:
+      - TF_DATA_DIR
+    security: *id004
+    version: v1.6.0-alpha5
+    version_argument: version
   terraform:
     file_extensions: *id003
     monitor:
@@ -116,6 +129,7 @@ packages:
   terratag:
     helper:
     - terraform
+    - opentofu
     version: v0.2.4
   tfenv:
     allow_filter:
@@ -124,9 +138,11 @@ packages:
     file_extensions: *id003
     helper:
     - terraform
+    - opentofu
     monitor:
       env_vars:
       - TF_DATA_DIR
     security: *id004
-    version: v3.0.0
+    # TODO: Revert after merge
+    version: add-opentofu-support
     version_argument: --version
