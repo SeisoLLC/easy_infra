@@ -723,7 +723,9 @@ def run_cloudformation(*, image: str, user: str, mount_local_files: bool) -> Non
     LOG.info(f"{image} passed {num_tests_ran} end to end cloudformation tests")
 
 
-def run_unified_terraform_opentofu(*, image: str, user: str, base_command: str, mount_local_files: bool) -> None:
+def run_unified_terraform_opentofu(
+    *, image: str, user: str, base_command: str, mount_local_files: bool
+) -> None:
     """Run the unified terraform and opentofu tests"""
     key = base_command if base_command == "terraform" else "opentofu"
     num_tests_ran: int = 0
@@ -763,16 +765,6 @@ def run_unified_terraform_opentofu(*, image: str, user: str, base_command: str, 
         general_test_dir: {"bind": working_dir, "mode": "rw"}
     }
     volumes.append(general_test_volumes)
-    hooks_config_dir: Path = terraform_test_dir.joinpath("hooks")
-    hooks_config_volumes: dict[Path, dict[str, str]] = {
-        hooks_config_dir: {"bind": working_dir, "mode": "rw"}
-    }
-    volumes.append(hooks_config_volumes)
-    hooks_script_dir: Path = TESTS_PATH.joinpath("test-hooks")
-    hooks_script_volumes: dict[Path, dict[str, str]] = {
-        hooks_script_dir: {"bind": "/opt/hooks/bin/", "mode": "ro"}
-    }
-    volumes.append(hooks_script_volumes)
     fluent_bit_config_host: Path = TESTS_PATH.joinpath("fluent-bit.outputs.conf")
     fluent_bit_config_container: str = (
         "/usr/local/etc/fluent-bit/fluent-bit.outputs.conf"
@@ -1244,14 +1236,21 @@ def run_unified_terraform_opentofu(*, image: str, user: str, base_command: str, 
 
 def run_opentofu(*, image: str, user: str, mount_local_files: bool) -> None:
     """Run the opentofu tests"""
-    run_unified_terraform_opentofu(image=image, user=user, base_command="tofu", mount_local_files=mount_local_files)
+    run_unified_terraform_opentofu(
+        image=image, user=user, base_command="tofu", mount_local_files=mount_local_files
+    )
 
 
 def run_terraform(*, image: str, user: str, mount_local_files: bool) -> None:
     """Run the terraform tests"""
     base_command = "terraform"
     uppercase_base_command = base_command.upper()
-    run_unified_terraform_opentofu(image=image, user=user, base_command=base_command, mount_local_files=mount_local_files)
+    run_unified_terraform_opentofu(
+        image=image,
+        user=user,
+        base_command=base_command,
+        mount_local_files=mount_local_files,
+    )
 
     num_tests_ran: int = 0
     volumes: list[dict[Path, dict[str, str]]] = []
@@ -1281,7 +1280,7 @@ def run_terraform(*, image: str, user: str, mount_local_files: bool) -> None:
         hooks_secure_terraform_v_0_14_dir: {"bind": working_dir, "mode": "rw"}
     }
     volumes.append(hooks_secure_terraform_v_0_14_dir_volumes)
-    
+
     if mount_local_files:
         functions_dir = CWD.joinpath("build").joinpath("functions.sh")
         common_dir = CWD.joinpath("build").joinpath("common.sh")
