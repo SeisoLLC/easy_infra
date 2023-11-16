@@ -101,7 +101,7 @@ packages:
     allow_update: False
     helper:
     - all
-    version: v2.43.0-rc2
+    version: v2.42.0
     version_argument: --version
   kics:
     version: v1.7.11
