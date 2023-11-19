@@ -66,23 +66,35 @@ This will add additional troubleshooting tools to the container, and perform som
 
 ### Running the tests
 
-If you are attempting to run the tests locally, consider running the following to ensure that the user from inside the container can write to the host:
+If you are attempting to run the tests, consider running the following to ensure that the user from inside the container can write to the host:
 
 ```bash
 find tests -mindepth 1 -type d -exec chmod o+w {} \;
 ```
 
-You can now run the tests locally:
+You can now run the tests:
 
 ```bash
 task test
 ```
 
-You can pass in the `--tool`, `--environment`, and `--user` arguments to test a specific subset of functionality. See the build step to see the `tool` and
-`environment` possible inputs.
+If you are troubleshooting a specific image, you can pass a cli arg of the tag, i.e. `2023.11.01-ansible` which runs the specified image tag and mounts common
+files that change during troubleshooting, as well as an unfiltered rendering of `functions.j2`, at test time. This assumes that the related image tag has
+already been built and is available to the docker daemon (either by pulling it from docker hub, or locally).
 
-To see the list of supported users, run the following command. If you don't specify a user, `test` will assume that you want to test with all of the supported
-users.
+```bash
+task test -- 2023.11.01-ansible-d7b1663
+```
+
+You can also pass in any combination of a specific tool, environment, and/or user.
+
+```bash
+TOOL=ansible ENVIRONMENT=none USER=easy_infra task test
+```
+
+See the build documentation to see the `tool` and `environment` possible inputs. To see the list of supported users, run the following command. If you don't
+specify a user, `test` will assume that you want to test with all of the supported users. Note that if you don't specify a user but see a "X is not a supported
+user, exiting..." error, it is because the `$USER` variable in your shell is being implicitly passed into `task`.
 
 ```bash
 pipenv run python3 -c \

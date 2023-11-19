@@ -1,5 +1,5 @@
 # Ignore generated files
-functions
+functions.sh
 build/Dockerfile
 .task/*
 

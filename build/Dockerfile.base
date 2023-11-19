@@ -115,8 +115,8 @@ RUN groupadd --gid 53150 -r easy_infra \
                       libexpat1-dev \
                       make \
                       gcc \
- && echo "source /functions" >> /home/easy_infra/.bashrc \
- && echo "source /functions" >> /root/.bashrc \
+ && echo "source /functions.sh" >> /home/easy_infra/.bashrc \
+ && echo "source /functions.sh" >> /root/.bashrc \
  && apt-get clean autoclean \
  && apt-get -y autoremove \
  # Must be after the autoremove for fluent-bit to work
@@ -134,7 +134,7 @@ RUN groupadd --gid 53150 -r easy_infra \
  && chown -R easy_infra: /var/log/*.log /iac
 USER easy_infra
 
-COPY --chown=easy_infra:easy_infra functions /functions
+COPY --chown=easy_infra:easy_infra functions.sh /functions.sh
 COPY --chown=easy_infra:easy_infra docker-entrypoint.sh /usr/local/bin/
 COPY --chown=easy_infra:easy_infra common.sh /usr/local/bin/
 COPY --chown=easy_infra:easy_infra hooks /opt/hooks/bin/
@@ -142,7 +142,7 @@ COPY --chown=easy_infra:easy_infra fluent-bit.conf /usr/local/etc/fluent-bit/flu
 COPY --chown=easy_infra:easy_infra fluent-bit.inputs.conf /usr/local/etc/fluent-bit/fluent-bit.inputs.conf
 COPY --chown=easy_infra:easy_infra fluent-bit.outputs.conf /usr/local/etc/fluent-bit/fluent-bit.outputs.conf
 
-ENV BASH_ENV=/functions
+ENV BASH_ENV=/functions.sh
 WORKDIR /iac
 ENTRYPOINT ["tini", "-g", "--", "/usr/local/bin/docker-entrypoint.sh"]
 
