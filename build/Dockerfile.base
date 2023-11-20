@@ -19,8 +19,6 @@ ARG EASY_INFRA_TAG
 ENV EASY_INFRA_TAG="${EASY_INFRA_TAG}"
 ARG EASY_INFRA_VERSION
 ENV EASY_INFRA_VERSION="${EASY_INFRA_VERSION}"
-ARG GIT_VERSION
-ENV GIT_VERSION="${GIT_VERSION}"
 ARG FLUENT_BIT_VERSION
 ENV FLUENT_BIT_VERSION="${FLUENT_BIT_VERSION}"
 ARG CONSUL_TEMPLATE_VERSION
@@ -82,23 +80,17 @@ RUN groupadd --gid 53150 -r easy_infra \
  && chmod 0755 /usr/local/bin/envconsul \
  && apt-get remove -y unzip \
  && apt-get install -y --no-install-recommends cmake \
+                                               bison \
                                                build-essential \
                                                flex \
-                                               bison \
-                                               libyaml-dev \
-                                               libz-dev \
-                                               libssl-dev \
+                                               gcc \
+                                               git \
                                                libcurl4-gnutls-dev \
                                                libexpat1-dev \
+                                               libssl-dev \
+                                               libyaml-dev \
+                                               libz-dev \
                                                make \
-                                               gcc \
- # Build a new version of the git binary to support loading environment variables to designate safe directories
- # The minimum required version to support this method is 2.38.0 as per https://github.com/git/git/commit/6061601d9f1f1c95da5f9304c319218f7cc3ec75
- && mkdir /tmp/git \
- && curl -L https://mirrors.edge.kernel.org/pub/software/scm/git/git-${GIT_VERSION#v}.tar.gz -o /tmp/git.tar.gz \
- && tar -zxf /tmp/git.tar.gz -C /tmp/git --strip-components=1 \
- && cd /tmp/git \
- && make prefix=/usr/local install \
  && cd /tmp \
  && git clone https://github.com/fluent/fluent-bit --depth 1 --branch ${FLUENT_BIT_VERSION} \
  && cd fluent-bit/build \

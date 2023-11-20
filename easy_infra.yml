@@ -97,12 +97,6 @@ packages:
     - all
     version: v2.2.0
     version_argument: --version
-  git:
-    allow_update: False
-    helper:
-    - all
-    version: v2.42.0
-    version_argument: --version
   kics:
     version: v1.7.11
     version_argument: version
