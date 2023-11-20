@@ -86,14 +86,13 @@ def get_latest_release_from_apt(*, package: str) -> str:
     # Needs to be an image with all the apt sources
     image = "seiso/easy_infra:latest-terraform-azure"
     CLIENT.images.pull(repository=image)
+    command = f"/bin/bash -c \"apt-get update &>/dev/null && apt-cache policy {package} | grep '^  Candidate:' | awk -F' ' '{{print $NF}}'\""
     release = CLIENT.containers.run(
         image=image,
         auto_remove=True,
         detach=False,
         user=0,
-        command='/bin/bash -c "apt-get update &>/dev/null && apt-cache policy '
-        + package
-        + " | grep '^  Candidate:' | awk -F' ' '{print $NF}'\"",
+        command=command,
     )
     return release
 
