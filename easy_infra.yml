@@ -53,7 +53,7 @@ packages:
           --libraries-path ${KICS_LIBRARIES_PATH} --report-formats json --output-path
           ${KICS_JSON_REPORT_PATH} --output-name kics --path .
         description: directory scan
-    version: 2.10.7+merged+base+2.10.8+dfsg-1
+    version: 7.7.0+dfsg-1
     version_argument: --version
   aws-cli:
     aliases:
@@ -72,7 +72,7 @@ packages:
       environments:
       - none
       name: cloudformation
-    version: 2.13.36
+    version: 2.13.37
     version_argument: --version
   azure-cli:
     aliases:
@@ -80,7 +80,7 @@ packages:
     version: 2.54.0-1~jammy
     version_argument: version
   checkov:
-    version: 3.0.37
+    version: 3.1.4
     version_argument: --version
   consul-template:
     helper:
@@ -96,12 +96,6 @@ packages:
     helper:
     - all
     version: v2.2.0
-    version_argument: --version
-  git:
-    allow_update: False
-    helper:
-    - all
-    version: v2.42.0
     version_argument: --version
   kics:
     version: v1.7.11
@@ -128,12 +122,12 @@ packages:
     helper:
     - terraform
     - opentofu
-    version: v0.2.4
+    version: v0.2.5
   tfenv:
     allow_filter:
     - match: exec
       position: 0
-    allow_update: False
+    allow_update: false
     file_extensions: *id003
     helper:
     - terraform

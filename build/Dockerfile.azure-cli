@@ -11,7 +11,7 @@ USER root
 # hadolint ignore=DL3008
 RUN apt-get update \
  #####
- # Per Microsoft recommendation at 
+ # Per Microsoft recommendation at
  # https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-linux?pivots=apt#option-2-step-by-step-installation-instructions
  && apt-get autoremove -y \
  #####
@@ -24,8 +24,12 @@ RUN apt-get update \
  && mkdir -p /etc/apt/keyrings \
  && curl -sLS https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor | tee /etc/apt/keyrings/microsoft.gpg > /dev/null \
  && chmod go+r /etc/apt/keyrings/microsoft.gpg \
- && AZ_REPO=$(lsb_release -cs) \
- && echo "deb [arch=`dpkg --print-architecture` signed-by=/etc/apt/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/azure-cli/ $AZ_REPO main" | \
+ # FIXME: This is disgusting, but somewhat aligns with https://azurecliprod.blob.core.windows.net/$root/deb_install.sh as of 2023-11-20
+ # I added logic to use the current release when it's supported in the future, but it still drops back to jammy. ew.
+ && UBUNTU_RELEASE=$(lsb_release -cs) \
+ && AZURE_SUPPORTED_DISTS="$(curl --silent https://packages.microsoft.com/repos/azure-cli/dists/ | grep -v '\.\.' | grep -o 'href=".*">' | sed 's/href="//;s/\/">//')" \
+ && if grep -q "^${UBUNTU_RELEASE}$" <<< "${AZURE_SUPPORTED_DISTS}"; then CLI_REPO="${UBUNTU_RELEASE}"; else CLI_REPO="jammy"; fi \
+ && echo "deb [arch=`dpkg --print-architecture` signed-by=/etc/apt/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/azure-cli/ $CLI_REPO main" | \
     tee /etc/apt/sources.list.d/azure-cli.list
 RUN apt-get update \
  && apt-get -y install --no-install-recommends azure-cli=${AZURE_CLI_VERSION} \
