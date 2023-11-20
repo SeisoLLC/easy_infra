@@ -53,7 +53,7 @@ packages:
           --libraries-path ${KICS_LIBRARIES_PATH} --report-formats json --output-path
           ${KICS_JSON_REPORT_PATH} --output-name kics --path .
         description: directory scan
-    version: 2.10.7+merged+base+2.10.8+dfsg-1
+    version: 7.7.0+dfsg-1
     version_argument: --version
   aws-cli:
     aliases:
