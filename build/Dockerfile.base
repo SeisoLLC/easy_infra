@@ -33,6 +33,8 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 # hadolint ignore=DL3003,DL3008,DL3013,SC1091
 RUN groupadd --gid 53150 -r easy_infra \
  && useradd -r -g easy_infra -s "$(which bash)" --create-home --uid 53150 easy_infra \
+ # Cleanup pre-created ubuntu home directory
+ && rm -rf /home/ubuntu \
  && apt-get update \
  && apt-get -y install --no-install-recommends bsdmainutils \
                                                ca-certificates \
