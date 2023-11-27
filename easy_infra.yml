@@ -49,11 +49,11 @@ packages:
         arg_customizations:
           KICS_EXCLUDE_SEVERITIES: --exclude-severities
           KICS_INCLUDE_QUERIES: --include-queries
-        command: kics scan --type Ansible --no-progress --queries-path ${KICS_INCLUDE_QUERIES_PATH}
-          --libraries-path ${KICS_LIBRARY_PATH} --report-formats json --output-path
+        command: kics scan --type Ansible --no-progress --queries-path ${KICS_QUERIES_PATH}
+          --libraries-path ${KICS_LIBRARIES_PATH} --report-formats json --output-path
           ${KICS_JSON_REPORT_PATH} --output-name kics --path .
         description: directory scan
-    version: 2.10.7+merged+base+2.10.8+dfsg-1
+    version: 7.7.0+dfsg-1
     version_argument: --version
   aws-cli:
     aliases:
@@ -72,20 +72,20 @@ packages:
       environments:
       - none
       name: cloudformation
-    version: 2.13.22
+    version: 2.13.37
     version_argument: --version
   azure-cli:
     aliases:
     - az
-    version: 2.53.0-1~jammy
+    version: 2.54.0-1~jammy
     version_argument: version
   checkov:
-    version: 2.4.58
+    version: 3.1.4
     version_argument: --version
   consul-template:
     helper:
     - all
-    version: v0.33.0
+    version: v0.35.0
     version_argument: --version
   envconsul:
     helper:
@@ -95,15 +95,20 @@ packages:
   fluent-bit:
     helper:
     - all
-    version: v2.1.10
-    version_argument: --version
-  git:
-    helper:
-    - all
-    version: v2.42.0
+    version: v2.2.0
     version_argument: --version
   kics:
-    version: v1.7.8
+    version: v1.7.11
+    version_argument: version
+  opentofu:
+    aliases:
+    - tofu
+    file_extensions: *id003
+    monitor:
+      env_vars:
+      - TF_DATA_DIR
+    security: *id004
+    version: v1.6.0-alpha5
     version_argument: version
   terraform:
     file_extensions: *id003
@@ -111,22 +116,25 @@ packages:
       env_vars:
       - TF_DATA_DIR
     security: *id004
-    version: 1.5.7
+    version: 1.6.4
     version_argument: version
   terratag:
     helper:
     - terraform
-    version: v0.2.3
+    - opentofu
+    version: v0.2.5
   tfenv:
     allow_filter:
     - match: exec
       position: 0
+    allow_update: false
     file_extensions: *id003
     helper:
     - terraform
+    - opentofu
     monitor:
       env_vars:
       - TF_DATA_DIR
     security: *id004
-    version: v3.0.0
+    version: add-opentofu-support
     version_argument: --version

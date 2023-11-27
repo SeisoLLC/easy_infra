@@ -86,14 +86,13 @@ def get_latest_release_from_apt(*, package: str) -> str:
     # Needs to be an image with all the apt sources
     image = "seiso/easy_infra:latest-terraform-azure"
     CLIENT.images.pull(repository=image)
+    command = f"/bin/bash -c \"apt-get update &>/dev/null && apt-cache policy {package} | grep '^  Candidate:' | awk -F' ' '{{print $NF}}'\""
     release = CLIENT.containers.run(
         image=image,
         auto_remove=True,
         detach=False,
         user=0,
-        command='/bin/bash -c "apt-get update &>/dev/null && apt-cache policy '
-        + package
-        + " | grep '^  Candidate:' | awk -F' ' '{print $NF}'\"",
+        command=command,
     )
     return release
 
@@ -126,6 +125,60 @@ def get_latest_release_from_hashicorp(*, project: str) -> str:
     return response["current_version"]
 
 
+def get_latest_ubuntu_release() -> str:
+    """Get the latest DISTRIB_RELEASE from Ubuntu"""
+    # The ubuntu:rolling tag points to the latest release (regardless of LTS status)
+    image = "ubuntu:rolling"
+    command = (
+        "/bin/bash -c \"grep DISTRIB_RELEASE /etc/lsb-release | awk -F= '{print $2}'\""
+    )
+
+    # Ensure we have the latest "rolling"
+    CLIENT.images.pull(image)
+    container = CLIENT.containers.run(
+        command=command,
+        image=image,
+        stdout=True,
+        stderr=True,
+    )
+
+    output = container.decode("utf-8").strip()
+
+    # Assume the output is a properly formatted Ubuntu release; tests will fail if this isn't true
+    version = output
+
+    return version
+
+
+def update_base_parent_image(
+    *,
+    tag: str,
+    file_object: Path = constants.DOCKERFILE_INPUT_FILE,
+) -> None:
+    """Update the Dockerfile.base parent image"""
+    pattern = re.compile(r"^ARG.+FROM_IMAGE_TAG=.+$\n")
+    final_content = []
+
+    # Validate
+    if not file_object.is_file():
+        LOG.error("%s is not a valid file", str(file_object))
+        sys.exit(1)
+
+    # Extract
+    with open(file_object) as file:
+        file_contents = file.readlines()
+
+    # Transform
+    for line in file_contents:
+        if pattern.fullmatch(line):
+            line = f"ARG FROM_IMAGE_TAG={tag}\n"
+        final_content.append(line)
+
+    # Load
+    with open(file_object, "w") as file:
+        file.writelines(final_content)
+
+
 def opinionated_docker_run(
     *,
     command: str,
@@ -140,7 +193,7 @@ def opinionated_docker_run(
     expected_exit: int = 0,
     check_logs: Pattern[str] | None = None,
     network_mode: str | None = None,
-):
+) -> None:
     """Perform an opinionated docker run"""
     if auto_remove and check_logs:
         LOG.error(f"auto_remove cannot be {auto_remove} when check_logs is specified")
@@ -460,6 +513,9 @@ def update(debug=False) -> None:
     """Update the core components of easy_infra"""
     if debug:
         getLogger().setLevel("DEBUG")
+
+    base_image_tag = get_latest_ubuntu_release()
+    update_base_parent_image(tag=base_image_tag)
 
     for package in constants.APT_PACKAGES:
         version = get_latest_release_from_apt(package=package)
@@ -1033,7 +1089,13 @@ def sbom(tool="all", environment="all", debug=False) -> None:
             sys.exit(1)
 
 
-def test(tool="all", environment="all", user="all", debug=False) -> None:
+def test(
+    tool: str = "all",
+    environment: str = "all",
+    user: str = "all",
+    debug: bool = False,
+    tag: str = "",
+) -> None:
     """Test easy_infra"""
     if debug:
         getLogger().setLevel("DEBUG")
@@ -1043,11 +1105,16 @@ def test(tool="all", environment="all", user="all", debug=False) -> None:
     )
     users: list[str] = gather_users(user=user)
 
-    tags: list[str] = get_tags(
-        tools_to_environments=tools_to_environments,
-        environment=environment,
-        only_versioned=True,
-    )
+    if tag:
+        tags = [tag]
+        mount_local_files = True
+    else:
+        tags: list[str] = get_tags(
+            tools_to_environments=tools_to_environments,
+            environment=environment,
+            only_versioned=True,
+        )
+        mount_local_files = False
 
     image_and_versioned_tags: list[str] = []
 
@@ -1066,6 +1133,7 @@ def test(tool="all", environment="all", user="all", debug=False) -> None:
                 tool=tool,
                 environment=environment,
                 user=user,
+                mount_local_files=mount_local_files,
             )
 
 

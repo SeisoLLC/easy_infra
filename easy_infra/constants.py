@@ -14,7 +14,7 @@ from easy_infra import __project_name__, __version__, config
 CWD = Path(".").absolute()
 BUILD = CWD.joinpath("build")
 FUNCTIONS_INPUT_FILE = BUILD.joinpath("functions.j2")
-FUNCTIONS_OUTPUT_FILE = BUILD.joinpath(FUNCTIONS_INPUT_FILE.stem)
+FUNCTIONS_OUTPUT_FILE = BUILD.joinpath(FUNCTIONS_INPUT_FILE.with_suffix(".sh"))
 DOCKERFILE_INPUT_FILE = BUILD.joinpath("Dockerfile.j2")
 DOCKERFILE_OUTPUT_FILE = BUILD.joinpath("Dockerfile")
 
@@ -67,7 +67,7 @@ GITHUB_REPOS_RELEASES = {
     "hashicorp/envconsul",
     "tfutils/tfenv",
 }
-GITHUB_REPOS_TAGS = {"aws/aws-cli", "git/git"}
+GITHUB_REPOS_TAGS = {"aws/aws-cli"}
 PYTHON_PACKAGES = {"checkov"}
 HASHICORP_PROJECTS = {"terraform"}
 
