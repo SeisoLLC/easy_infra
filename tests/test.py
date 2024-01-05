@@ -728,6 +728,7 @@ def run_unified_terraform_opentofu(
 ) -> None:
     """Run the unified terraform and opentofu tests"""
     key = base_command if base_command == "terraform" else "opentofu"
+    package_manager = "tfenv" if base_command == "terraform" else "tofuenv"
     num_tests_ran: int = 0
     working_dir: str = "/iac/"
     environment: dict[str, str] = {"TF_DATA_DIR": "/tmp"}
@@ -1018,7 +1019,7 @@ def run_unified_terraform_opentofu(
     # Tests is a list of tuples containing the test environment, command, and expected exit code
     tests: list[tuple[dict, str, int]] = [  # type: ignore
         ({}, f"{base_command} init", 0),
-        ({}, "tfenv exec init", 0),
+        ({}, f"{package_manager} exec init", 0),
         (
             {},
             f'/usr/bin/env bash -c "{base_command} init && false"',
@@ -1026,7 +1027,7 @@ def run_unified_terraform_opentofu(
         ),
         (
             {},
-            '/usr/bin/env bash -c "tfenv exec init && false"',
+            f'/usr/bin/env bash -c "{package_manager} exec init && false"',
             1,
         ),
     ]
@@ -1040,9 +1041,9 @@ def run_unified_terraform_opentofu(
     # Tests is a list of tuples containing the test environment, command, and expected exit code
     tests: list[tuple[dict, str, int]] = [  # type: ignore
         ({}, f"{base_command} init", 0),
-        ({}, "tfenv exec init", 0),
+        ({}, f"{package_manager} exec init", 0),
         ({}, f"scan_{base_command}", 0),
-        ({}, "scan_tfenv", 0),
+        ({}, f"scan_{package_manager}", 0),
         (
             {},
             f'/bin/bash -c "{base_command} init && {base_command} validate && echo no | {base_command} apply"',
@@ -1080,7 +1081,7 @@ def run_unified_terraform_opentofu(
     # Tests is a list of tuples containing the test environment, command, and expected exit code
     tests: list[tuple[dict, str, int]] = [  # type: ignore
         ({"DISABLE_SECURITY": "true"}, f"{base_command} init", 0),
-        ({"DISABLE_SECURITY": "true"}, "tfenv exec init", 0),
+        ({"DISABLE_SECURITY": "true"}, f"{package_manager} exec init", 0),
         ({"DISABLE_SECURITY": "true"}, f"scan_{base_command}", 0),
         ({}, f'/usr/bin/env bash -c "DISABLE_SECURITY=true {base_command} init"', 0),
         (
@@ -1128,7 +1129,7 @@ def run_unified_terraform_opentofu(
     # Tests is a list of tuples containing the test environment, command, and expected exit code
     tests: list[tuple[dict, str, int]] = [  # type: ignore
         ({}, f"{base_command} init", 1),
-        ({}, "tfenv exec plan", 1),
+        ({}, f"{package_manager} exec plan", 1),
         ({}, f"scan_{base_command}", 1),
         (
             {},
