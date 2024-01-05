@@ -66,6 +66,7 @@ GITHUB_REPOS_RELEASES = {
     "hashicorp/consul-template",
     "hashicorp/envconsul",
     "tfutils/tfenv",
+    "tofuutils/tofuenv",
 }
 GITHUB_REPOS_TAGS = {"aws/aws-cli"}
 PYTHON_PACKAGES = {"checkov"}

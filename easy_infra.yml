@@ -127,14 +127,25 @@ packages:
     allow_filter:
     - match: exec
       position: 0
-    allow_update: false
     file_extensions: *id003
     helper:
     - terraform
+    monitor:
+      env_vars:
+      - TF_DATA_DIR
+    security: *id004
+    version: v3.0.0
+    version_argument: --version
+  tofuenv:
+    allow_filter:
+    - match: exec
+      position: 0
+    file_extensions: *id003
+    helper:
     - opentofu
     monitor:
       env_vars:
       - TF_DATA_DIR
     security: *id004
-    version: add-opentofu-support
+    version: v1.0.3
     version_argument: --version

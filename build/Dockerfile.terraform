@@ -9,7 +9,6 @@ ARG TERRATAG_VERSION
 ENV TERRATAG_VERSION="${TERRATAG_VERSION}"
 ARG TFENV_VERSION
 ENV TFENV_VERSION="${TFENV_VERSION}"
-ENV TFENV_ENGINE="terraform"
 ARG DEBIAN_FRONTEND="noninteractive"
 
 COPY --chown=easy_infra:easy_infra .terraformrc /home/easy_infra/
@@ -26,15 +25,14 @@ RUN curl -L https://github.com/env0/terratag/releases/download/${TERRATAG_VERSIO
  && rm -f /usr/local/bin/terratag.tar.gz \
  && chmod 0755 /usr/local/bin/terratag \
  && chown root: /usr/local/bin/terratag \
- # TODO: Replace opentofu with tfenv this after it gets merged into tfenv
- && su easy_infra -c "git clone https://github.com/opentofu/tfenv.git /home/easy_infra/.tfenv --depth 1 --branch ${TFENV_VERSION}" \
+ && su easy_infra -c "git clone https://github.com/tfutils/tfenv.git /home/easy_infra/.tfenv --depth 1 --branch ${TFENV_VERSION}" \
  && rm -rf /home/easy_infra/.tfenv/.git \
  && su easy_infra -c "mkdir -p /home/easy_infra/.terraform.d/plugin-cache" \
  && mkdir -p /home/easy_infra/.terraform.d/plugin-cache \
  && mkdir -p /home/easy_infra/.local/bin/ \
  && ln -s /home/easy_infra/.tfenv/bin/* /home/easy_infra/.local/bin \
- && su - easy_infra -c "TFENV_ENGINE=${TFENV_ENGINE} tfenv install ${TERRAFORM_VERSION}" \
- && su - easy_infra -c "TFENV_ENGINE=${TFENV_ENGINE} tfenv use ${TERRAFORM_VERSION}" \
+ && su - easy_infra -c "tfenv install ${TERRAFORM_VERSION}" \
+ && su - easy_infra -c "tfenv use ${TERRAFORM_VERSION}" \
  && command terraform -install-autocomplete \
  && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/cache/debconf/*-old
 USER easy_infra

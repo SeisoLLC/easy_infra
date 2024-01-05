@@ -6,7 +6,7 @@
 source /usr/local/bin/common.sh
 
 
-current_version=$(cat /home/easy_infra/.tfenv/version)
+current_version=$(cat /home/easy_infra/.tofuenv/version)
 output_log="/var/log/$(basename "${BASH_SOURCE[0]%%.sh}.log")"
 
 if [[ -z "${OPENTOFU_VERSION}" ]]; then
@@ -18,7 +18,7 @@ elif [[ "${OPENTOFU_VERSION}" == "${current_version}" ]]; then
 fi
 
 # OPENTOFU_VERSION is not the installed and active version; make it so
-tfenv install "${OPENTOFU_VERSION}" &>>"${output_log}"
+tofuenv install "${OPENTOFU_VERSION}" &>>"${output_log}"
 return=$?
 if [[ "${return}" != 0 ]]; then
   message="Unable to install OpenTofu ${OPENTOFU_VERSION}, continuing to use version ${current_version}..."
@@ -30,5 +30,5 @@ if [[ "${return}" != 0 ]]; then
 fi
 
 _feedback INFO "Switching OpenTofu version to ${OPENTOFU_VERSION} due to the provided OPENTOFU_VERSION environment variable..." | tee -a "${output_log}"
-tfenv use "${OPENTOFU_VERSION}" &>>"${output_log}"
+tofuenv use "${OPENTOFU_VERSION}" &>>"${output_log}"
 exit $?
