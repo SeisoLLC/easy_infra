@@ -25,7 +25,7 @@ RUN curl -L https://github.com/env0/terratag/releases/download/${TERRATAG_VERSIO
  && rm -f /usr/local/bin/terratag.tar.gz \
  && chmod 0755 /usr/local/bin/terratag \
  && chown root: /usr/local/bin/terratag \
- && su easy_infra -c "git clone https://github.com/tofuutils/tofuenv.git /home/easy_infra/.tofuenv --depth 1" \
+ && su easy_infra -c "git clone https://github.com/tofuutils/tofuenv.git /home/easy_infra/.tofuenv --depth 1 --branch ${TOFUENV_VERSION}" \
  && rm -rf /home/easy_infra/.tofuenv/.git \
  && su easy_infra -c "mkdir -p /home/easy_infra/.terraform.d/plugin-cache" \
  && mkdir -p /home/easy_infra/.terraform.d/plugin-cache \
