@@ -2,14 +2,13 @@
 BitBucket
 *********
 
-``easy_infra`` provides a BitBucket pipe for ``terraform``.
+``easy_infra`` can be used as a BitBucket pipe.
 
 Using the pipe
 --------------
 
 An example ``bitbucket-pipeline.yml`` is as follows::
 
-    #!/usr/bin/env bash
     ---
     image:
       name: atlassian/default-image:4
@@ -20,7 +19,7 @@ An example ``bitbucket-pipeline.yml`` is as follows::
         services:
           - docker
         script:
-          - pipe: seisollc/easy_infra:latest
+          - pipe: docker://seisollc/easy_infra:2024.01.01-terraform
 
     pipelines:
       default:
@@ -29,7 +28,7 @@ An example ``bitbucket-pipeline.yml`` is as follows::
 Configuring the pipe
 --------------------
 
-The pipe takes the following variables::
+The pipe accepts the following variables::
 
 +-----------------------+------------------------+------------------------------------------------------------+
 | Variable              | Default                | Result                                                     |
@@ -40,3 +39,22 @@ The pipe takes the following variables::
 +-----------------------+------------------------+------------------------------------------------------------+
 | ``TERRAFORM_VERSION`` | N/A                    | Sets ``TERRAFORM_VERSION`` in the ``easy_infra`` container |
 +-----------------------+------------------------+------------------------------------------------------------+
+
+For example::
+
+    ---
+    deploy: &deploy
+      step:
+        name: Deploy
+        services:
+          - docker
+        script:
+          - pipe: docker://seisollc/easy_infra:2024.01.01-terraform
+            variables:
+              COMMAND: /bin/bash -c "terraform plan -out=plan.out && terraform apply -auto-approve plan.out"
+              LEARNING_MODE: true
+              TERRAFORM_VERSION: 1.6.6
+
+    pipelines:
+      default:
+        - <<: *deploy
