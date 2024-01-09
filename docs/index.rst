@@ -14,4 +14,5 @@
    Logging/index
    Hooks/index
    Cloning/index
+   BitBucket/index
    Technical Details/index
