@@ -273,3 +273,18 @@ function _clone() {
   clone_log="/var/log/clone.log"
   echo "$(date): Cloned ${folder_count} folders" >> "${clone_log}"
 }
+
+function pipeline_setup() {
+  # Returns a custom command if a supported custom pipeline is detected, empty otherwise
+
+  # Quit early if this is not a Bitbucket pipeline
+  if [[ -z "${BITBUCKET_BUILD_NUMBER}" ]]; then
+    return
+  fi
+
+  if [[ -n "${COMMAND}" ]]; then
+    echo "${COMMAND}"
+  else
+    echo "terraform validate"
+  fi
+}

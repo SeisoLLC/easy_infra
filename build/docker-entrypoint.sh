@@ -44,7 +44,13 @@ if [[ -x "$(which strace)" ]]; then
   fi
 fi
 
-if [ "$#" -eq 0 ]; then
+# Pipeline-specific detection and setup steps
+custom_command=$(pipeline_setup)
+
+if [[ -n "${custom_command}" ]]; then
+  # Run the command provided
+  eval "${custom_command}"
+elif [ "$#" -eq 0 ]; then
   # Print select tool versions then open an bash shell
   if [ -x "$(which aws)" ]; then
     echo -e "aws-cli\t\t ${AWS_CLI_VERSION}"

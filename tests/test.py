@@ -1403,6 +1403,38 @@ def run_terraform(*, image: str, user: str, mount_local_files: bool) -> None:
         tests=tests, volumes=hooks_script_volumes, image=image, user=user
     )
 
+    # Test the custom "COMMAND" feature used with bitbucket pipes
+    tests: list[tuple[dict, str, int]] = [  # type: ignore
+        (
+            {
+                "BITBUCKET_BUILD_NUMBER": "mustexist",  # Prereq to allow it to continue
+                "COMMAND": "ls",
+            },
+            "exit 230",  # This should be overridden by COMMAND
+            0,
+        ),
+        (
+            {
+                "BITBUCKET_BUILD_NUMBER": "mustexist",  # Prereq to allow it to continue
+                "COMMAND": "",
+            },
+            "exit 230",  # Because BITBUCKET_BUILD_NUMBER was set, even though COMMAND is empty, this will be ignored
+            0,  # This falls back to the built-in default command when a BitBucket pipeline is detected which exits neither 230 nor 1, but 0
+        ),
+        (
+            {
+                "COMMAND": "exit 230",  # BITBUCKET_BUILD_NUMBER is purposefully missing, so this should be skipped
+            },
+            "exit 1",
+            1,
+        ),
+    ]
+
+    LOG.debug("Testing the bitbucket pipe detection and COMMAND variable")
+    num_tests_ran += exec_tests(
+        tests=tests, volumes=hooks_script_volumes, image=image, user=user
+    )
+
     tests: list[tuple[dict, str, int]] = [  # type: ignore
         (
             {

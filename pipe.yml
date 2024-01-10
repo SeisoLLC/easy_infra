@@ -1,0 +1,27 @@
+---
+NOTICE: |
+  This is just for illustrative purposes; BitBucket requires that pipe.yml files be hosted on bitbucket so we use `pipe: docker://` in our examples to go direct
+  to Docker Hub, bypassing the use of this file.
+---
+name: Easy Infra (terraform)
+description: A docker container to simplify and secure the use of Infrastructure as Code (IaC)
+image: seiso/easy_infra:2024.01.01-terraform
+category: Security
+repository: https://github.com/seisollc/easy_infra
+maintainer:
+  name: Seiso
+  website: https://SeisoLLC.com/
+vendor:
+  name: Seiso
+  website: https://SeisoLLC.com/
+variables:
+  - name: COMMAND
+    default: "terraform validate"
+  - name: LEARNING_MODE
+    default: "false"
+  - name: TERRAFORM_VERSION
+    default: "$TERRAFORM_VERSION"
+tags:
+  - seiso
+  - security
+  - terraform
