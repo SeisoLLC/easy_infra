@@ -19,7 +19,7 @@ An example ``bitbucket-pipeline.yml`` is as follows::
         services:
           - docker
         script:
-          - pipe: docker://seisollc/easy_infra:2024.01.02-terraform
+          - pipe: docker://seisollc/easy_infra:2024.01.03-terraform
 
     pipelines:
       default:
@@ -49,7 +49,7 @@ For example::
         services:
           - docker
         script:
-          - pipe: docker://seisollc/easy_infra:2024.01.02-terraform
+          - pipe: docker://seisollc/easy_infra:2024.01.03-terraform
             variables:
               COMMAND: /bin/bash -c "terraform plan -out=plan.out && terraform apply -auto-approve plan.out"
               LEARNING_MODE: true
