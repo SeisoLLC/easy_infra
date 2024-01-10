@@ -1418,8 +1418,8 @@ def run_terraform(*, image: str, user: str, mount_local_files: bool) -> None:
                 "BITBUCKET_BUILD_NUMBER": "mustexist",  # Prereq to allow it to continue
                 "COMMAND": "",
             },
-            "exit 230",  # This should not be overridden because COMMAND is empty
-            230,
+            "exit 230",  # Because BITBUCKET_BUILD_NUMBER was set, even though COMMAND is empty, this will be ignored
+            0,  # This falls back to the built-in default command when a BitBucket pipeline is detected which exits neither 230 nor 1, but 0
         ),
         (
             {
