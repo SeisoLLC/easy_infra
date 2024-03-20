@@ -72,20 +72,20 @@ packages:
       environments:
       - none
       name: cloudformation
-    version: 2.15.15
+    version: 2.15.30
     version_argument: --version
   azure-cli:
     aliases:
     - az
-    version: 2.56.0-1~jammy
+    version: 2.58.0-1~jammy
     version_argument: version
   checkov:
-    version: 3.2.0
+    version: 3.2.39
     version_argument: --version
   consul-template:
     helper:
     - all
-    version: v0.36.0
+    version: v0.37.2
     version_argument: --version
   envconsul:
     helper:
@@ -98,7 +98,7 @@ packages:
     version: v2.2.2
     version_argument: --version
   kics:
-    version: v1.7.12
+    version: v1.7.13
     version_argument: version
   opentofu:
     aliases:
@@ -116,13 +116,13 @@ packages:
       env_vars:
       - TF_DATA_DIR
     security: *id004
-    version: 1.7.1
+    version: 1.7.5
     version_argument: version
   terratag:
     helper:
     - terraform
     - opentofu
-    version: v0.2.6
+    version: v0.3.3
   tfenv:
     allow_filter:
     - match: exec
@@ -147,5 +147,5 @@ packages:
       env_vars:
       - TF_DATA_DIR
     security: *id004
-    version: v1.0.4
+    version: v1.0.6
     version_argument: --version
