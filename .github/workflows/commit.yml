@@ -99,22 +99,26 @@ jobs:
           ENVIRONMENT: ${{ matrix.environment }}
       - name: Generate the SBOM
         run: task -v sbom
+        if: matrix.user == 'root'
         env:
           TOOL: ${{ matrix.tool }}
           ENVIRONMENT: ${{ matrix.environment }}
       - name: Upload the SBOM
         uses: actions/upload-artifact@v4
+        if: matrix.user == 'root'
         with:
           name: SBOM_${{ matrix.tool }}_${{ matrix.environment }}
           path: sbom.2*.json
           if-no-files-found: error
       - name: Generate Vuln scan results
         run: task -v vulnscan
+        if: matrix.user == 'root'
         env:
           TOOL: ${{ matrix.tool }}
           ENVIRONMENT: ${{ matrix.environment }}
       - name: Upload Vuln scan result
         uses: actions/upload-artifact@v4
+        if: matrix.user == 'root'
         with:
           name: Vulns_${{ matrix.tool }}_${{ matrix.environment }}
           path: vulns.2*.json
