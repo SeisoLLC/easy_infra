@@ -106,7 +106,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: SBOM_${{ matrix.tool }}_${{ matrix.environment }}
-          path: sbom.*.json
+          path: sbom.2*.json
           if-no-files-found: error
       - name: Generate Vuln scan results
         run: task -v vulnscan
@@ -117,7 +117,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Vulns_${{ matrix.tool }}_${{ matrix.environment }}
-          path: vulns.*.json
+          path: vulns.2*.json
           if-no-files-found: error
       - name: Run tests
         run: task -v test
@@ -211,7 +211,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: SBOM_${{ matrix.tool }}_${{ matrix.environment }}
-          path: sbom.*.json
+          path: sbom.2*.json
           if-no-files-found: error
       - name: Generate Vuln scan results
         run: task -v vulnscan
@@ -222,7 +222,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Vulns_${{ matrix.tool }}_${{ matrix.environment }}
-          path: vulns.*.json
+          path: vulns.2*.json
           if-no-files-found: error
       - name: Run tests
         run: task -v test
