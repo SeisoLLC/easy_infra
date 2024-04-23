@@ -262,9 +262,9 @@ def get_github_actions_matrix(
     testing: bool = False,
 ) -> str:
     """Return a matrix of tool/environments or tool/environments/users for use in the github actions pipeline"""
-    tools_and_environments: dict[
-        str, dict[str, list[str]]
-    ] = gather_tools_and_environments(tool=tool, environment=environment)
+    tools_and_environments: dict[str, dict[str, list[str]]] = (
+        gather_tools_and_environments(tool=tool, environment=environment)
+    )
     if testing:
         users: list[str] = gather_users(user=user)
 
