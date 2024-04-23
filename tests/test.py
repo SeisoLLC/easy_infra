@@ -74,9 +74,9 @@ def test_version_arguments(
 
     num_tests_ran: int = 0
 
-    tools_to_environments: dict[
-        str, dict[str, list[str]]
-    ] = utils.gather_tools_and_environments(tool=tool, environment=environment)
+    tools_to_environments: dict[str, dict[str, list[str]]] = (
+        utils.gather_tools_and_environments(tool=tool, environment=environment)
+    )
 
     # Find the package name for the provided tool
     package_for_tool: str = utils.get_package_name(tool=tool)
@@ -819,9 +819,9 @@ def run_unified_terraform_opentofu(
 
     # Setup the cloning
     learning_mode_and_clone_environment["VCS_DOMAIN"] = "github.com"
-    learning_mode_and_clone_environment[
-        "CLONE_REPOSITORIES"
-    ] = "seisollc/easy_infra,seisollc/easy_infra"
+    learning_mode_and_clone_environment["CLONE_REPOSITORIES"] = (
+        "seisollc/easy_infra,seisollc/easy_infra"
+    )
     learning_mode_and_clone_environment["CLONE_PROTOCOL"] = "https"
 
     # Purposefully missing volumes= because we are using clone to do it

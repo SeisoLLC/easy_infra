@@ -13,9 +13,9 @@ To get started with contributing to this project, you first want to ensure that 
 First, ensure you have the `task` binary available in your `PATH`. To download `task`, [click here](https://taskfile.dev/).
 You'll also need `docker`, `git`, `pipenv`, and `python3` installed locally, and have the `docker` daemon running. Then run `task init` to initialize the repository.
 
-If you'd like to [run the test suite](#running-the-tests), you will also need `grype` downloaded and in your `PATH`.
+If you'd like to run the test suite, you will also need `grype` downloaded and in your `PATH`.
 
-If you'd like to [generate an SBOM](#generating-the-sboms), you will also need `syft` downloaded and in your `PATH`.
+If you'd like to generate an SBOM, you will also need `syft` downloaded and in your `PATH`.
 
 ### Building the images
 
