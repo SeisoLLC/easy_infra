@@ -5,7 +5,7 @@ NOTICE: |
 ---
 name: Easy Infra (terraform)
 description: A docker container to simplify and secure the use of Infrastructure as Code (IaC)
-image: seiso/easy_infra:2024.05.01-terraform
+image: seiso/easy_infra:2024.06.01-terraform
 category: Security
 repository: https://github.com/seisollc/easy_infra
 maintainer:
