@@ -1,6 +1,6 @@
 ---
 repos:
   - repo: https://github.com/seisollc/goat
-    rev: aaca59f98995651447f16527e154ffe92755c568  # frozen: v2024.06.02
+    rev: b95bf4e33476ab98394304f64719c67beeef2acd  # frozen: v2024.06.03
     hooks:
       - id: seiso-lint
