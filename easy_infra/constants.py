@@ -65,6 +65,7 @@ GITHUB_REPOS_RELEASES = {
     "fluent/fluent-bit",
     "hashicorp/consul-template",
     "hashicorp/envconsul",
+    "opentofu/opentofu",
     "tfutils/tfenv",
     "tofuutils/tofuenv",
 }
