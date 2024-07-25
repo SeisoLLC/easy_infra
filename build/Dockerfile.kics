@@ -1,6 +1,7 @@
 ARG KICS_VERSION
 
-FROM checkmarx/kics:"${KICS_VERSION}-debian" AS kics
+ARG TARGETPLATFORM
+FROM --platform=$TARGETPLATFORM checkmarx/kics:"${KICS_VERSION}-debian" AS kics
 
 ARG KICS_VERSION
 ENV KICS_VERSION="${KICS_VERSION}"
