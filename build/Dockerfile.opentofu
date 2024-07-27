@@ -11,8 +11,6 @@ ARG TOFUENV_VERSION
 ENV TOFUENV_VERSION="${TOFUENV_VERSION}"
 ARG DEBIAN_FRONTEND="noninteractive"
 
-COPY --chown=easy_infra:easy_infra .terraformrc /home/easy_infra/
-
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 USER root
 # hadolint ignore=DL3008
@@ -27,8 +25,6 @@ RUN curl -L https://github.com/env0/terratag/releases/download/${TERRATAG_VERSIO
  && chown root: /usr/local/bin/terratag \
  && su easy_infra -c "git clone https://github.com/tofuutils/tofuenv.git /home/easy_infra/.tofuenv --depth 1 --branch ${TOFUENV_VERSION}" \
  && rm -rf /home/easy_infra/.tofuenv/.git \
- && su easy_infra -c "mkdir -p /home/easy_infra/.terraform.d/plugin-cache" \
- && mkdir -p /home/easy_infra/.terraform.d/plugin-cache \
  && mkdir -p /home/easy_infra/.local/bin/ \
  && ln -s /home/easy_infra/.tofuenv/bin/* /home/easy_infra/.local/bin \
  && su - easy_infra -c "tofuenv install ${OPENTOFU_VERSION}" \
