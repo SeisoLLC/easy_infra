@@ -6,7 +6,7 @@
 source /usr/local/bin/common.sh
 
 
-current_version=$(cat /home/easy_infra/.tofuenv/version)
+current_version=v$(cat /home/easy_infra/.tofuenv/version)
 output_log="/var/log/$(basename "${BASH_SOURCE[0]%%.sh}.log")"
 
 if [[ -z "${OPENTOFU_VERSION}" ]]; then

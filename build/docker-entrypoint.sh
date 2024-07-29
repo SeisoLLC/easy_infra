@@ -69,7 +69,7 @@ elif [ "$#" -eq 0 ]; then
       echo -e "terraform\t ${TERRAFORM_VERSION}"
     fi
   elif [ -x "$(which tofu)" ]; then
-    current_version=$(cat /home/easy_infra/.tofuenv/version)
+    current_version=v$(cat /home/easy_infra/.tofuenv/version)
     if [[ "${OPENTOFU_VERSION}" != "${current_version}" ]]; then
       echo -e "tofu\t ${OPENTOFU_VERSION} (customized)"
     else
