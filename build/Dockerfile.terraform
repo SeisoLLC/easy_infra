@@ -25,6 +25,9 @@ RUN curl -L https://github.com/env0/terratag/releases/download/${TERRATAG_VERSIO
  && chown root: /usr/local/bin/terratag \
  && su easy_infra -c "git clone https://github.com/tfutils/tfenv.git /home/easy_infra/.tfenv --depth 1 --branch ${TFENV_VERSION}" \
  && rm -rf /home/easy_infra/.tfenv/.git \
+
+ && su easy_infra -c "mkdir -p /home/easy_infra/.terraform.d/plugin-cache" \
+ && mkdir -p /home/easy_infra/.terraform.d/plugin-cache \
  && mkdir -p /home/easy_infra/.local/bin/ \
  && ln -s /home/easy_infra/.tfenv/bin/* /home/easy_infra/.local/bin \
  && su - easy_infra -c "tfenv install ${TERRAFORM_VERSION}" \
