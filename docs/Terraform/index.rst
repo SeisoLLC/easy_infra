@@ -10,7 +10,7 @@ environments as Infrastructure as Code (IaC).
 ``easy_infra`` uses security tools, such as `Checkov <https://www.checkov.io/>`_, to transparently assess the provided IaC against the defined security policy.
 
 .. warning::
-    ``easy_infra``'s `terraform` images are incompatable with the terraform ``-chdir`` argument as documented `here
+    ``easy_infra``'s `terraform` images are incompatible with the terraform ``-chdir`` argument as documented `here
     <https://developer.hashicorp.com/terraform/cli/commands#switching-working-directory-with-chdir>`_.
 
 
@@ -20,11 +20,11 @@ Use Cases
 If you use Software Version Control (such as ``git``) to manage your Terraform IaC, consider executing ``terraform validate`` with easy_infra as a
 pipeline action on commit or pull request::
 
-    docker run -v .:/iac seiso/easy_infra:latest-terraform terraform validate
+    docker run -v "$(pwd)":/iac seiso/easy_infra:latest-terraform terraform validate
 
 You can also use easy_infra to deploy your infrastructure using ``terraform plan`` and ``terraform deploy``::
 
-    docker run -v .:/iac seiso/easy_infra:latest-terraform /bin/bash -c "terraform plan && terraform apply -auto-approve"
+    docker run -v "$(pwd)":/iac seiso/easy_infra:latest-terraform /bin/bash -c "terraform plan && terraform apply -auto-approve"
 
 
 Customizing Checkov
@@ -91,7 +91,7 @@ For instance::
     CHECKOV_BASELINE=/iac/.checkov.baseline
     CHECKOV_EXTERNAL_CHECKS_DIR=/iac/checkov_rules/
     CHECKOV_SKIP_CHECK=CKV_AWS_20
-    docker run --env-file <(env | grep ^CHECKOV_) -v .:/iac easy_infra:latest-terraform terraform validate
+    docker run --env-file <(env | grep ^CHECKOV_) -v "$(pwd)":/iac easy_infra:latest-terraform terraform validate
 
 In addition, you can customize some ``checkov``-specific environment variables at runtime for different effects. By setting these environment variables, you are
 customizing the ``checkov`` environment **only** while it is running.
@@ -105,16 +105,16 @@ customizing the ``checkov`` environment **only** while it is running.
 For instance, the following command will run with ``checkov`` in debug mode (which is separate from running ``easy_infra`` in debug mode)::
 
     CHECKOV_LOG_LEVEL=DEBUG
-    docker run --env CHECKOV_LOG_LEVEL -v .:/iac easy_infra:latest-terraform terraform validate
+    docker run --env CHECKOV_LOG_LEVEL -v "$(pwd)":/iac easy_infra:latest-terraform terraform validate
 
 
-Preinstalled Hooks
+Pre-installed Hooks
 ^^^^^^^^^^^^^^^^^^
 
-There are some preinstalled hooks in ``/opt/hooks/bin/`` which apply to terraform commands:
+There are some pre-installed hooks in ``/opt/hooks/bin/`` which apply to terraform commands:
 
 * If the ``TERRAFORM_VERSION`` environment variable is customized, easy_infra will attempt to install and switch to that version at runtime. This
-  effectively makes it the "new default" in place of the version which was preinstalled in the version of the easy_infra container.
+  effectively makes it the "new default" in place of the version which was pre-installed in the version of the easy_infra container.
 * If ``AUTODETECT`` is set to ``true``, easy_infra will attempt to detect and install the correct version of terraform for each folder that a
   ``terraform`` command runs in using the ``required_version`` block in the code. Since this is module-specific, it will override the default
   terraform version to use (specified by ``TERRAFORM_VERSION``; see the prior bullet).
@@ -123,9 +123,9 @@ There are some preinstalled hooks in ``/opt/hooks/bin/`` which apply to terrafor
 Terraform Caching
 ^^^^^^^^^^^^^^^^^
 
-If you're working with the same terraform code across multiple runs, you can leverage the cache::
+If you're working with the same terraform code across multiple runs, you can leverage the cache which is automatically placed in the current working directory::
 
-    docker run -v .:/iac -v "$(pwd)/plugin-cache:/home/easy_infra/.terraform.d/plugin-cache" easy_infra:latest-terraform /bin/bash -c "terraform init; terraform validate"
+    docker run -v "$(pwd)":/iac easy_infra:latest-terraform /bin/bash -c "terraform init; terraform validate"
 
 
 Disabling Security
