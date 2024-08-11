@@ -13,7 +13,7 @@ if [[ "${AUTODETECT}" != "true" ]]; then
   exit 0
 fi
 
-current_version=$(cat /home/easy_infra/.tofuenv/version)
+current_version=v$(cat /home/easy_infra/.tofuenv/version)
 
 # Use tofuenv to get the minimum version of opentofu specified in the opentofu code (in the current directory)
 opentofu_min_required="$(tofuenv min-required 2>>"${output_log}")"
