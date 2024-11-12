@@ -1,3 +1,5 @@
+seiso_goat_*.tar
+
 # Ignore generated files
 functions.sh
 build/Dockerfile
