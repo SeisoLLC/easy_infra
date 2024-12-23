@@ -80,7 +80,7 @@ packages:
     version: 2.67.0-1~noble
     version_argument: version
   checkov:
-    version: 3.2.300
+    version: 3.2.344
     version_argument: --version
   consul-template:
     helper:
@@ -108,7 +108,7 @@ packages:
       env_vars:
       - TF_DATA_DIR
     security: *id004
-    version: v1.8.5
+    version: v1.8.7
     version_argument: version
   terraform:
     file_extensions: *id003
@@ -116,13 +116,13 @@ packages:
       env_vars:
       - TF_DATA_DIR
     security: *id004
-    version: 1.9.8
+    version: 1.10.2
     version_argument: version
   terratag:
     helper:
     - terraform
     - opentofu
-    version: v0.5.0
+    version: v0.5.2
   tfenv:
     allow_filter:
     - match: exec
