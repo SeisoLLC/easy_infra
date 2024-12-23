@@ -1,5 +1,5 @@
 ARG FROM_IMAGE=ubuntu
-ARG FROM_IMAGE_TAG=23.10
+ARG FROM_IMAGE_TAG=24.04
 ARG EASY_INFRA_TAG
 # The following arg is in case we have a {tool}-{environment} specific Dockerfile/frag combo.
 # Dockerfile ARG instructions go out of scope at the end of the build stage where it was defined, so to use it in our multistage scenario it needs to
