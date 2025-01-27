@@ -90,12 +90,12 @@ packages:
   envconsul:
     helper:
     - all
-    version: v0.13.3
+    version: v0.13.2
     version_argument: --version
   fluent-bit:
     helper:
     - all
-    version: v3.2.4
+    version: v3.2.5
     version_argument: --version
   kics:
     version: v2.1.4
