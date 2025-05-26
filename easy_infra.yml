@@ -72,7 +72,7 @@ packages:
       environments:
       - none
       name: cloudformation
-    version: 2.27.20
+    version: 2.27.22
     version_argument: --version
   azure-cli:
     aliases:
@@ -80,7 +80,7 @@ packages:
     version: 2.73.0-1~noble
     version_argument: version
   checkov:
-    version: 3.2.429
+    version: 3.2.432
     version_argument: --version
   consul-template:
     helper:
