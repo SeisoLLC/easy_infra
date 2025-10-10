@@ -2,7 +2,7 @@
 
 ## Getting Started
 
-easy_infra is a docker container that simplifies and secures Infrastructure as Code deployments by running security scans prior to running IaC tools. It
+easy_infra is a Docker container that simplifies and secures Infrastructure as Code deployments by running security scans prior to running IaC tools. It
 supports three main use cases:
 
 1. **Experimentation** by supporting interactive use and secure troubleshooting.
