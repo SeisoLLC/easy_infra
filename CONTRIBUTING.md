@@ -19,7 +19,7 @@ If you'd like to generate an SBOM, you will also need `syft` downloaded and in y
 
 ### Building the images
 
-To build all of the docker images, run:
+To build all of the Docker images, run:
 
 ```bash
 task build
@@ -80,7 +80,7 @@ task test
 
 If you are troubleshooting a specific image, you can pass a cli arg of the tag, i.e. `2023.11.01-ansible` which runs the specified image tag and mounts common
 files that change during troubleshooting, as well as an unfiltered rendering of `functions.j2`, at test time. This assumes that the related image tag has
-already been built and is available to the docker daemon (either by pulling it from docker hub, or locally).
+already been built and is available to the Docker daemon (either by pulling it from Docker hub, or locally).
 
 ```bash
 task test -- 2023.11.01-ansible-d7b1663
