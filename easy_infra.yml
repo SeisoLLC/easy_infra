@@ -72,7 +72,7 @@ packages:
       environments:
       - none
       name: cloudformation
-    version: 2.33.27
+    version: 2.33.30
     version_argument: --version
   azure-cli:
     aliases:
@@ -80,7 +80,7 @@ packages:
     version: 2.83.0-1~noble
     version_argument: version
   checkov:
-    version: 3.2.505
+    version: 3.2.506
     version_argument: --version
   consul-template:
     helper:
@@ -116,7 +116,7 @@ packages:
       env_vars:
       - TF_DATA_DIR
     security: *id004
-    version: 1.14.5
+    version: 1.14.6
     version_argument: version
   terratag:
     helper:

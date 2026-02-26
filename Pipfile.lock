@@ -59,11 +59,11 @@
         },
         "certifi": {
             "hashes": [
-                "sha256:9943707519e4add1115f44c2bc244f782c0249876bf51b6599fee1ffbedd685c",
-                "sha256:ac726dd470482006e014ad384921ed6438c457018f4b3d204aea4281258b2120"
+                "sha256:027692e4402ad994f1c42e52a4997a9763c646b73e4096e4d5d6db8af1d6f0fa",
+                "sha256:e887ab5cee78ea814d3472169153c2d12cd43b14bd03329a39a9c6e2e80bfba7"
             ],
             "markers": "python_version >= '3.7'",
-            "version": "==2026.1.4"
+            "version": "==2026.2.25"
         },
         "cfgv": {
             "hashes": [
@@ -468,6 +468,14 @@
             "markers": "python_full_version >= '3.10.0'",
             "version": "==4.0.5"
         },
+        "python-discovery": {
+            "hashes": [
+                "sha256:7cd9eaf3b1845875e22084f92d0ec2e309be2a3f839a9eb52980d647b72bd891",
+                "sha256:8bc352d504f66fd82f93e73f1cbfbf3f3f06d559aafd14c24a7f1f38906ad3e8"
+            ],
+            "markers": "python_version >= '3.8'",
+            "version": "==1.0.0"
+        },
         "pyyaml": {
             "hashes": [
                 "sha256:00c4bdeba853cc34e7dd471f16b4114f4162dc03e6b7afcc2128711f0eca823c",
@@ -656,11 +664,11 @@
         },
         "virtualenv": {
             "hashes": [
-                "sha256:94f39b1abaea5185bf7ea5a46702b56f1d0c9aa2f41a6c2b8b0af4ddc74c10a7",
-                "sha256:d6e78e5889de3a4742df2d3d44e779366325a90cf356f15621fddace82431794"
+                "sha256:d44e70637402c7f4b10f48491c02a6397a3a187152a70cba0b6bc7642d69fb05",
+                "sha256:e8efe4271b4a5efe7a4dce9d60a05fd11859406c0d6aa8464f4cf451bc132889"
             ],
             "markers": "python_version >= '3.8'",
-            "version": "==20.38.0"
+            "version": "==21.0.0"
         }
     }
 }
