@@ -72,20 +72,20 @@ packages:
       environments:
       - none
       name: cloudformation
-    version: 2.33.27
+    version: 2.35.11
     version_argument: --version
   azure-cli:
     aliases:
     - az
-    version: 2.83.0-1~noble
+    version: 2.87.0-1~noble
     version_argument: version
   checkov:
-    version: 3.2.505
+    version: 3.3.2
     version_argument: --version
   consul-template:
     helper:
     - all
-    version: v0.41.4
+    version: v0.42.0
     version_argument: --version
   envconsul:
     helper:
@@ -95,10 +95,10 @@ packages:
   fluent-bit:
     helper:
     - all
-    version: v4.2.3
+    version: v5.0.8
     version_argument: --version
   kics:
-    version: v2.1.19
+    version: v2.1.20
     version_argument: version
   opentofu:
     aliases:
@@ -108,7 +108,7 @@ packages:
       env_vars:
       - TF_DATA_DIR
     security: *id004
-    version: v1.11.5
+    version: v1.12.3
     version_argument: version
   terraform:
     file_extensions: *id003
@@ -116,7 +116,7 @@ packages:
       env_vars:
       - TF_DATA_DIR
     security: *id004
-    version: 1.14.5
+    version: 1.15.7
     version_argument: version
   terratag:
     helper:
@@ -134,7 +134,7 @@ packages:
       env_vars:
       - TF_DATA_DIR
     security: *id004
-    version: v3.0.0
+    version: v3.2.2
     version_argument: --version
   tofuenv:
     allow_filter:
