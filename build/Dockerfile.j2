@@ -25,7 +25,8 @@ ARG {{ argument }}
 {{ dockerfile }}
 {% endfor %}
 
-FROM base as final
+ARG TARGETPLATFORM
+FROM --platform=$TARGETPLATFORM base as final
 
 USER easy_infra
 

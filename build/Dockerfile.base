@@ -7,8 +7,10 @@ ARG EASY_INFRA_TAG
 # https://docs.docker.com/engine/reference/builder/#scope
 ARG EASY_INFRA_TAG_TOOL_ONLY
 
+# TARGETPLATFORM is special cased by docker and doesn't need the initial ARG
+# https://docs.docker.com/engine/reference/builder/#automatic-platform-args-in-the-global-scope
 # The dockerfile base must start with FROM ... AS base
-FROM "${FROM_IMAGE}":"${FROM_IMAGE_TAG}" AS base
+FROM --platform=$TARGETPLATFORM "${FROM_IMAGE}":"${FROM_IMAGE_TAG}" AS base
 
 ARG BUILDARCH
 ARG TRACE="false"
