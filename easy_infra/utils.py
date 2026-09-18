@@ -8,7 +8,7 @@ import subprocess
 import sys
 from logging import DEBUG, basicConfig, getLogger
 from pathlib import Path
-from typing import Optional, Pattern
+from re import Pattern
 
 import docker
 import requests
@@ -51,7 +51,7 @@ def render_jinja2(
     template_file: Path,
     config: dict,
     output_file: Path,
-    output_mode: Optional[int] = None,
+    output_mode: int | None = None,
 ) -> None:
     """Render the functions file"""
     folder = str(template_file.parent)
@@ -72,7 +72,7 @@ def process_container(*, container: docker.models.containers.Container) -> None:
     container.remove()
     status_code = response["StatusCode"]
     logs = response["logs"]
-    if not status_code == 0:
+    if status_code != 0:
         LOG.error(
             f"Received a non-zero status code from docker ({status_code}); additional details: {logs}",
         )
@@ -186,15 +186,19 @@ def opinionated_docker_run(
     auto_remove: bool = False,
     tty: bool = False,
     detach: bool = True,
-    environment: dict = {},
+    environment: dict | None = None,
     user: str = "",
-    volumes: dict | list = {},
+    volumes: dict | list | None = None,
     working_dir: str = "/iac/",
     expected_exit: int = 0,
     check_logs: Pattern[str] | None = None,
     network_mode: str | None = None,
 ) -> None:
     """Perform an opinionated docker run"""
+    if environment is None:
+        environment = {}
+    if volumes is None:
+        volumes = {}
     if auto_remove and check_logs:
         LOG.error(f"auto_remove cannot be {auto_remove} when check_logs is specified")
         sys.exit(1)
@@ -270,19 +274,19 @@ def get_github_actions_matrix(
 
     github_matrix: dict[str, list[dict[str, str]]] = {}
     github_matrix["include"] = []
-    for tool, environments in tools_and_environments.items():
-        job: dict[str, str] = {"tool": tool, "environment": "none"}
+    for tool_item, environments in tools_and_environments.items():
+        job: dict[str, str] = {"tool": tool_item, "environment": "none"}
         if testing:
-            for user in users:
-                job["user"] = user
+            for user_item in users:
+                job["user"] = user_item
                 github_matrix["include"].append(copy.copy(job))
         else:
             github_matrix["include"].append(job)
-        for environment in environments["environments"]:
-            job: dict[str, str] = {"tool": tool, "environment": environment}
+        for env_item in environments["environments"]:
+            job: dict[str, str] = {"tool": tool_item, "environment": env_item}
             if testing:
-                for user in users:
-                    job["user"] = user
+                for user_item in users:
+                    job["user"] = user_item
                     github_matrix["include"].append(copy.copy(job))
             else:
                 github_matrix["include"].append(job)
@@ -363,25 +367,27 @@ def gather_tools_and_environments(
         tools: list[str] = [tool]
 
     image_and_tool_and_environment_tags: dict[str, dict[str, list[str]]] = {}
-    for tool in tools:
+    for tool_item in tools:
         if environment == "none":
             environments: list[str] = []
         elif environment == "all":
-            environments: list[str] = get_supported_environments(tool=tool)
+            environments: list[str] = get_supported_environments(tool=tool_item)
         elif environment not in constants.ENVIRONMENTS:
             LOG.error(f"{environment} is not a supported environment, exiting...")
             sys.exit(1)
         else:
-            supported_environments: list[str] = get_supported_environments(tool=tool)
+            supported_environments: list[str] = get_supported_environments(
+                tool=tool_item
+            )
             if environment not in supported_environments:
                 LOG.error(
-                    f"{environment} is not a supported environment for {tool}, exiting..."
+                    f"{environment} is not a supported environment for {tool_item}, exiting..."
                 )
                 sys.exit(1)
             else:
                 environments: list[str] = [environment]
 
-        image_and_tool_and_environment_tags[tool] = {"environments": environments}
+        image_and_tool_and_environment_tags[tool_item] = {"environments": environments}
 
     return image_and_tool_and_environment_tags
 
@@ -639,36 +645,33 @@ def log_image_build(*, build_kwargs: dict) -> None:
     # Defaults for the optional items
     pull = False
     cache_from = ""
-    for key in build_kwargs:
+    for key, value in build_kwargs.items():
         match key:
             case "buildargs":
-                buildargs = str()
-                for arg in build_kwargs[key]:
-                    buildargs += f"--build-arg {arg}={build_kwargs[key][arg]} "
+                buildargs = ""
+                for arg in value:
+                    buildargs += f"--build-arg {arg}={value[arg]} "
             case "dockerfile":
-                dockerfile = f"--file {build_kwargs['path']}/{build_kwargs[key]}"
+                dockerfile = f"--file {build_kwargs['path']}/{value}"
             case "path":
-                path = build_kwargs[key]
+                path = value
             case "platform":
-                if build_kwargs[key]:
-                    platform = f"--platform {build_kwargs[key]}"
+                if value:
+                    platform = f"--platform {value}"
                 else:
                     platform = ""
             case "pull":
-                if build_kwargs[key]:
+                if value:
                     pull = True
             case "rm":
-                if build_kwargs[key]:
-                    rm = "--rm"
-                else:
-                    rm = ""
+                rm = "--rm" if value else ""
             case "tag":
-                tag = f"--tag {build_kwargs[key]}"
+                tag = f"--tag {value}"
             case "target":
-                target = f"--target {build_kwargs[key]}"
+                target = f"--target {value}"
             case "cache_from":
-                cache_from = str()
-                for image_and_tag in build_kwargs[key]:
+                cache_from = ""
+                for image_and_tag in value:
                     cache_from += f"--cache-from {image_and_tag} "
 
     if pull:
@@ -809,12 +812,12 @@ def build_and_tag(
         if (
             "tool" in constants.CONFIG["packages"][package]
             and "name" in constants.CONFIG["packages"][package]["tool"]
+            and tool == constants.CONFIG["packages"][package]["tool"]["name"]
         ):
-            if tool == constants.CONFIG["packages"][package]["tool"]["name"]:
-                custom_tool_name = True
-                dockerfile_tool: str = f"Dockerfile.{package}"
-                dockerfrag_tool: str = f"Dockerfrag.{package}"
-                break
+            custom_tool_name = True
+            dockerfile_tool: str = f"Dockerfile.{package}"
+            dockerfrag_tool: str = f"Dockerfrag.{package}"
+            break
     else:
         LOG.error(f"Unable to identify the tool {tool} in the config")
         sys.exit(1)
@@ -828,13 +831,11 @@ def build_and_tag(
         ]
 
         # populate the security tools for {tool}
-        security_tools = []
-
         # Use the package from the earlier loop if the tool name is custom
         key = package if custom_tool_name else tool
-        if "security" in constants.CONFIG["packages"][key]:
-            for security_tool in constants.CONFIG["packages"][key]["security"]:
-                security_tools.append(security_tool)
+        security_tools: list[str] = constants.CONFIG["packages"][key].get(
+            "security", []
+        )
 
         # Load in the security tool dockerfiles/frags
         config["dockerfile_security_tools"] = []
@@ -887,10 +888,7 @@ def build_and_tag(
                 sys.exit(1)
 
             # Optional Dockerfiles; support tool or package named files
-            if custom_tool_name:
-                keys = [tool, package]
-            else:
-                keys = [tool]
+            keys = [tool, package] if custom_tool_name else [tool]
 
             for key in keys:
                 if constants.BUILD.joinpath(f"Dockerfile.{key}-{environment}").exists():
@@ -993,14 +991,14 @@ def build(
     )
 
     # pylint: disable=redefined-argument-from-local
-    for tool in tools_to_environments:
-        tools: list[str] = [tool]
+    for tool_item in tools_to_environments:
+        tools: list[str] = [tool_item]
         for package in constants.CONFIG["packages"]:
             if (
                 # It is a helper
                 "helper" in constants.CONFIG["packages"][package]
                 # And it is a helper for the tool we're working on
-                and tool in constants.CONFIG["packages"][package]["helper"]
+                and tool_item in constants.CONFIG["packages"][package]["helper"]
                 # And it has a security config
                 and "security" in constants.CONFIG["packages"][package]
             ):
@@ -1022,16 +1020,18 @@ def build(
         if environment not in constants.ENVIRONMENTS:
             # Build and Tag the tool-only tag
             if not dry_run:
-                build_and_tag(tool=tool, trace=trace)
+                build_and_tag(tool=tool_item, trace=trace)
             else:
-                LOG.info(f"Would have run build_and_tag({tool=}, {trace=})")
+                LOG.info(f"Would have run build_and_tag({tool_item=}, {trace=})")
 
         # Build and Tag the tool + environment tags
-        for env in tools_to_environments[tool]["environments"]:
+        for env in tools_to_environments[tool_item]["environments"]:
             if not dry_run:
-                build_and_tag(tool=tool, environment=env, trace=trace)
+                build_and_tag(tool=tool_item, environment=env, trace=trace)
             else:
-                LOG.info(f"Would have run build_and_tag({tool=}, {env=}, {trace=})")
+                LOG.info(
+                    f"Would have run build_and_tag({tool_item=}, {env=}, {trace=})"
+                )
 
 
 def sbom(tool="all", environment="all", debug=False) -> None:
@@ -1047,15 +1047,15 @@ def sbom(tool="all", environment="all", debug=False) -> None:
         tools_to_environments=tools_to_environments, environment=environment
     )
 
-    for tool in tools_to_environments:
+    for tool_item in tools_to_environments:
         try:
-            for iteration, tag in enumerate(tags):
+            for iteration, tag_item in enumerate(tags):
                 if (
                     iteration % 2 == 1
                 ):  # True when iteration is odd (should be the latest tag)
                     prior_tag = tags[iteration - 1]
                     prior_file_name = f"sbom.{prior_tag}.json"
-                file_name = f"sbom.{tag}.json"
+                file_name = f"sbom.{tag_item}.json"
 
                 if Path(file_name).is_file() and Path(file_name).stat().st_size > 0:
                     LOG.info(f"Skipping {file_name} because it already exists...")
@@ -1068,7 +1068,7 @@ def sbom(tool="all", environment="all", debug=False) -> None:
                     shutil.copy(prior_file_name, file_name)
                     continue
 
-                image_and_tag = f"{constants.IMAGE}:{tag}"
+                image_and_tag = f"{constants.IMAGE}:{tag_item}"
                 LOG.info(f"Generating {file_name} from {image_and_tag}...")
                 subprocess.run(
                     [
@@ -1116,23 +1116,21 @@ def test(
         )
         mount_local_files = False
 
-    image_and_versioned_tags: list[str] = []
-
-    # pylint: disable=redefined-argument-from-local
-    for tag in tags:
-        image_and_versioned_tags.append(f"{constants.IMAGE}:{tag}")
+    image_and_versioned_tags: list[str] = [
+        f"{constants.IMAGE}:{image_tag}" for image_tag in tags
+    ]
 
     # Only test using the versioned tag
     for image_and_versioned_tag in image_and_versioned_tags:
-        for user in users:
+        for test_user in users:
             LOG.info(
-                f"Testing {image_and_versioned_tag} for platform {PLATFORM} with user {user}..."
+                f"Testing {image_and_versioned_tag} for platform {PLATFORM} with user {test_user}..."
             )
             run_test.run_tests(
                 image=image_and_versioned_tag,
                 tool=tool,
                 environment=environment,
-                user=user,
+                user=test_user,
                 mount_local_files=mount_local_files,
             )
 

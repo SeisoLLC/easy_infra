@@ -12,7 +12,6 @@ import sys
 import time
 from logging import getLogger
 from pathlib import Path
-from typing import Optional, Union
 
 import docker
 
@@ -82,10 +81,11 @@ def test_version_arguments(
     package_for_tool: str = utils.get_package_name(tool=tool)
 
     # Assemble the packages to test starting with the environment packages
-    packages_to_test: list[str] = []
-    for env in tools_to_environments[tool]["environments"]:
-        for env_package in constants.CONFIG["environments"][env]["packages"]:
-            packages_to_test.append(env_package)
+    packages_to_test: list[str] = [
+        env_package
+        for env in tools_to_environments[tool]["environments"]
+        for env_package in constants.CONFIG["environments"][env]["packages"]
+    ]
 
     # Populate a list of version commands to test
     for package in constants.CONFIG["packages"]:
@@ -210,7 +210,7 @@ def check_container(
     container: docker.models.containers.Container,
     log_path: str,
     expected_log_length: int,
-    files: Union[list, None] = None,
+    files: list | None = None,
     files_expected_to_exist: bool = True,
 ) -> int:
     """
@@ -246,7 +246,7 @@ def check_container(
 
 
 def run_path_check(
-    *, tool: str, user: str, environment: Optional[str] = None, image_and_tag: str
+    *, tool: str, user: str, environment: str | None = None, image_and_tag: str
 ) -> None:
     """Wrapper to run check_paths"""
     commands: list[str] = []
@@ -351,17 +351,17 @@ def exec_tests(
     tests: list[tuple[dict, str, int]],
     user: str = "",
     volumes: dict | list[dict],
-    network_mode: Union[str, None] = None,
+    network_mode: str | None = None,
 ) -> int:
     """Execute the provided tests and return a count of tests run"""
     num_tests_ran = 0
     if isinstance(volumes, dict):
-        config_dir = list(volumes.keys())[0]
+        config_dir = next(iter(volumes.keys()))
         working_dir = volumes[config_dir]["bind"]
         final_volumes: dict = volumes
     elif isinstance(volumes, list):
         # Use the first dict in the list to extract working dir, etc.
-        config_dir = list(volumes[0].keys())[0]
+        config_dir = next(iter(volumes[0].keys()))
         working_dir = volumes[0][config_dir]["bind"]
         final_volumes: list[str] = []
         for volume in volumes:
@@ -393,7 +393,7 @@ def run_tests(
     image: str,
     user: str,
     tool: str,
-    environment: Optional[str],
+    environment: str | None = None,
     mount_local_files: bool = False,
 ) -> None:
     """Fanout function to run the appropriate tests"""
@@ -1766,7 +1766,7 @@ def run_security(*, tool: str, environment: str, tag: str) -> None:
         subprocess.run(
             [
                 "grype",
-                f"sbom:{str(sbom_file)}",
+                f"sbom:{sbom_file!s}",
                 "--output",
                 "json",
                 "--file",
