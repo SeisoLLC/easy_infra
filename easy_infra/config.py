@@ -29,11 +29,11 @@ def parse_config(*, config_file: Path) -> dict:
         OSError,
     ) as err:
         LOG.error(
-            f"The config file {config_file} was unable to be loaded due to the following exception: {str(err)}",
+            f"The config file {config_file} was unable to be loaded due to the following exception: {err!s}",
         )
         # Raise if info or debug level logging
         if LOG.getEffectiveLevel() <= 20:
-            raise err
+            raise
         sys.exit(1)
 
     return config
