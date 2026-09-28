@@ -5,7 +5,6 @@ easy_infra constants
 import copy
 import json
 from pathlib import Path
-from typing import Union
 
 import git
 
@@ -73,7 +72,7 @@ GITHUB_REPOS_TAGS = {"aws/aws-cli"}
 PYTHON_PACKAGES = {"checkov"}
 HASHICORP_PROJECTS = {"terraform"}
 
-CONTEXT: dict[str, dict[str, Union[str, dict[str, Union[str, bool]]]]] = {}
+CONTEXT: dict[str, dict[str, str | dict[str, str | bool]]] = {}
 CONTEXT["buildargs_base"] = {"COMMIT_HASH": COMMIT_HASH}
 if (
     f"v{__version__}" in REPO.tags

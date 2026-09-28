@@ -8,7 +8,7 @@ import subprocess
 import sys
 from logging import DEBUG, basicConfig, getLogger
 from pathlib import Path
-from typing import Optional, Pattern
+from re import Pattern
 
 import docker
 import requests
@@ -51,7 +51,7 @@ def render_jinja2(
     template_file: Path,
     config: dict,
     output_file: Path,
-    output_mode: Optional[int] = None,
+    output_mode: int | None = None,
 ) -> None:
     """Render the functions file"""
     folder = str(template_file.parent)
@@ -72,7 +72,7 @@ def process_container(*, container: docker.models.containers.Container) -> None:
     container.remove()
     status_code = response["StatusCode"]
     logs = response["logs"]
-    if not status_code == 0:
+    if status_code != 0:
         LOG.error(
             f"Received a non-zero status code from docker ({status_code}); additional details: {logs}",
         )
@@ -186,15 +186,19 @@ def opinionated_docker_run(
     auto_remove: bool = False,
     tty: bool = False,
     detach: bool = True,
-    environment: dict = {},
+    environment: dict | None = None,
     user: str = "",
-    volumes: dict | list = {},
+    volumes: dict | list | None = None,
     working_dir: str = "/iac/",
     expected_exit: int = 0,
     check_logs: Pattern[str] | None = None,
     network_mode: str | None = None,
 ) -> None:
     """Perform an opinionated docker run"""
+    if environment is None:
+        environment = {}
+    if volumes is None:
+        volumes = {}
     if auto_remove and check_logs:
         LOG.error(f"auto_remove cannot be {auto_remove} when check_logs is specified")
         sys.exit(1)
@@ -270,15 +274,15 @@ def get_github_actions_matrix(
 
     github_matrix: dict[str, list[dict[str, str]]] = {}
     github_matrix["include"] = []
-    for tool, environments in tools_and_environments.items():
+    for tool, environments in tools_and_environments.items():  # noqa: PLR1704
         job: dict[str, str] = {"tool": tool, "environment": "none"}
         if testing:
-            for user in users:
+            for user in users:  # noqa: PLR1704
                 job["user"] = user
                 github_matrix["include"].append(copy.copy(job))
         else:
             github_matrix["include"].append(job)
-        for environment in environments["environments"]:
+        for environment in environments["environments"]:  # noqa: PLR1704
             job: dict[str, str] = {"tool": tool, "environment": environment}
             if testing:
                 for user in users:
@@ -363,7 +367,7 @@ def gather_tools_and_environments(
         tools: list[str] = [tool]
 
     image_and_tool_and_environment_tags: dict[str, dict[str, list[str]]] = {}
-    for tool in tools:
+    for tool in tools:  # noqa: PLR1704
         if environment == "none":
             environments: list[str] = []
         elif environment == "all":
@@ -639,10 +643,10 @@ def log_image_build(*, build_kwargs: dict) -> None:
     # Defaults for the optional items
     pull = False
     cache_from = ""
-    for key in build_kwargs:
+    for key in build_kwargs:  # noqa: PLC0206
         match key:
             case "buildargs":
-                buildargs = str()
+                buildargs = ""
                 for arg in build_kwargs[key]:
                     buildargs += f"--build-arg {arg}={build_kwargs[key][arg]} "
             case "dockerfile":
@@ -667,7 +671,7 @@ def log_image_build(*, build_kwargs: dict) -> None:
             case "target":
                 target = f"--target {build_kwargs[key]}"
             case "cache_from":
-                cache_from = str()
+                cache_from = ""
                 for image_and_tag in build_kwargs[key]:
                     cache_from += f"--cache-from {image_and_tag} "
 
@@ -809,12 +813,11 @@ def build_and_tag(
         if (
             "tool" in constants.CONFIG["packages"][package]
             and "name" in constants.CONFIG["packages"][package]["tool"]
-        ):
-            if tool == constants.CONFIG["packages"][package]["tool"]["name"]:
-                custom_tool_name = True
-                dockerfile_tool: str = f"Dockerfile.{package}"
-                dockerfrag_tool: str = f"Dockerfrag.{package}"
-                break
+        ) and tool == constants.CONFIG["packages"][package]["tool"]["name"]:
+            custom_tool_name = True
+            dockerfile_tool: str = f"Dockerfile.{package}"
+            dockerfrag_tool: str = f"Dockerfrag.{package}"
+            break
     else:
         LOG.error(f"Unable to identify the tool {tool} in the config")
         sys.exit(1)
@@ -832,9 +835,7 @@ def build_and_tag(
 
         # Use the package from the earlier loop if the tool name is custom
         key = package if custom_tool_name else tool
-        if "security" in constants.CONFIG["packages"][key]:
-            for security_tool in constants.CONFIG["packages"][key]["security"]:
-                security_tools.append(security_tool)
+        security_tools.extend(constants.CONFIG["packages"][key].get("security", []))
 
         # Load in the security tool dockerfiles/frags
         config["dockerfile_security_tools"] = []
@@ -993,7 +994,7 @@ def build(
     )
 
     # pylint: disable=redefined-argument-from-local
-    for tool in tools_to_environments:
+    for tool in tools_to_environments:  # noqa: PLR1704
         tools: list[str] = [tool]
         for package in constants.CONFIG["packages"]:
             if (
@@ -1047,7 +1048,7 @@ def sbom(tool="all", environment="all", debug=False) -> None:
         tools_to_environments=tools_to_environments, environment=environment
     )
 
-    for tool in tools_to_environments:
+    for tool in tools_to_environments:  # noqa: PLR1704
         try:
             for iteration, tag in enumerate(tags):
                 if (
@@ -1119,12 +1120,12 @@ def test(
     image_and_versioned_tags: list[str] = []
 
     # pylint: disable=redefined-argument-from-local
-    for tag in tags:
+    for tag in tags:  # noqa: PLR1704
         image_and_versioned_tags.append(f"{constants.IMAGE}:{tag}")
 
     # Only test using the versioned tag
     for image_and_versioned_tag in image_and_versioned_tags:
-        for user in users:
+        for user in users:  # noqa: PLR1704
             LOG.info(
                 f"Testing {image_and_versioned_tag} for platform {PLATFORM} with user {user}..."
             )
