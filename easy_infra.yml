@@ -77,7 +77,7 @@ packages:
   azure-cli:
     aliases:
     - az
-    version: 2.90.0
+    version: 2.90.0-1~jammy
     version_argument: version
   checkov:
     version: 3.3.20
