@@ -19,7 +19,7 @@ env:
 jobs:
   lint:
     name: Lint
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v4
@@ -29,7 +29,7 @@ jobs:
           disable_mypy: true
   generate-matrixes:
     name: Generate matrixes for future use in pipelines
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     outputs:
       image-matrix: ${{ steps.set-image-outputs.outputs.image-matrix }}
       test-matrix: ${{ steps.set-testing-outputs.outputs.test-matrix }}
@@ -65,7 +65,7 @@ jobs:
     name: Test
     needs: [generate-matrixes]
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.generate-matrixes.outputs.test-matrix) }}
@@ -136,7 +136,7 @@ jobs:
     if: "${{ github.event_name == 'push' && !startsWith(github.event.head_commit.message, 'Bump version: 2') }}"
     permissions:
       contents: write
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     outputs:
       git_tag: ${{ steps.bump-version.outputs.git_tag }}
     steps:
@@ -174,7 +174,7 @@ jobs:
       matrix: ${{ fromJSON(needs.generate-matrixes.outputs.image-matrix) }}
     if: "${{ github.event_name == 'push' && !startsWith(github.event.head_commit.message, 'Bump version: 2') }}"
     environment: "${{ needs.bump-version.outputs.git_tag }}"
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v4
@@ -269,7 +269,7 @@ jobs:
     name: Finalize the release
     needs: [bump-version, distribute]
     if: "${{ github.event_name == 'push' && !startsWith(github.event.head_commit.message, 'Bump version: 2') }}"
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v4
