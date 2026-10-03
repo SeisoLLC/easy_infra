@@ -1,6 +1,7 @@
 ARG EASY_INFRA_TAG
 
-FROM seiso/easy_infra_base:"${EASY_INFRA_TAG}" AS opentofu
+ARG TARGETPLATFORM
+FROM --platform=$TARGETPLATFORM seiso/easy_infra_base:"${EASY_INFRA_TAG}" AS opentofu
 
 ARG BUILDARCH
 ARG OPENTOFU_VERSION

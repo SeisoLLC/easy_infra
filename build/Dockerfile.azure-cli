@@ -1,6 +1,7 @@
 ARG EASY_INFRA_TAG
 
-FROM seiso/easy_infra_base:"${EASY_INFRA_TAG}" AS azure-cli
+ARG TARGETPLATFORM
+FROM --platform=$TARGETPLATFORM seiso/easy_infra_base:"${EASY_INFRA_TAG}" AS azure-cli
 
 ARG AZURE_CLI_VERSION
 ENV AZURE_CLI_VERSION="${AZURE_CLI_VERSION}"
